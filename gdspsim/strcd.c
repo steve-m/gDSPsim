@@ -55,19 +55,20 @@ Instruction_Class STRCD_Obj =
 
 static void read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-  if ( check_condition( (pipeP->current_opcode & 0xf)) | 0x40 )
-    pipeP->storage1 = MMR->T;
-  else
-    {
-      xmem_read_stg2(pipeP,Reg);
-      pipeP->storage1 = Reg->DB;
-    }
-  xmem_set_EAB(pipeP,Reg);
+  Reg->EAB = Reg->DAB;
+  xmem_read_stg2(pipeP,Reg);
 }
 
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-  write_data_mem(Reg->EAB,pipeP->storage1);     
+  if ( check_condition( (pipeP->current_opcode & 0xf) | 0x40) )
+    {
+      write_data_mem(Reg->EAB,MMR->T);
+    }
+  else
+    {
+      write_data_mem(Reg->EAB,Reg->DB);
+    }
 }
 
 /* Generates an array of Words that this opcode text generates or NULL
