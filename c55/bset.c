@@ -138,7 +138,7 @@ Instruction_Class BSET_Obj =
   execute, // execute
   write_stg, // write 
   NULL, // write_plus
-  5,
+  6,
   mask,
   opcode,
 };
@@ -163,7 +163,8 @@ static void read_stg(struct _PipeLine *pipeP, struct _Registers *Reg)
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   Opcode opcode;
-  int bit,r;
+  int r;
+  Word bit;
   union _GP_Reg_Union reg_union;
 
   opcode = pipeP->decode_nfo.mach_code;
@@ -201,10 +202,23 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
     case 5:
       // BSET Baddr, src
       r = (opcode.bop[2]>>4)&0xf;
-      bit = Reg->DB & 0xf;
-      reg_union = get_register(r,0);
-      reg_union.guint64 = reg_union.guint64  | 1<<bit;
-      set_register(reg_union,r);
+      if ( r < 4 )
+	{
+	  bit = Reg->DB & 0x3f;
+	  if ( bit < 40 )
+	    {
+	      reg_union = get_register(r,0);
+	      reg_union.guint64 = reg_union.guint64 | 1<<bit;
+	      set_register(reg_union,r);
+	    }
+	}
+      else
+	{
+	  bit = Reg->DB & 0xf;
+	  reg_union = get_register(r,0);
+	  reg_union.guint64 = reg_union.guint64 | 1<<bit;
+	  set_register(reg_union,r);
+	}
       break;
     }
 }
