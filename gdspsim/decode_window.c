@@ -25,6 +25,7 @@
 #include "find_opcode.h"
 #include "memory.h"
 #include "entryCB.h"
+#include "pipeline.h"
 
 static gchar *pipe_tag[6]=
 {
@@ -158,70 +159,34 @@ static void change_start_address(GtkWidget *entry, guint64 address,
 
 static void text_CB( GtkTextView *W, GdkEventButton *event )
 {
-#if 0
-  int line_num=0;
-  GList *line;
+  gint x,y;
+  gint win_x,win_y;
+  GtkTextIter iter;
+  GtkTextIter start_iter;
+  GtkTextIter end_iter;
+  GdkModifierType mask=GDK_BUTTON1_MASK;
+  int ln;
   
-  printf("pos_x=%d pos_y=%d button=%d\n",W->cursor_pos_x,W->cursor_pos_y,W->button);
-  printf("current_line=0x%x\n",(int)W->current_line); 
-  
-  line = W->current_line;
-  
-  while (line->prev)
-    {
-      line_num++;
-      line=line->prev;
-    }
-  printf("line number=%d\n",line_num);
-  
-  printf("gtk_text_get_point=%d\n",gtk_text_get_point(W));  
-#endif
-  printf("text_CB=%d widget=0x%x \n",(int)event,(int)W);
-  
-  //	    gtk_text_buffer_insert_with_tags_by_name (buffer, &iter, line, -1,
-  //					      "red_background", NULL);
-  //gtk_text_buffer_apply_tag       (buffer,
-  //			   "red_background",
-  //			   &iter_start,
-  //			   &iter_end);
-  printf("text mark insert = 0x%x\n",(int)gtk_text_buffer_get_insert (buffer) );
-  // printf("text mark _____  = 0x%x\n",(int)  gtk_text_buffer_get_mark (buffer,"insert"));
+  gdk_window_get_pointer(event->window,&win_x,&win_y,&mask );
+    
+  gtk_text_view_window_to_buffer_coords (GTK_TEXT_VIEW(textW), GTK_TEXT_WINDOW_WIDGET ,win_x,win_y,&x,&y);
+ 
+  gtk_text_view_get_iter_at_location(GTK_TEXT_VIEW(textW),&iter,x,y);
+      
+  ln=gtk_text_iter_get_line (&iter);
+ 
   {
-    gint x,y;
-    gint win_x,win_y;
-    GtkTextIter iter;
-    GtkTextIter start_iter;
-    GtkTextIter end_iter;
-    GdkModifierType mask=GDK_BUTTON1_MASK;
-    GtkTextWindowType win_type;
-    int ln;
-    
-    gdk_window_get_pointer(event->window,&win_x,&win_y,&mask );
-    printf("win x,y %d %d\n",win_x,win_y);
-    
-    // Gtk-CRITICAL **: file gtktextview.c: line 5373 (gtk_text_view_get_window_type): assertion `GDK_IS_WINDOW (text_view)' failed
-    
-    win_type =  gtk_text_view_get_window_type(GTK_TEXT_VIEW(textW),event->window);
-    
-    printf("win_type=%d\n",win_type);
-    
-    gtk_text_view_window_to_buffer_coords (GTK_TEXT_VIEW(textW), GTK_TEXT_WINDOW_WIDGET ,win_x,win_y,&x,&y);
-    printf("buff x,y %d %d\n",x,y);
-    
-    gtk_text_view_get_iter_at_location(GTK_TEXT_VIEW(textW),&iter,x,y);
-    //    printf("itet =0x%x\n",(int)iter);
-    
-    ln=gtk_text_iter_get_line (&iter);
-    printf("line=%d\n",ln);
-    //    gtk_text_buffer_insert_with_tags_by_name (buffer, &iter, line, -1,
-    //				      "red_background", NULL);
-    gtk_text_buffer_get_iter_at_line(buffer,&start_iter,ln);
-    
-    printf("computed iter at start of line\n");
-    gtk_text_buffer_apply_tag_by_name(buffer,"red_background",&start_iter,&end_iter);
-    
-    
+    WordA breakpoint;
+    breakpoint = line2word(dwn->word2line,ln,dwn->start);
+    printf("Set breakpoint at 0x%x\n",breakpoint);
+    set_breakpoint(breakpoint);
   }
+
+  gtk_text_buffer_get_iter_at_line(buffer,&start_iter,ln);
+  end_iter=start_iter;
+  gtk_text_iter_forward_to_line_end ( &end_iter);
+  
+  gtk_text_buffer_apply_tag_by_name(buffer,pipe_tag[0],&start_iter,&end_iter);
   
   return;
 }
@@ -477,4 +442,46 @@ static void insert_text(WordA start_mem, WordA end_mem, GArray *word2line, GtkTe
     }
   g_ptr_array_free(textA,TRUE);
   
+}
+
+WordA line2word(GArray *word2line, int line, WordA start)
+{
+  WordA guess,guess_hi,guess_low;
+  int line_guess;
+
+  guess_hi = word2line->len-1;
+  guess_low = 0;
+  guess = guess_hi>>1;
+
+  while ( 1 )
+    {
+      line_guess = g_array_index(word2line,int,guess);
+
+      if ( line_guess == line || guess == guess_hi)
+	{
+	  // Make sure it's the first word of the line
+	  while ( guess > 0 )
+	    {
+	      guess--;
+	      line_guess = g_array_index(word2line,int,guess);
+	      if ( line_guess < line )
+		{
+		  guess++;
+		  return guess+start;
+		}
+	    }
+	  return start;
+	      
+	}
+      else if ( line_guess > line )
+	{
+	  guess_hi = guess;
+	  guess = guess_low + (( guess_hi - guess_low + 1 )>>1);
+	}
+      else // ( line_guess < line )
+	{
+	  guess_low = guess;
+	  guess = guess_low + (( guess_hi - guess_low + 1 )>>1);
+	}
+    }
 }
