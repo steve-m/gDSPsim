@@ -18,6 +18,7 @@
 */
 
 #include "alu.h"
+#include "memory.h"
 
 struct _bytes
 {
@@ -51,11 +52,13 @@ union _bitconv
  *      3, Y operand is from CB register
  * Omux 0, store answer in A
  *      1, store answer in B
+ *      2, store answer in EAB
  * flag bit 0-1, 0=add 1=Y-X 2=X-Y 3=sub high word, add low word (DSADT)
  *      bit 2 shift DB and CB by 16 each (SUB,SQDST,LMS)
  *      bit 3 40 bit mode
  *      bit 4 ignored SXM
  *      bit 5 round result by adding 2^15
+ *      bit 6 ADD can only set and SUB can only reset Carry bit
  */ 
 void alu(int Xmux, int Ymux, int Omux, int flag, struct _Registers *Reg)
 {
@@ -171,7 +174,7 @@ void alu(int Xmux, int Ymux, int Omux, int flag, struct _Registers *Reg)
   // Check for overflow and set overflow bit
   if ( X.gint64 > 0x7fffffff )
     {
-      if ( Omux )
+      if ( Omux==1 )
 	set_OVB(MMR,1);
       else
 	set_OVA(MMR,1);
@@ -180,7 +183,7 @@ void alu(int Xmux, int Ymux, int Omux, int flag, struct _Registers *Reg)
     }
   else if ( X.gint64 < -((gint64)1<<31) )
     {
-      if ( Omux )
+      if ( Omux==1 )
 	set_OVB(MMR,1);
       else
 	set_OVA(MMR,1);
@@ -188,9 +191,28 @@ void alu(int Xmux, int Ymux, int Omux, int flag, struct _Registers *Reg)
 	X.gint64 = 0xff80000000;
     }
 
-  if ( Omux )
-    MMR->B = X.gp_reg;
+  // Set C bit
+  if ( (flag & 2) == 0 )
+    {
+      // Addition
+      if ( X.guint64 & (guint64)0x100000000 )
+        set_C(MMR,1);
+      else if ( (flag & (1<<6)) == 0 )
+        set_C(MMR,0);
+    }
   else
-    MMR->A = X.gp_reg;
+    {
+      // Subtraction
+      if ( X.guint64 & (guint64)0x100000000 )
+        set_C(MMR,1);
+      else if ( (flag & (1<<6)) == 0 )
+        set_C(MMR,0);
+    }
 
+  if ( Omux==0 )
+    MMR->A = X.gp_reg;
+  else if ( Omux==1 )
+    MMR->A = X.gp_reg;
+  else if ( Omux==2 )
+    write_data_mem(Reg->EAB,X.words.low);
 }
