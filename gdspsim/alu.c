@@ -212,7 +212,7 @@ void alu(int Xmux, int Ymux, int Omux, int flag, struct _Registers *Reg)
   if ( Omux==0 )
     MMR->A = X.gp_reg;
   else if ( Omux==1 )
-    MMR->A = X.gp_reg;
+    MMR->B = X.gp_reg;
   else if ( Omux==2 )
     write_data_mem(Reg->EAB,X.words.low);
 }
