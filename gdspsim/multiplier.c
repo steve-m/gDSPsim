@@ -97,25 +97,25 @@ void multiplier(int Xmux, int Ymux, int Amux, int Smux, struct _Registers *Reg)
   if ( Amux == 1 )
     {
       // Accumulate using A register
-      reg_union.gp_reg = MMR->A;
+      reg_union.guint64 = GP_REG_2_UINT64(MMR->A);
       Result64 = Result64 + reg_union.gint64;
     }
   else if ( Amux == 2 )
     {
       // Accumulate using B register
-      reg_union.gp_reg = MMR->B;
+      reg_union.guint64 = GP_REG_2_UINT64(MMR->B);
       Result64 = Result64 + reg_union.gint64;
     }
   else if ( Amux == 3 )
     {
       // Accumulate using A register
-      reg_union.gp_reg = MMR->A;
+      reg_union.guint64 = GP_REG_2_UINT64(MMR->A);
       Result64 = reg_union.gint64 - Result64;
     }
   else if ( Amux == 4 )
     {
       // Accumulate using B register
-      reg_union.gp_reg = MMR->B;
+      reg_union.guint64 = GP_REG_2_UINT64(MMR->B);
       Result64 = reg_union.gint64 - Result64;
     }
  
