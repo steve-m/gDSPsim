@@ -400,16 +400,19 @@ union u_operands read_op(char info, struct _Registers *Registers, Word bits, Wor
 }
 
 
-// Returns true if the mach_code matches the mask
-int check_mask(const char *mask, Word mach_code )
+// Returns the number of words 1,2,3 that match the mask
+// 0, if it doesn't match. Will read program memory address+1 
+// and address+2 only if needed
+int check_mask(const char *mask, Word mach_code, WordA address )
 {
-  int bit;
+  int bit,wait_state,length,smem;
 
   g_return_val_if_fail(*mask,-1);
 
-
   bit=BITS_PER_WORD-1;
-  while ( (*mask != '\0') && (bit >= 0))
+  length=1;
+  smem=0;
+  while ( (*mask != '\0') )
     {
       if ( *mask=='1')
 	{
@@ -421,18 +424,69 @@ int check_mask(const char *mask, Word mach_code )
 	  if ( (mach_code & ( 1 << bit )) != 0 ) 
 	    return 0;
 	}
+      else if ( *mask=='a' )
+        {
+          // mark for special case
+          smem=1;
+        }
       if ( *mask != ' ' )
 	{
+          mask++;
 	  bit--;
-	}
-      mask++;
+          if ( bit == -1 )
+            {
+              while ( (*mask != '\0') && (*mask == ' ') )
+                mask++;
+              if ( *mask == '\0' )
+                {
+                  if ( smem )
+                    {
+                      // may need to ignore this next word
+                      if ( mach_code & 0x80 )
+                        {
+                          int mod;
+                          mod = (mach_code & (8+16+32+64) ) >> 3;
+                          if ( mod >= 12 )
+                            {
+                              length++;
+                            }
+                        }
+                    } 
+                  return length; // found a match
+                }
+              // must read another word
+              if ( smem )
+                {
+                  // may need to ignore this next word
+                  if ( mach_code & 0x80 )
+                    {
+                      int mod;
+                      mod = (mach_code & (8+16+32+64) ) >> 3;
+                      if ( mod >= 12 )
+                        {
+                          address++;
+                          mach_code = read_program_mem(address,&wait_state);
+                          length++;
+                        }
+                    }
+                  smem=0;
+                }
+              address++;
+              mach_code = read_program_mem(address,&wait_state);
+              length++;
+              bit=BITS_PER_WORD-1;
+            }
+        }
+      else
+        {
+          mask++;
+        }
 
     }
 
-  if ( bit != -1 )
     printf("Error, funny bit length for mask=%s file=%s:%d\n",mask,__FILE__,__LINE__);
 
-  return 1;
+  return length;
 
 }
 

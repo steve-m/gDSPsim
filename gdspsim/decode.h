@@ -26,8 +26,10 @@ extern struct _Registers *Registers;
 
 union u_operands read_op(char info, struct _Registers *Registers, Word bits, Word lk, int *wait_state);
 
-// Returns true if the opcode matches the mask
-int check_mask(const char *mask, Word mach_code );
+// Returns the number of words 1,2,3 that match the mask
+// 0, if it doesn't match. Will read program memory address+1 
+// and address+2 only if needed
+int check_mask(const char *mask, Word mach_code, WordA address );
 
 // This is used to decode pointer registers and the modifiers on them
 gchar *a_decode(gchar *mask, char info, Word start_code, WordA *location);
