@@ -151,7 +151,7 @@ void open_file( const gchar *filename )
 	WordA sa;
 
 	sa = (WordA)CHAR_TO_UINT32(opt_hdr->start_address);
-	set_prog_mem_start_end(sa,sa+0x30);
+	set_prog_mem_start_end(sa,sa+0x100);
 	set_program_start(sa);
       }
     }
@@ -159,7 +159,7 @@ void open_file( const gchar *filename )
     {
       opt_hdr=NULL;
       relocate=0x80; // To put .obj files in a reasonable location
-      set_prog_mem_start_end(relocate,relocate+0x20 );
+      set_prog_mem_start_end(relocate,relocate+0x100 );
       set_program_start(relocate);
     }
 
@@ -258,15 +258,19 @@ void open_file( const gchar *filename )
 	}
       
       // Read string table size
-      fread(&str_size, 1, 4, fp);
+      read_size = fread(&str_size, 1, 4, fp);
+
+      // if read_size==0 then there is no string table
+      if ( read_size )
+	{
+	  str_table = g_new(gchar,str_size);
+	  memset(str_table, 0, 4);
       
-      str_table = g_new(gchar,str_size);
-      memset(str_table, 0, 4);
-      
-      read_size = fread(str_table+4, 1, str_size-4, fp);
-      if ( read_size != str_size-4 )
-	file_error(__LINE__,header,section_header);
-      
+	  read_size = fread(str_table+4, 1, str_size-4, fp);
+	  if ( read_size != str_size-4 )
+	    file_error(__LINE__,header,section_header);
+	}
+
       // Move symbol table into linked list
       for (k=0;k<CHAR_TO_UINT32(header->num_symbols);k++ )
 	{
@@ -308,7 +312,10 @@ void open_file( const gchar *filename )
 	      
 	      // Extract labels
 	      if ( (symL->numaux==0x0 && symL->class==0x6 && symL->type==0x0004 && symL->section_num > 0 ) ||
-		   (symL->numaux==0x0 && symL->class==0x2 && symL->type==0x0004 && symL->section_num > 0 ) )
+		   (symL->numaux==0x0 && symL->class==0x2 && symL->type==0x0004 && symL->section_num > 0 ) ||
+		   (symL->numaux==0x1 && symL->class==0x2 && symL->type==0x0020 && symL->section_num > 0 ) ||
+		   (symL->numaux==0x1 && symL->class==0x2 && symL->type==0x002e && symL->section_num > 0 ) ||
+		   (symL->numaux==0x1 && symL->class==0x2 && symL->type==0x0024 && symL->section_num > 0 ) )
 		{
 		  symbol_label = g_list_append(symbol_label,symL);
 		}
