@@ -3,8 +3,6 @@
 #ifndef __C54_CORE_H__
 #define __C54_CORE_H__
 
-extern struct _MMR *MMR;
-
 struct _MMR
 {
   // CPU Memory-Mapped Registers
