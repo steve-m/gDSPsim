@@ -1,5 +1,5 @@
 %define ver 0.30
-%define rel 1
+%define rel 2
 %define prefix /usr
 
 Summary:   A C54 DSP simulator
@@ -37,10 +37,13 @@ make clean
 %files
 %{prefix}/bin/gdspsim
 %{prefix}/share/gdspsim/stop.xpm
-%{prefix}/share/gnome/gdspsim/C/gdspsim.html
+%{prefix}/share/gnome/help/gdspsim/C/gdspsim.html
 
 
 %changelog
+* Tue May 6 2003 Kerry Keal <kerry@industrialmusic.com>
+- Fixed documentation
+
 * Mon Jun 24 2002 Kerry Keal <kerry@industrialmusic.com>
 - Lots of simulator bug fixes
 - Added File IO
