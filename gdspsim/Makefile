@@ -40,9 +40,16 @@ OBJS	= \
 	bit.o \
 	bitf.o \
 	bitt.o \
+	cala.o \
+	call.o \
+	cmpl.o \
+	cmpm.o \
+	cmps.o \
 	dadd.o \
+	dadst.o \
 	dld.o \
 	dst.o \
+	exp.o \
 	fcala.o \
 	fcall.o \
 	frame.o \
@@ -50,15 +57,25 @@ OBJS	= \
 	ld.o \
 	ldm.o \
 	mac.o \
+	maca.o \
 	macsu.o \
 	mar.o \
+	max.o \
+	min.o \
+	mpy.o \
+	mpya.o \
+	mpyu.o \
 	mvdd.o \
 	mvdp.o \
 	mvdk.o \
+	mvdm.o \
+	mvmd.o \
 	mvmm.o \
 	neg.o \
 	nop.o \
+	norm.o \
 	or.o \
+	orm.o \
 	reada.o \
 	rpt.o \
 	rptb.o \
@@ -69,6 +86,9 @@ OBJS	= \
 	stl.o \
 	stlm.o \
 	stm.o \
+	strcd.o \
+	xor.o \
+	xorm.o \
 	decode.o \
 	decode_window.o \
 	entryCB.o \
@@ -87,6 +107,7 @@ OBJS	= \
 	shifter.o \
 	smem.o \
 	string_func.o \
+	symbols.o \
 	xymem.o
 
 SRCS	= $(OBJS:%.o=%.c)
