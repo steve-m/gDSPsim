@@ -76,7 +76,7 @@ Instruction_Class MAC_Obj =
   execute, // execute
   write_stg, // write 
   NULL, // write_plus
-  6,
+  11,
   mask,
   opcode,
 };
