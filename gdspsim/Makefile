@@ -67,6 +67,8 @@ OBJS	= \
 	frete.o \
 	idle.o \
 	ld.o \
+	ld_mac.o \
+	ld_mas.o \
 	ldr.o \
 	ldu.o \
 	ldm.o \
@@ -99,9 +101,11 @@ OBJS	= \
 	popm.o \
 	pshd.o \
 	pshm.o \
+	rc.o \
 	reada.o \
 	ret.o \
 	rete.o \
+	retf.o \
 	rnd.o \
 	rol.o \
 	roltc.o \
@@ -117,7 +121,12 @@ OBJS	= \
 	squra.o \
 	squrs.o \
 	st.o \
+	st_add.o \
 	st_ld.o \
+	st_mac.o \
+	st_mas.o \
+	st_mpy.o \
+	st_sub.o \
 	sth.o \
 	ssbx.o \
 	stl.o \

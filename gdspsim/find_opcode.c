@@ -65,6 +65,8 @@ extern Instruction_Class FRET_Obj;
 extern Instruction_Class FRETE_Obj;
 extern Instruction_Class IDLE_Obj;
 extern Instruction_Class LD_Obj;
+extern Instruction_Class LD_MAC_Obj;
+extern Instruction_Class LD_MAS_Obj;
 extern Instruction_Class LDR_Obj;
 extern Instruction_Class LDU_Obj;
 extern Instruction_Class LDM_Obj;
@@ -99,7 +101,9 @@ extern Instruction_Class PSHD_Obj;
 extern Instruction_Class PSHM_Obj;
 extern Instruction_Class READA_Obj;
 extern Instruction_Class RET_Obj;
+extern Instruction_Class RC_Obj; // decodes same as RET with c=0
 extern Instruction_Class RETE_Obj;
+extern Instruction_Class RETF_Obj;
 extern Instruction_Class RND_Obj;
 extern Instruction_Class ROL_Obj;
 extern Instruction_Class ROLTC_Obj;
@@ -116,7 +120,12 @@ extern Instruction_Class SQURA_Obj;
 extern Instruction_Class SQURS_Obj;
 extern Instruction_Class SSBX_Obj;
 extern Instruction_Class ST_Obj;
+extern Instruction_Class ST_ADD_Obj;
 extern Instruction_Class ST_LD_Obj;
+extern Instruction_Class ST_MAC_Obj;
+extern Instruction_Class ST_MAS_Obj;
+extern Instruction_Class ST_MPY_Obj;
+extern Instruction_Class ST_SUB_Obj;
 extern Instruction_Class STH_Obj;
 extern Instruction_Class STL_Obj;
 extern Instruction_Class STLM_Obj;
@@ -130,7 +139,7 @@ extern Instruction_Class XC_Obj;
 extern Instruction_Class XOR_Obj;
 extern Instruction_Class XORM_Obj;
 
-#define All_Objects_Len  104
+#define All_Objects_Len  113
 static const Instruction_Class *All_Objects[All_Objects_Len]=
 {
   &ABDST_Obj,
@@ -173,6 +182,8 @@ static const Instruction_Class *All_Objects[All_Objects_Len]=
   &FRETE_Obj,
   &IDLE_Obj,
   &LD_Obj,
+  &LD_MAC_Obj,
+  &LD_MAS_Obj,
   &LDR_Obj,
   &LDU_Obj,
   &LDM_Obj,
@@ -205,9 +216,11 @@ static const Instruction_Class *All_Objects[All_Objects_Len]=
   &POPM_Obj,
   &PSHD_Obj,
   &PSHM_Obj,
+  &RC_Obj,
   &READA_Obj,
   &RET_Obj,
   &RETE_Obj,
+  &RETF_Obj,
   &RND_Obj,
   &ROL_Obj,
   &ROLTC_Obj,
@@ -224,7 +237,12 @@ static const Instruction_Class *All_Objects[All_Objects_Len]=
   &SQURS_Obj,
   &SSBX_Obj,
   &ST_Obj,
+  &ST_ADD_Obj,
   &ST_LD_Obj,
+  &ST_MAC_Obj,
+  &ST_MAS_Obj,
+  &ST_MPY_Obj,
+  &ST_SUB_Obj,
   &STH_Obj,
   &STL_Obj,
   &STLM_Obj,
