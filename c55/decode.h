@@ -53,7 +53,7 @@ void r_decode(gchar *ch, gchar *mask, char info,
 void u_decode(gchar *ch, gchar *mask, char info, 
               struct _decoded_opcode *decode_nfo);
 
-/void p_decode(gchar *ch, gchar *mask, char info, 
+void p_decode(gchar *ch, gchar *mask, char info, 
               struct _decoded_opcode *decode_nfo );
 // Unsigned hex number
 void h_decode(gchar *ch, gchar *mask, char info, 
