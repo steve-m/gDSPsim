@@ -954,6 +954,7 @@ int check_condition(Word bits)
 
 	  // Group 1, Category A   EQ,NEQ,LT,LEQ,GT,GEQ
 	  // Assume that Category A determines the Condition Register
+	  reg_union.gint64 = 0; // clear all bits
 	  if ( bits & 0x8 )
 	    reg_union.gp_reg = MMR->B;
 	  else
