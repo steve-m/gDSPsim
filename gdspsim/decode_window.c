@@ -255,10 +255,11 @@ void create_decode_window()
   entry_start_nfo->bits = BITS_PER_ADDRESS;
   entry_start_nfo->CB_func = change_start_address;
   entry_start_nfo->data = dwn;
+  entry_start_nfo->text = g_strdup(temp_str);
 
 
   gtk_signal_connect(GTK_OBJECT(entryTop), "activate",
-		     GTK_SIGNAL_FUNC(entry_hexCB),
+		     GTK_SIGNAL_FUNC(entry_addressCB),
 		     entry_start_nfo);
 
   gtk_widget_show (entryTop);
@@ -276,10 +277,11 @@ void create_decode_window()
   entry_start_nfo->bits = BITS_PER_ADDRESS;
   entry_start_nfo->CB_func = change_end_address;
   entry_start_nfo->data = dwn;
+  entry_start_nfo->text = g_strdup(temp_str);
 
 
   gtk_signal_connect(GTK_OBJECT(entryBottom), "activate",
-		     GTK_SIGNAL_FUNC(entry_hexCB),
+		     GTK_SIGNAL_FUNC(entry_addressCB),
 		     entry_start_nfo);
 
 
