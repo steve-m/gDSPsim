@@ -46,7 +46,7 @@ Instruction_Class MVDK_Obj =
   read_stg1, // read_stg1 (access)
   read_stg2, // read_stg2 (read)
   execute, // execute
-  return_2, //num_words_for_smem_plus1, // number_words 
+  num_words_for_smem_plus1, //num_words_for_smem_plus1, // number_words 
   NULL, // set_cycle_number
   1,
   mask,
