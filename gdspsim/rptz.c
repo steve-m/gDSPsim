@@ -53,7 +53,12 @@ Instruction_Class RPTZ_Obj =
 
 static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-  Reg->RC = bit_extract('u',mask[0],pipeP->current_opcode,NULL);
+  // always 2 words
+  if ( pipeP->word_number == 1 )
+    {
+      Reg->RC = Reg->IR;
+    }
+  return;
 }
 
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
