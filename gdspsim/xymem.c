@@ -81,7 +81,7 @@ void xymem_read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
   int wait_state;
   
   Reg->DB = read_data_mem(Reg->DAB,&wait_state);
-  Reg->CB = read_data_mem(Reg->DAB,&wait_state);
+  Reg->CB = read_data_mem(Reg->CAB,&wait_state);
 }
 void xmem_read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
