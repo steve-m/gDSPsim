@@ -21,8 +21,8 @@
 #include "hardware.h"
 #include <stdio.h>
 
-static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg);
-static void decode(struct _PipeLine *pipeP, struct _Registers *Reg);
+static void read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg);
+static void execute(struct _PipeLine *pipeP, struct _Registers *Reg);
 static GPtrArray *machine_code(gchar *opcode_text);
 
 static gchar *mask[]=    { "11100111 vvvvwwww" };
@@ -37,10 +37,10 @@ Instruction_Class MVMM_Obj =
   "MVMM",
   NULL, // prefetch
   NULL, // fetch
-  decode, // decode
-  read_stg1, // read_stg1 (access)
-  NULL, // read_stg2 (read)
-  NULL, // execute
+  NULL, // decode
+  NULL, // read_stg1 (access)
+  read_stg2, // read_stg2 (read)
+  execute, // execute
   NULL, // number_words 
   NULL, // set_cycle_number
   1,
@@ -50,7 +50,12 @@ Instruction_Class MVMM_Obj =
   machine_code
 };
 
-static void decode(struct _PipeLine *pipeP, struct _Registers *Reg)
+/* The Docs on this opcode state that it should be executed in the
+ * read_stg1 (access) stage. I don't believe that is what really
+ * happens on the chip. -Kerry
+ */
+
+static void read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   Word *mmr;
   Word mm_code;
@@ -61,7 +66,7 @@ static void decode(struct _PipeLine *pipeP, struct _Registers *Reg)
   pipeP->storage1 = *mmr;  
 
 }
-static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
+static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   Word mm_code;
 
