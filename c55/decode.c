@@ -178,7 +178,7 @@ void n_decode(gchar *ch, gchar *mask, char info,
 
 // extract unsigned decimal number
 // q_decode uses this for 2nd register
-void r_decode(gchar *ch, gchar *mask, char info, 
+void rR_decode(gchar *ch, gchar *mask, char info, 
               struct _decoded_opcode *decode_nfo)
 {
   unsigned int bits;
@@ -269,7 +269,7 @@ void t_decode(gchar *ch, gchar *mask, char info,
 // (pppp ppp1 == ppp0 1101) or (pppp ppp1 == ppp0 1111)
 // autmatically looks for 1001 1101 following if
 // (pppp ppp1 == ppp0 0011) or (pppp ppp1 == ppp0 0101)
-void p_decode(gchar *ch, gchar *mask, char info, 
+void s_decode(gchar *ch, gchar *mask, char info, 
               struct _decoded_opcode *decode_nfo )
 {
   unsigned int mod,bits,arf;
@@ -290,7 +290,7 @@ void p_decode(gchar *ch, gchar *mask, char info,
       return;
     }
 
-  if ( bits & 1 )
+  if ( (bits & 1)==0 )
     {
       // SP offset
       g_snprintf(ch,MAX_SUB_OP,"*SP(#%d)",(bits>>1)&0x7f );
@@ -305,10 +305,6 @@ void p_decode(gchar *ch, gchar *mask, char info,
   if ( tag == 0x9d )
     {
       extend = 1; // Circular addressing
-    }
-  else if ( tag == 0x00 )
-    {
-      extend = 2; // 16 bit offset address
     }
 
   switch ( mod )
@@ -367,43 +363,318 @@ void p_decode(gchar *ch, gchar *mask, char info,
 		     decode_nfo->mach_code.bop[word_num+2] );
 	}
       decode_nfo->length += 2;
-      //    g_snprintf(ch,MAX_SUB_OP,"*AR%d(#%xh)",arf );
       break;
     case 8:
-      if ( extend == 2 && arf==1 )
+      switch (arf)
 	{
-	  g_snprintf(ch,MAX_SUB_OP,"*(#%2.2x%2.2xh)",
+	case 0:
+	  g_snprintf(ch,MAX_SUB_OP,"ABS16(#%2.2x%2.2xh)",
+		     decode_nfo->mach_code.bop[length+1],
+		     decode_nfo->mach_code.bop[length+2] );
+	  decode_nfo->length += 2;
+	  break;
+	case 1:
+	  g_snprintf(ch,MAX_SUB_OP,"*(#%2.2x%2.2x%2.2xh)",
+		     decode_nfo->mach_code.bop[length+1],
 		     decode_nfo->mach_code.bop[length+2],
 		     decode_nfo->mach_code.bop[length+3] );
 	  decode_nfo->length += 3;
+	case 2:
+	  g_snprintf(ch,MAX_SUB_OP,"port(#%2.2x%2.2xh)",
+		     decode_nfo->mach_code.bop[length+1],
+		     decode_nfo->mach_code.bop[length+2] );
+	  decode_nfo->length += 2;
+	  break;
+	case 3:
+	  g_snprintf(ch,MAX_SUB_OP,"*CDP");
+	  break;
+	case 4:
+	  g_snprintf(ch,MAX_SUB_OP,"*CDP+");
+	  break;
+	case 5:
+	  g_snprintf(ch,MAX_SUB_OP,"*CDP-");
+	  break;
+	case 6:
+	  g_snprintf(ch,MAX_SUB_OP,"*CDP(#%2.2x%2.2xh)",
+		     decode_nfo->mach_code.bop[length+1],
+		     decode_nfo->mach_code.bop[length+2] );
+	  decode_nfo->length += 2;
+	  break;
+	case 7:
+	  g_snprintf(ch,MAX_SUB_OP,"*+CDP(#%2.2x%2.2xh)",
+		     decode_nfo->mach_code.bop[length+1],
+		     decode_nfo->mach_code.bop[length+2] );
+	  decode_nfo->length += 2;
+	  break;
 	}
-      else
-	g_snprintf(ch,MAX_SUB_OP,"????");
       break;
     case 9:
-      g_snprintf(ch,MAX_SUB_OP,"*(AR%d+T1)",arf );
+      if ( ARMS(MMR) )
+	g_snprintf(ch,MAX_SUB_OP,"*AR%d(short(#1))",arf );
+      else
+	g_snprintf(ch,MAX_SUB_OP,"*(AR%d+T1)",arf );
       break;
     case 10:
-      g_snprintf(ch,MAX_SUB_OP,"*(AR%d-T1)",arf );
+      if ( ARMS(MMR) )
+	g_snprintf(ch,MAX_SUB_OP,"*AR%d(short(#2))",arf );
+      else
+	g_snprintf(ch,MAX_SUB_OP,"*(AR%d-T1)",arf );
       break;
     case 11:
-      g_snprintf(ch,MAX_SUB_OP,"*AR%d(T1)",arf );
+      if ( ARMS(MMR) )
+	g_snprintf(ch,MAX_SUB_OP,"*AR%d(short(#3))",arf );
+      else
+	g_snprintf(ch,MAX_SUB_OP,"*AR%d(T1)",arf );
       break;
     case 12:
-      g_snprintf(ch,MAX_SUB_OP,"*+AR%d",arf );
+      if ( ARMS(MMR) )
+	g_snprintf(ch,MAX_SUB_OP,"*AR%d(short(#4))",arf );
+      else
+	g_snprintf(ch,MAX_SUB_OP,"*+AR%d",arf );
       break;
     case 13:
-      g_snprintf(ch,MAX_SUB_OP,"*-AR%d",arf );
+      if ( ARMS(MMR) )
+	g_snprintf(ch,MAX_SUB_OP,"*AR%d(short(#5))",arf );
+      else
+	g_snprintf(ch,MAX_SUB_OP,"*-AR%d",arf );
       break;
     case 14:
-      g_snprintf(ch,MAX_SUB_OP,"*(AR%d+T0B)",arf );
+      if ( ARMS(MMR) )
+	g_snprintf(ch,MAX_SUB_OP,"*AR%d(short(#6))",arf );
+      else
+	g_snprintf(ch,MAX_SUB_OP,"*(AR%d+T0B)",arf );
       break;
     case 15:
-      g_snprintf(ch,MAX_SUB_OP,"*(AR%d-T0B)",arf );
+      if ( ARMS(MMR) )
+	g_snprintf(ch,MAX_SUB_OP,"*AR%d(short(#7))",arf );
+      else
+	g_snprintf(ch,MAX_SUB_OP,"*(AR%d-T0B)",arf );
+      break;
+    }
+}
+// Used to decode TRNx registers
+void T_decode(gchar *ch, gchar *mask, char info, 
+              struct _decoded_opcode *decode_nfo)
+{
+  gboolean bit;
+
+  bit = one_bit_extract(info,mask,decode_nfo);
+
+  if ( bit )
+    g_snprintf(ch,MAX_SUB_OP,"TRN1");
+  else
+    g_snprintf(ch,MAX_SUB_OP,"TRN0");
+
+  return;
+}
+
+  // f Rounding (f is for floor, and letters were running out)
+void f_decode(gchar *ch, gchar *mask, char info, 
+              struct _decoded_opcode *decode_nfo)
+{
+  gboolean bit;
+
+  bit = one_bit_extract(info,mask,decode_nfo);
+
+  if ( bit )
+    g_snprintf(ch,MAX_SUB_OP,"R");
+
+  return;
+}
+
+// F Rounding (F is for floor, and letters were running out)
+// this round is rnd()
+void F_decode(gchar *ch, gchar *mask, char info, 
+              struct _decoded_opcode *decode_nfo)
+{
+  gboolean bit;
+
+  bit = one_bit_extract(info,mask,decode_nfo);
+
+  if ( bit )
+    g_snprintf(ch,MAX_SUB_OP,"rnd(");
+
+  return;
+}
+
+// G close up F Rounding (F is for floor, and letters were running out)
+void G_decode(gchar *ch, gchar *mask, char info, 
+              struct _decoded_opcode *decode_nfo)
+{
+  gboolean bit;
+
+  bit = one_bit_extract('F',mask,decode_nfo);
+
+  if ( bit )
+    g_snprintf(ch,MAX_SUB_OP,")");
+
+  return;
+}
+
+  // 3 applies T3=
+void t3_decode(gchar *ch, gchar *mask, char info, 
+              struct _decoded_opcode *decode_nfo)
+{
+  gboolean bit;
+
+  bit = one_bit_extract(info,mask,decode_nfo);
+
+  if ( bit )
+    g_snprintf(ch,MAX_SUB_OP,"T3=");
+
+  return;
+}
+  // A unsigned flag, think Abs
+void A_decode(gchar *ch, gchar *mask, char info, 
+              struct _decoded_opcode *decode_nfo)
+{
+  gboolean bit;
+
+  bit = one_bit_extract(info,mask,decode_nfo);
+
+  if ( bit )
+    g_snprintf(ch,MAX_SUB_OP,"U");
+
+  return;
+}
+  // U unsigned wrapper start uns(
+void U_decode(gchar *ch, gchar *mask, char info, 
+              struct _decoded_opcode *decode_nfo)
+{
+  gboolean bit;
+
+  bit = one_bit_extract(info,mask,decode_nfo);
+
+  if ( bit )
+    g_snprintf(ch,MAX_SUB_OP,"uns(");
+
+  return;
+}
+  // V unsigned wrapper end )
+void V_decode(gchar *ch, gchar *mask, char info, 
+              struct _decoded_opcode *decode_nfo)
+{
+  gboolean bit;
+
+  bit = one_bit_extract('U',mask,decode_nfo);
+
+  if ( bit )
+    g_snprintf(ch,MAX_SUB_OP,")");
+
+  return;
+}
+
+// v reserved
+void v_decode(gchar *ch, gchar *mask, char info, 
+              struct _decoded_opcode *decode_nfo)
+{
+}
+
+// p parallel
+void p_decode(gchar *ch, gchar *mask, char info, 
+              struct _decoded_opcode *decode_nfo)
+{
+  FIXME();
+}
+
+  // c Cmem addressing
+void c_decode(gchar *ch, gchar *mask, char info, 
+	      struct _decoded_opcode *decode_nfo )
+{
+  unsigned int bits;
+  int num_mask;
+  int length;
+
+  bits = bit_extract(info,mask,decode_nfo,NULL,&num_mask,&length);
+
+  switch (bits)
+    {
+    case 0:
+      g_snprintf(ch,MAX_SUB_OP,"*CDP");
+      return;
+    case 1:
+      g_snprintf(ch,MAX_SUB_OP,"*CDP+");
+      return;
+    case 2:
+      g_snprintf(ch,MAX_SUB_OP,"*CDP-");
+      return;
+    case 3:
+      g_snprintf(ch,MAX_SUB_OP,"*(CDP+T0)");
+      return;
+    default:
+      printf("Error in mask %s\n",mask);
+    }
+
+  return;
+}
+
+void xy_decode(gchar *ch, gchar *mask, char info, 
+	       struct _decoded_opcode *decode_nfo )
+{
+  unsigned int bits;
+  int num_mask;
+  int length;
+  int mod,arf,c54cm;
+
+  bits = bit_extract(info,mask,decode_nfo,NULL,&num_mask,&length);
+
+  mod = bits & 7;
+  arf = bits >> 3;
+  c54cm = C54CM(MMR);
+
+  switch (mod)
+    {
+    case 0:
+      g_snprintf(ch,MAX_SUB_OP,"*AR%d",arf );
+      break;
+    case 1:
+      g_snprintf(ch,MAX_SUB_OP,"*AR%d+",arf );
+      break;
+    case 2:
+      g_snprintf(ch,MAX_SUB_OP,"*AR%d-",arf );
+      break;
+    case 3:
+      if ( c54cm )
+	g_snprintf(ch,MAX_SUB_OP,"*(AR%d+AR0)",arf );
+      else
+	g_snprintf(ch,MAX_SUB_OP,"*(AR%d+T0)",arf );
+      break;
+    case 4:
+      g_snprintf(ch,MAX_SUB_OP,"*(AR%d+T1)",arf );
+      break;
+    case 5:
+      if ( c54cm )
+	g_snprintf(ch,MAX_SUB_OP,"*(AR%d-AR0)",arf );
+      else
+	g_snprintf(ch,MAX_SUB_OP,"*(AR%d-T0)",arf );
+      break;
+    case 6:
+      g_snprintf(ch,MAX_SUB_OP,"*(AR%d-T1)",arf );
+      break;
+    case 7:
+      if ( c54cm )
+	g_snprintf(ch,MAX_SUB_OP,"*AR%d(AR0)",arf );
+      else
+	g_snprintf(ch,MAX_SUB_OP,"*AR%d(T0)",arf );
       break;
     }
 }
 
+gboolean one_bit_extract(char info, char *mask, 
+			 struct _decoded_opcode *decode_nfo)
+{
+  int num_mask,length;
+  Word bits;
+
+  bits = bit_extract(info, mask, decode_nfo, NULL, &num_mask, &length);
+
+  if ( bits )
+    return TRUE;
+  else
+    return FALSE;
+}
+
+  
 Word bit_extract(char info, char *mask, struct _decoded_opcode *decode_nfo,
                  int *word_num, int *num_mask, int *length)
 {
