@@ -121,7 +121,7 @@ void multiplier(int Xmux, int Ymux, int Amux, int Smux, struct _Registers *Reg)
     {
       Smux = Smux - 4;
       // Rounding
-      if ( RDM(MMR) || C54CM(MMR) )
+      if ( RDM(MMR) && C54CM(MMR)==0 )
 	{
 	  if ( reg_union.words.low > 0x8000 )
 	    {
