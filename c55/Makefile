@@ -24,12 +24,18 @@ VPATH = .:../gdspsim
 SRCS	= \
 	aadd.c \
 	add.c \
+	and.c \
 	bclr.c \
 	bset.c \
+	implied_parallel_instr.c \
 	mpyk.c \
+	mov_Mem2Mem.c \
 	mov_RegLoad.c \
+	mov_RegMove.c \
 	mov_RegStore.c \
 	mov_SpecRegLoad.c \
+	mov_SpecRegMove.c \
+	mov_SpecRegSave.c \
 	neg.c \
 	psh.c \
 	sfts.c \
@@ -37,6 +43,8 @@ SRCS	= \
 	sqr.c \
 	sqrm.c \
 	sub.c \
+	chip_help.c \
+	cmem.c \
 	decode.c \
 	find_opcode.c \
 	main.c \
