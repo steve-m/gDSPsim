@@ -109,6 +109,8 @@ union _16_bits
 // Converts GP_Reg bits X[32-16] to UINT64 without sign extension
 #define NS_GP_REG17_TO_UINT64(x) ( (((guint64)(x).byte4&0x1)<<16) |  ( (((guint64)(x).byte3)<<8) | ((guint64)(x).byte2) ) )
 
+#define GP_REG17_TO_UINT32(x) ( ((x).byte4 & 0x1 ) ? ( (guint32)0xffff0000 | (((guint32)(x).byte3)<<8) | ((guint32)(x).byte2) ) :  (((guint32)(x).byte3)<<16) | ((guint32)(x).byte2) ) 
+
 // Used to tell if the opcode tag is used in the notation. 
 #define INCLUDE_OPCODE_IN_DECODE 1
 // Used to tell if commas are inserted between operands
