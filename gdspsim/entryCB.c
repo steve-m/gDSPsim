@@ -58,24 +58,105 @@ void entry_wordCB( GtkWidget *widget, Word *reg )
   int value;
 
   entry_text = gtk_editable_get_chars(GTK_EDITABLE(widget),0,-1);
-  // entry_text = gtk_entry_get_text(GTK_ENTRY(widget));
   textP = entry_text;
   if ( *textP++ == '0' )
     {
       if ( *textP == 'X' || *textP == 'x' )
 	{
-	  //	  // now remove all non hex numbers
-	  //	  textP++;
-	  //	  while ( *textP )
-	    {
-	      sscanf(entry_text,"0x%x",&value);
-	      *reg=value;
-	    }
+	  sscanf(entry_text,"0x%x",&value);
 	}
-  
+      else
+	{
+	  sscanf(entry_text,"%d",&value);
+	}
     }
+  else
+    {
+      sscanf(entry_text,"%d",&value);
+    }
+
+  *reg=value;
+
   printf("Entry contents: %s %d\n", entry_text,value);
   g_free(entry_text);
 
+}
+
+void entry_word_maskCB( GtkWidget *widget, Word *reg, Word mask )
+{
+  gchar *entry_text,*textP;
+  int value;
+  Word mask_shift;
+
+  entry_text = gtk_editable_get_chars(GTK_EDITABLE(widget),0,-1);
+  textP = entry_text;
+  if ( *textP++ == '0' )
+    {
+      if ( *textP == 'X' || *textP == 'x' )
+	{
+	  sscanf(entry_text,"0x%x",&value);
+	}
+      else
+	{
+	  sscanf(entry_text,"%d",&value);
+	}
+    }
+  else
+    {
+      sscanf(entry_text,"%d",&value);
+    }
+
+  mask_shift = mask;
+  if ( mask_shift )
+    {
+      while ( (mask_shift & 1) == 0 )
+	{
+	  mask_shift=mask_shift>>1;
+	  value=value<<1;
+	}
+    }
+  value = value & mask;
+  *reg=(*reg & ~mask) | value;
+
+  g_free(entry_text);
+}
+
+void entry_gpreg_maskCB( GtkWidget *widget, GP_Reg *reg, guint64 mask )
+{
+  gchar *entry_text,*textP;
+  union _GP_Reg_Union value;
+  guint64 mask_shift;
+
+  entry_text = gtk_editable_get_chars(GTK_EDITABLE(widget),0,-1);
+  textP = entry_text;
+  if ( *textP++ == '0' )
+    {
+      if ( *textP == 'X' || *textP == 'x' )
+	{
+	  sscanf(entry_text,"0x%llx",&value.guint64);
+	}
+      else
+	{
+	  sscanf(entry_text,"%lld",&value.guint64);
+	}
+    }
+  else
+    {
+      sscanf(entry_text,"%lld",&value.gint64);
+    }
+
+  mask_shift = mask;
+  if ( mask_shift )
+    {
+      while ( (mask_shift & 1) == 0 )
+	{
+	  mask_shift=mask_shift>>1;
+	  value.guint64=value.guint64<<1;
+	}
+    }
+  value.guint64 = value.guint64 & mask;
+  *reg=value.gp_reg;
+
+  g_free(entry_text);
 }
 

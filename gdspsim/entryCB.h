@@ -34,5 +34,8 @@ struct _entryCB_nfo
 
 // routine to process an entry callback
 void entry_hexCB( GtkWidget *widget, struct _entryCB_nfo *entryCB_nfo );
-
+void entry_wordCB( GtkWidget *widget, Word *reg );
+// only changes value under mask. mask assumed to have consecutive bits
+void entry_word_maskCB( GtkWidget *widget, Word *reg, Word mask );
+void entry_gpreg_maskCB( GtkWidget *widget, GP_Reg *reg, guint64 mask );
 #endif
