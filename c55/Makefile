@@ -25,9 +25,18 @@ SRCS	= \
 	aadd.c \
 	add.c \
 	and.c \
+	band.c \
 	bclr.c \
 	bcnt.c \
+	bfxpa.c \
+	bfxtr.c \
+	bnot.c \
 	bset.c \
+	btst.c \
+	btstclr.c \
+	btstnot.c \
+	btstp.c \
+	btstset.c \
 	implied_parallel_instr.c \
 	mpyk.c \
 	mov_Mem2Mem.c \
@@ -41,6 +50,8 @@ SRCS	= \
 	not.c \
 	psh.c \
 	or.c \
+	rol.c \
+	ror.c \
 	sftl.c \
 	sfts.c \
 	sftsc.c	\
