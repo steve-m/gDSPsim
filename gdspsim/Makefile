@@ -66,12 +66,14 @@ OBJS	= \
 	fret.o \
 	frete.o \
 	idle.o \
+	intr.o \
 	ld.o \
 	ld_mac.o \
 	ld_mas.o \
 	ldr.o \
 	ldu.o \
 	ldm.o \
+	lms.o \
 	ltd.o \
 	mac.o \
 	maca.o \
@@ -90,6 +92,8 @@ OBJS	= \
 	mvdp.o \
 	mvdk.o \
 	mvdm.o \
+	mvkd.o \
+	mvpd.o \
 	mvmd.o \
 	mvmm.o \
 	neg.o \
@@ -97,12 +101,16 @@ OBJS	= \
 	norm.o \
 	or.o \
 	orm.o \
+	poly.o \
 	popd.o \
 	popm.o \
+	portr.o \
+	portw.o \
 	pshd.o \
 	pshm.o \
 	rc.o \
 	reada.o \
+	reset.o \
 	ret.o \
 	rete.o \
 	retf.o \
@@ -111,15 +119,19 @@ OBJS	= \
 	roltc.o \
 	ror.o \
 	rpt.o \
+	rptz.o \
 	rptb.o \
 	rsbx.o \
+	saccd.o \
 	sat.o \
 	sfta.o \
 	sftc.o \
 	sftl.o \
+	sqdst.o \
 	squr.o \
 	squra.o \
 	squrs.o \
+	srccd.o \
 	st.o \
 	st_add.o \
 	st_ld.o \
@@ -137,6 +149,8 @@ OBJS	= \
 	subb.o \
 	subc.o \
 	subs.o \
+	trap.o \
+	writa.o \
 	xc.o \
 	xor.o \
 	xorm.o \
