@@ -107,8 +107,8 @@ extern Instruction_Class PORTW_Obj;
 extern Instruction_Class PSHD_Obj;
 extern Instruction_Class PSHM_Obj;
 extern Instruction_Class READA_Obj;
-extern Instruction_Class RET_Obj;
-extern Instruction_Class RC_Obj; // decodes same as RET with c=0
+extern Instruction_Class RET_Obj; // decodes same as RC with c=0
+extern Instruction_Class RC_Obj;
 extern Instruction_Class RESET_Obj;
 extern Instruction_Class RETE_Obj;
 extern Instruction_Class RETF_Obj;
@@ -236,10 +236,10 @@ static const Instruction_Class *All_Objects[All_Objects_Len]=
   &PORTW_Obj,
   &PSHD_Obj,
   &PSHM_Obj,
+  &RET_Obj,  // decodes same as RC with c=0
   &RC_Obj,
   &READA_Obj,
   &RESET_Obj,
-  &RET_Obj,
   &RETE_Obj,
   &RETF_Obj,
   &RND_Obj,
