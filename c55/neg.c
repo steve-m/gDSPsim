@@ -17,15 +17,18 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
       
-#include "chip_core.h"
-#include "smem.h"
+#include <chip_core.h>
+#include <smem.h>
+#include <chip_help.h>
+
 static gchar *mask[]=
   {
-    "0011 0100 rrrr qqqq", // NEG r,q
+    "0011010p rrrrRRRR", // NEG [src,] dst
   };
+
 static gchar *opcode[] = 
 { 
-  "NEG r,q",
+  "NEG r,R",
 };
 
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg);
@@ -46,10 +49,20 @@ Instruction_Class NEG_Obj =
   opcode,
 };
 
-
-
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
+  int r,R;
+  Opcode opcode;
+  union _GP_Reg_Union reg_union1;
+
+  opcode = pipeP->decode_nfo.mach_code;
+
+  r = (opcode.bop[1]>>4)&0xf;
+  R = (opcode.bop[1])&0xf;
+
+  reg_union1 = get_register(r,1);
+
+  reg_union1.gint64 = -reg_union1.guint64;
+
+  set_register(reg_union1,R);
 }
-
-
