@@ -21,10 +21,11 @@
 #include <chip_help.h>
 #include <smem.h>
 #include <memory.h>
+
 static gchar *mask[]=
 {
   "01110110 kkkkkkkk kkkkkkkk RRRR01rr", // BFXPA k16, ACx, dst
-  };
+};
 
 static gchar *opcode[] = 
 { 
@@ -76,6 +77,7 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 	    }
 	}
       bit_place++;
+      kword1 = kword1 >> 1;
     }
 
   R = (opcode.bop[3]>>4)&0xf;
