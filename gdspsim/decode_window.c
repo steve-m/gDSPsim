@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-#define GTK_ENABLE_BROKEN
+//#define GTK_ENABLE_BROKEN
 
 #include <stdio.h>
 #include "decode_window.h"
@@ -27,16 +27,7 @@
 #include "entryCB.h"
 #include "pipeline.h"
 
-static gchar *pipe_tag[6]=
-{
-  "prefetch_tag", 
-  "fetch_tag",
-  "read_stg1_tag", 
-  "read_stg2_tag",
-  "decode_tag",
-  "execute_tag"
-};
-
+#if 0
 static gchar *pipe_tag_color[6]=
 {
   "red", 
@@ -46,14 +37,38 @@ static gchar *pipe_tag_color[6]=
   "#d0d0d0",
   "blue"
 };
+#endif
 
+static GdkColor pipe_color[6]=
+{
+  {0,0x8000,0x0,0x0},
+  {0,0x4000,0x4000,0x4000},
+  {0,0x6000,0x6000,0x6000},
+  {0,0x8000,0x8000,0x8000},
+  {0,0xa000,0xa000,0xa000},
+  {0,0xc000,0xc000,0xc000},
+};
+static GdkColormap *colormap;
+
+//#define USE_PIXMAP
+
+
+
+#define COLUMN_OPCODE 3
+#define COLUMN_ADDRESS 1
+#define COLUMN_MACHCODE 2
+#define COLUMN_LABEL 1
+#define COLUMN_BREAK 0
 
 //void entry_hexCB( GtkWidget *widget,  GtkWidget *entryCB_nfo );
 
 // This C file is the interface to a popup window that displays decoded assembly
 
 extern GdkFont *gdsp_Decode_Font;
-GtkWidget *textW,*decodeW;
+GtkWidget *decodeW;
+GdkPixmap *pixmap;
+GtkWidget *clist;
+GdkBitmap *mask;
 
 /* needed prototypes */
 /* Called when step button pressed */
@@ -61,7 +76,7 @@ void decode_step(void);
 
 /* Returns an array of strings that should be freed by the caller */
 gchar **get_decoded_text(unsigned long int start_index, unsigned long int end_index);
-static void insert_text(WordA start_mem, WordA end_mem, GArray *word2line, GtkTextBuffer *buffer);
+static void insert_text(WordA start_mem, WordA end_mem, GArray *word2line);
 
 struct _decode_window_nfo *dwn=NULL;
 
@@ -71,12 +86,12 @@ struct _decode_window_nfo
   WordA start;
   WordA end;
   GArray *word2line;
-  GtkTextBuffer *buffer;
+  //  GtkListStore *model;
 };
 
 
-GtkTextIter iter_start,iter_end;
-GtkTextBuffer *buffer;
+//GtkTextIter iter_start,iter_end;
+//GtkTextBuffer *buffer;
 
 
 static void change_end_address(GtkWidget *entry, guint64 address, 
@@ -84,8 +99,6 @@ static void change_end_address(GtkWidget *entry, guint64 address,
 {
   struct _decode_window_nfo *dwn;
   WordA mem;
-  GtkTextIter iter_start,iter_end;
-
 
   dwn = data;
   mem = address;
@@ -111,11 +124,9 @@ static void change_end_address(GtkWidget *entry, guint64 address,
   while ( dwn->word2line->len > 0 )
     g_array_remove_index_fast(dwn->word2line,0);
 
-  gtk_text_buffer_get_bounds(dwn->buffer,&iter_start,&iter_end);
-  gtk_text_buffer_delete(dwn->buffer,&iter_start,&iter_end);
+  insert_text(dwn->start,dwn->end,dwn->word2line);
 
-  insert_text(dwn->start,dwn->end,dwn->word2line,dwn->buffer);
-  
+  highlight_pipeline(0,0);
 }
 
 
@@ -124,7 +135,6 @@ static void change_start_address(GtkWidget *entry, guint64 address,
 {
   struct _decode_window_nfo *dwn;
   WordA mem;
-  GtkTextIter iter_start,iter_end;
 
   dwn = data;
   mem = address;
@@ -150,47 +160,29 @@ static void change_start_address(GtkWidget *entry, guint64 address,
   while ( dwn->word2line->len > 0 )
     g_array_remove_index_fast(dwn->word2line,0);
 
-  gtk_text_buffer_get_bounds(dwn->buffer,&iter_start,&iter_end);
-  gtk_text_buffer_delete(dwn->buffer,&iter_start,&iter_end);
-
-  insert_text(dwn->start,dwn->end,dwn->word2line,dwn->buffer);
-  
+  insert_text(dwn->start,dwn->end,dwn->word2line);
+  highlight_pipeline(0,0);
 }
 
-static void text_CB( GtkTextView *W, GdkEventButton *event )
+
+static void click_CB( GtkWidget *W, gint row, gint column, GdkEventButton *event, gpointer data )
 {
-  gint x,y;
-  gint win_x,win_y;
-  GtkTextIter iter;
-  GtkTextIter start_iter;
-  GtkTextIter end_iter;
-  GdkModifierType mask=GDK_BUTTON1_MASK;
-  int ln;
-  
-  gdk_window_get_pointer(event->window,&win_x,&win_y,&mask );
-    
-  gtk_text_view_window_to_buffer_coords (GTK_TEXT_VIEW(textW), GTK_TEXT_WINDOW_WIDGET ,win_x,win_y,&x,&y);
- 
-  gtk_text_view_get_iter_at_location(GTK_TEXT_VIEW(textW),&iter,x,y);
-      
-  ln=gtk_text_iter_get_line (&iter);
- 
-  {
-    WordA breakpoint;
-    breakpoint = line2word(dwn->word2line,ln,dwn->start);
-    printf("Set breakpoint at 0x%x\n",breakpoint);
-    set_breakpoint(breakpoint);
-  }
 
-  gtk_text_buffer_get_iter_at_line(buffer,&start_iter,ln);
-  end_iter=start_iter;
-  gtk_text_iter_forward_to_line_end ( &end_iter);
-  
-  gtk_text_buffer_apply_tag_by_name(buffer,pipe_tag[0],&start_iter,&end_iter);
-  
-  return;
+  if ( column == 0 )
+    {
+      WordA addr;
+      addr = (WordA)gtk_clist_get_row_data(GTK_CLIST(clist),row);
+      // Only allow breakpoints on instructions and not labels
+      if ( addr )
+	{
+	  printf("Word 0x%x\n",addr);
+	  if ( toggle_breakpoint(addr) )
+	    gtk_clist_set_pixmap(GTK_CLIST(clist), row, column, pixmap, mask);
+	  else
+	    gtk_clist_set_text(GTK_CLIST(clist), row, column, NULL);
+	}
+    }
 }
-
 
 /*
  * This will be called by the main routine to create a popup window.
@@ -208,9 +200,9 @@ GtkWidget *create_decode_window()
   GPtrArray *textA;
   GtkWidget *entryTop,*entryBottom;
   WordA start_mem,end_mem;
-  int k;
   gchar temp_str[10];
   struct _entryCB_nfo *entry_start_nfo;
+  extern GtkAccelGroup *gDSP_keyboard_accel;
 
   if ( dwn )
     return NULL;
@@ -224,6 +216,10 @@ GtkWidget *create_decode_window()
   gtk_widget_set_usize (GTK_WIDGET(decodeW), 300, 200);
   gtk_window_set_title (GTK_WINDOW (decodeW), "Disassebly");
   gtk_container_set_border_width (GTK_CONTAINER (decodeW), 0);
+
+  // Attach keyboard accelerations from main window
+  gtk_window_add_accel_group (GTK_WINDOW (decodeW), gDSP_keyboard_accel);
+  
 
   vbox = gtk_vbox_new (FALSE, 0);
   gtk_container_add (GTK_CONTAINER (decodeW), vbox);
@@ -285,56 +281,53 @@ GtkWidget *create_decode_window()
   gtk_box_pack_start (GTK_BOX (vbox), scrolledW, TRUE, TRUE, 0);
   gtk_widget_show(scrolledW);
 
-  textW = gtk_text_view_new ();
-
-  gtk_container_add(GTK_CONTAINER(scrolledW),textW);
-
-  //gtk_text_set_line_wrap(GTK_TEXT(textW),0);
-  gtk_signal_connect( GTK_OBJECT(textW),"button-press-event", 
-		      GTK_SIGNAL_FUNC( text_CB), NULL );
-
-  //  gtk_signal_connect( GTK_OBJECT(textW),"mark-set", 
-  //	      GTK_SIGNAL_FUNC( text_CB), &nine /*parameter*/ );
-
-  gtk_widget_show (textW);
-
-
-  // gtk_widget_realize (textW);
-
   textA = g_ptr_array_new();
 
   /* textA is an array of strings that represent the decoded opcodes */
   dwn->start = start_mem;
   dwn->end = end_mem;
+#ifdef GTK2
   dwn->word2line = g_array_sized_new(FALSE, FALSE, sizeof(int),end_mem-start_mem+1);
-
-#if 0
-  // This doesn't work.
-  if ( !gdsp_Decode_Font )
-    {
-      printf("Setting font\n");
-      gdsp_Decode_Font = gdk_font_load ("-misc-fixed-medium-r-*-*-*-140-*-*-*-*-*-*");
-    }
+#else
+  dwn->word2line = g_array_new(FALSE, FALSE, sizeof(int));
+  //g_array_set_size(dwn->word2line,end_mem-start_mem+1);
 #endif
 
+
   {
-    GtkTextIter iter;
+    gchar *titles[]={"break","address","mach code","opcode"};
 
-    buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW (textW));
-    dwn->buffer = buffer;
- 
-    gtk_text_buffer_get_iter_at_offset (buffer, &iter, 0);
-
-    for (k=0;k<6;k++)
-      {
-	gtk_text_buffer_create_tag (buffer, pipe_tag[k],
-				    "background", pipe_tag_color[k], NULL);
-      }
-
-    insert_text(start_mem,end_mem,dwn->word2line,buffer);
-
+    clist = gtk_clist_new_with_titles(4,titles);
   }
 
+  gtk_clist_set_selection_mode(GTK_CLIST(clist), GTK_SELECTION_SINGLE);
+  
+  insert_text(start_mem,end_mem,dwn->word2line);
+
+  gtk_signal_connect( GTK_OBJECT(clist),"select_row", 
+		      GTK_SIGNAL_FUNC( click_CB), NULL );
+  
+  gtk_widget_realize(decodeW);
+  //pixmap = gdk_pixmap_create_from_xpm(decodeW->window,&mask,
+  //				     &style->bg[GTK_STATE_NORMAL],"check.xpm");
+  pixmap = gdk_pixmap_create_from_xpm(decodeW->window,&mask,
+				      NULL,"stop.xpm");
+  printf("created pixbuf\n");
+
+  {
+    int k;
+    // set colors
+    colormap = gdk_colormap_get_system ();
+    for (k=0;k<6;k++)
+      {
+	gdk_color_alloc(colormap,&pipe_color[k]);
+      }
+  }
+
+  gtk_container_add(GTK_CONTAINER(scrolledW),clist);
+
+
+  gtk_widget_show(clist);
 
 
   gtk_widget_show(decodeW);
@@ -343,71 +336,88 @@ GtkWidget *create_decode_window()
 }
 
 
-/* 
- * If the user is simulating code and stepping through it, then the main
- * program will call this function to highlight the correct line
- */
-void highlight_decode_index(unsigned long int index)
+void highlight_pipeline(WordA prefetch, int advance)
 {
-}
+  static int pipe[6]={-2, -2, -2, -2, -2, -2};
+  static WordA pipeW[6];
 
-void highlight_pipeline(WordA prefetch)
-{
-  static int pipe[6]={-1, -1, -1, -1, -1, -1};
   static int cntr=0;
   int lineNo,k;
-  GtkTextIter iter_start,iter_end;
-  
-  if ( pipe[cntr]>0 )
-    {
-      gtk_text_buffer_get_iter_at_line(dwn->buffer,&iter_start,pipe[cntr]);
-      iter_end=iter_start;
-      gtk_text_iter_forward_to_line_end ( &iter_end);
-      //  gtk_text_buffer_apply_tag(dwn->buffer,NULL,&iter_start,&iter_end);
-      gtk_text_buffer_remove_tag_by_name(dwn->buffer,pipe_tag[5],&iter_start,&iter_end);
-      gtk_text_buffer_remove_tag_by_name(dwn->buffer,pipe_tag[4],&iter_start,&iter_end);
-      gtk_text_buffer_remove_tag_by_name(dwn->buffer,pipe_tag[3],&iter_start,&iter_end);
-      gtk_text_buffer_remove_tag_by_name(dwn->buffer,pipe_tag[2],&iter_start,&iter_end);
-      gtk_text_buffer_remove_tag_by_name(dwn->buffer,pipe_tag[1],&iter_start,&iter_end);
-      gtk_text_buffer_remove_tag_by_name(dwn->buffer,pipe_tag[0],&iter_start,&iter_end);
-      
-      // Above pipe_tag[5] alone didn't work. below might be better.
-      //  gtk_text_buffer_remove_all_tags(dwn->buffer,&iter_start,&iter_end);
-      
-    }
+  int last_line=-1;
 
-  // cntr points to the previous execute line, which should
-  // be unhighlited
-  if ( ( prefetch >= dwn->start ) && ( prefetch <= dwn->end ) )
-    {	 
-      lineNo = g_array_index(dwn->word2line,int,prefetch-dwn->start);
-      pipe[cntr]=lineNo;
+  if ( advance )
+    {
+      cntr++;
+      if ( cntr > 5 )
+	cntr=0;
     }
   else
     {
-      pipe[cntr]=-1;
+      // Redo the lines
+      for (k=0;k<6;k++)
+	{
+	  if (pipe[k]>-2)
+	    {
+	      if ( ( pipeW[k] >= dwn->start ) && ( pipeW[k] <= dwn->end ) )
+		{
+		  lineNo = g_array_index(dwn->word2line,int,pipeW[k]-dwn->start);
+		  pipe[k]=lineNo;
+		}
+	      else
+		{
+		  pipe[k]=-1;
+		}
+	    }
+	}
     }
-  
+
+  gtk_clist_freeze(GTK_CLIST(clist));
+
+  if ( advance )
+    pipeW[cntr]=prefetch;
+
+  if ( advance && pipe[cntr]>0 )
+    {
+      // cntr points to the previous execute line, which should
+      // be unhighlited
+      gtk_clist_set_background(GTK_CLIST(clist),pipe[cntr],NULL);
+    }
+
+  if ( advance )
+    {
+      if ( ( prefetch >= dwn->start ) && ( prefetch <= dwn->end ) )
+	{	 
+	  lineNo = g_array_index(dwn->word2line,int,prefetch-dwn->start);
+	  pipe[cntr]=lineNo;
+	  printf("line=%d prefetch=0x%x 0x%x\n",lineNo,prefetch,dwn->start);
+	}
+      else
+	{
+	  pipe[cntr]=-1;
+	}
+    }
+
   for (k=0;k<6;k++)
     {
-      int last_line=-1;
       if ( pipe[cntr]>0 && (pipe[cntr] != last_line ) )
 	{
-	  gtk_text_buffer_get_iter_at_line(dwn->buffer,&iter_start,pipe[cntr]);
-	  iter_end=iter_start;
-	  gtk_text_iter_forward_to_line_end ( &iter_end);
-	  gtk_text_buffer_apply_tag_by_name(dwn->buffer,pipe_tag[k],&iter_start,&iter_end);
+	  gtk_clist_set_background(GTK_CLIST(clist),pipe[cntr],&pipe_color[k]);
 	}
       // Make sure paint the leading color
       last_line=pipe[cntr];
 
-      cntr++;
-      if ( cntr >= 6 )
-	cntr=0;
+      cntr--;
+      if ( cntr < 0 )
+	cntr=5;
     }
-  cntr--;
-  if ( cntr < 0 )
-    cntr=5;
+#if 0
+  cntr++;
+  if ( cntr > 5 )
+    cntr=0;
+#endif
+
+  gtk_clist_thaw(GTK_CLIST(clist));
+
 }
 /* 
  * Used to set min and max allowable scrowable range
@@ -417,31 +427,84 @@ void set_decode_index_max_range(unsigned long int lower_index, unsigned long int
 }
 
 
-static void insert_text(WordA start_mem, WordA end_mem, GArray *word2line, GtkTextBuffer *buffer_)
+static void insert_text(WordA start_mem, WordA end_mem, GArray *word2line)
 {
   GPtrArray *textA;
   int k;
-  gchar *line;
-  // GtkTextBuffer *buffer_;
-  GtkTextIter iter;
-  
+  int row;
+  struct _decode_opcode *op;
+  gchar *data[4];
+  int offset=0;
+  int width;
+
+  gtk_clist_freeze(GTK_CLIST(clist));
+
+  // remove old items
+  gtk_clist_clear(GTK_CLIST(clist));
+
+  // Poplate model with data
   textA = g_ptr_array_new();
-  gtk_text_buffer_get_iter_at_offset (buffer_, &iter, 0);
   
   decoded_opcodes(textA, start_mem,end_mem,word2line);
   
   for (k=0;k<textA->len;k++)
     {
-      
-      line = g_ptr_array_index(textA,k);
-      
-      gtk_text_buffer_insert (buffer_, &iter, line, -1);
-      
-      gtk_text_buffer_insert (buffer_, &iter, "\n", -1);
-      
+      while ( g_array_index(dwn->word2line,int,offset) < k)
+	offset++;
+
+      op = g_ptr_array_index(textA,k);
+
+      if ( op->machine_code )
+	{
+	  // Not a label
+	  data[0]=NULL;
+	  data[1]=op->address;
+	  data[2]=op->machine_code;
+	  data[3]=op->opcode_text;
+
+	  row = gtk_clist_append(GTK_CLIST(clist),data);
+
+	  // g_warning(row!=k,"warning");
+	  gtk_clist_set_row_data(GTK_CLIST(clist),row,(gpointer)(offset+dwn->start));
+
+	  g_free(op->machine_code);
+	}
+      else
+	{
+	  // label
+	  // Not a label
+	  data[0]=NULL;
+	  data[1]=op->opcode_text;
+	  data[2]=NULL;
+	  data[3]=NULL;
+
+	  row = gtk_clist_append(GTK_CLIST(clist),data);
+	  gtk_clist_set_row_data(GTK_CLIST(clist),row,NULL);
+
+	  //	  g_warning(row!=k,"warning");
+
+	}
+      g_free(op->opcode_text);
+      g_free(op->address);
+      g_free(op);
     }
-  g_ptr_array_free(textA,TRUE);
-  
+
+  width = gtk_clist_optimal_column_width(GTK_CLIST(clist),1);
+  gtk_clist_set_column_width(GTK_CLIST(clist),1,width);
+
+  width = gtk_clist_optimal_column_width(GTK_CLIST(clist),2);
+  gtk_clist_set_column_width(GTK_CLIST(clist),2,width);
+
+  width = gtk_clist_optimal_column_width(GTK_CLIST(clist),3);
+  gtk_clist_set_column_width(GTK_CLIST(clist),3,width);
+
+  // set size for pixmaps
+  // gtk_clist_set_column_width(GTK_CLIST(clist),0,16);
+  gtk_clist_set_row_height(GTK_CLIST(clist),16);
+
+  gtk_clist_thaw(GTK_CLIST(clist));
+
+  g_ptr_array_free(textA,FALSE);  
 }
 
 WordA line2word(GArray *word2line, int line, WordA start)
