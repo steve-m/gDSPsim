@@ -87,6 +87,7 @@ OBJS	= \
 	stlm.o \
 	stm.o \
 	strcd.o \
+	xc.o \
 	xor.o \
 	xorm.o \
 	decode.o \
