@@ -76,22 +76,63 @@ Instruction_Class MAC_Obj =
 
 static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-  switch ( pipeP->opcode_subType )
+  if ( pipeP->opcode_subType == 0)
     {
-    case 1:
-      xymem_read_stg1(pipeP,Reg);
-      break;
+      smem_read_stg1(pipeP,Reg);
     }
-
+  else if ( pipeP->opcode_subType == 1)
+    {
+      xymem_read_stg1(pipeP,Reg);
+    }
+  else if ( pipeP->opcode_subType == 2)
+    {
+      if ( pipeP->word_number == 1 )
+	{
+	  pipeP->storage1 = Reg->IR;
+	}
+    }
+  else
+    {
+      if ( pipeP->word_number == 1 )
+	{
+	  pipeP->storage1 = Reg->IR;
+	}
+      smem_read_stg1(pipeP,Reg);
+    }
 }
 static void read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-  if ( pipeP->opcode_subType == 1 )
-    xymem_read_stg2(pipeP,Reg);
+  if ( pipeP->opcode_subType == 0 )
+    {
+      smem_read_stg2(pipeP,Reg);
+    }
+  else if ( pipeP->opcode_subType == 1 )
+    {
+      xymem_read_stg2(pipeP,Reg);
+    }
+  else if ( pipeP->opcode_subType == 3 )
+    {
+      smem_read_stg2(pipeP,Reg);
+    }
+  
 }
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-  if ( pipeP->opcode_subType == 1 )
+    if ( pipeP->opcode_subType == 0 )
+    {
+      int r,s,d;
+
+      // X operand is from T register (0)
+      // Y operand is from DB register (1)
+      // Accumulate using A or B (s+1)
+      // Store in A or B ( d ). Round (r)
+      d = ( pipeP->current_opcode & 0x100 ) > 8;
+      s = ( pipeP->current_opcode & 0x200 ) > 9;
+      r = ( pipeP->current_opcode & 0x400 ) > 10;
+      
+      multiplier(0,1,s+1,d+(2*r),Reg);
+    }
+  else if ( pipeP->opcode_subType == 1 )
     {
       int r,s,d;
 
@@ -104,6 +145,40 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
       r = ( pipeP->current_opcode & 0x400 ) > 10;
       
       multiplier(1,3,s+1,d+(2*r),Reg);
+    }
+  else if ( pipeP->opcode_subType == 2 )
+    {
+      int r,s,d;
+
+      // X operand is from T register (0)
+      // Y operand is from P register (0)
+      // Accumulate by subtracting from A or B (s+1)
+      // Store in A or B ( d )
+      d = ( pipeP->current_opcode & 0x100 ) > 8;
+      s = ( pipeP->current_opcode & 0x200 ) > 9;
+      r = ( pipeP->current_opcode & 0x400 ) > 10;
+      
+      Reg->P = pipeP->storage1;
+
+      multiplier(0,0,s+1,d,Reg);
+    }
+  else 
+    {
+      int r,s,d;
+
+      // X operand is from DB register (1)
+      // Y operand is from P register (0)
+      // Accumulate by subtracting from A or B (s+1)
+      // Store in A or B ( d )
+      d = ( pipeP->current_opcode & 0x100 ) > 8;
+      s = ( pipeP->current_opcode & 0x200 ) > 9;
+      r = ( pipeP->current_opcode & 0x400 ) > 10;
+      
+      Reg->P = pipeP->storage1;
+
+      multiplier(1,0,s+1,d,Reg);
+      
+      MMR->T = Reg->DB;
     }
 }
 
