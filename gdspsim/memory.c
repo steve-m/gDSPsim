@@ -40,7 +40,7 @@ GList *DataProgMemList=NULL;
  * correct value */
 // This will need to be more complicated soon, that's why it's
 // broken out into a separate file.
-Word read_mem(Word offset, int *wait_state, MemType type)
+Word read_mem(WordA offset, int *wait_state, MemType type)
 {
   GList *list;
   struct _def_mem *mem_page;
@@ -106,7 +106,7 @@ Word read_mem(Word offset, int *wait_state, MemType type)
  * correct value */
 // This will need to be more complicated soon, that's why it's
 // broken out into a separate file.
-static int write_mem(Word offset, Word value, MemType type)
+static int write_mem(WordA offset, Word value, MemType type)
 {
   GList *list;
   int wait_state;
@@ -171,25 +171,26 @@ static int write_mem(Word offset, Word value, MemType type)
   return -1;
 }
 
-int write_program_mem(Word offset, Word value)
+int write_program_mem(WordA offset, Word value)
 {
   return write_mem(offset,value,PROGRAM_MEM_TYPE);
 }
-int write_data_mem(Word offset, Word value)
+int write_data_mem(WordA offset, Word value)
 {
   return write_mem(offset,value,DATA_MEM_TYPE);
 }
 
-Word read_data_mem(Word offset, int *wait_state)
+Word read_data_mem(WordA offset, int *wait_state)
 {
   return read_mem(offset,wait_state,DATA_MEM_TYPE);
 }
 
-Word read_program_mem(Word offset, int *wait_state)
+Word read_program_mem(WordA offset, int *wait_state)
 {
   return read_mem(offset,wait_state,PROGRAM_MEM_TYPE);
 }
 
+// Debug function to print defined memory
 void print_mem_list(void)
 {
   struct _def_mem *def_mem;
@@ -316,7 +317,7 @@ static GList *adjust_mem_list( GList *memlist, WordA start, WordA end, MemType t
 
       // Don't move 0x0 to 0x80 section because that's Memory Mapped
       
-      if ( def_mem2->start > 0x80 )
+      if ( def_mem2->start >= 0x80 )
 	{
 
 	  if ( start <= def_mem2->end )

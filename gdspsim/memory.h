@@ -28,19 +28,19 @@ typedef enum { PROGRAM_MEM_TYPE=1,  DATA_MEM_TYPE=2 } MemType;
  * a wait state of 0 and external RAM has a wait state of 1 or more. This
  * procedure takes into account all the memory mapping needed to get the
  * correct value */
-Word read_data_mem(Word offset, int *wait_state);
+Word read_data_mem(WordA offset, int *wait_state);
 
-Word read_program_mem(Word offset, int *wait_state);
+Word read_program_mem(WordA offset, int *wait_state);
 
-Word read_mem(Word offset, int *wait_state, MemType type);
+Word read_mem(WordA offset, int *wait_state, MemType type);
 
 /* Write's to memory. Return's wait state or -1 if unsucessfull */
-int write_program_mem(Word offset, Word value);
+int write_program_mem(WordA offset, Word value);
 
-int write_data_mem(Word offset, Word value);
+int write_data_mem(WordA offset, Word value);
 
 
-void cp_to_mem(Word *data, Word start, long int size, MemType type);
+void cp_to_mem(Word *data, WordA start, long int size, MemType type);
 void fill_to_mem(Word fill,  WordA start, long int size, MemType type);
 
 // Gets the min and max of all defined program memory, there may
@@ -51,5 +51,7 @@ void set_prog_mem_start_end(WordA start, WordA end);
 
 void set_MMR_ptr();
 
+// Debug function to print defined memory
+void print_mem_list(void);
 
 #endif // __MEMORY_H__
