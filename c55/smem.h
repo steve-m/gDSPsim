@@ -24,15 +24,28 @@
 extern "C" {
 #endif
 
-void smem_set_DAB(int p, int mod);
+  // Sets DAB
+  void smem_address_stg_b2(struct _PipeLine *pipeP, struct _Registers *Reg);
+  
+  // Sets DB
+  void smem_read_stg(struct _PipeLine *pipeP, struct _Registers *Reg);
 
-Word bit_reversal_add(Word start, Word bit_reversed_one);
-
-// r register number 0-3
-void set_s16_ACx(int r, SWord value);
-
-// p=0-7
-Word *get_pointer_reg(int p);
+  // Sets DB2 (DWord)
+  void smem_read_stg_dbl(struct _PipeLine *pipeP, struct _Registers *Reg);
+  
+  void smem_set_DAB(int p, int mod, unsigned char b1, 
+		    unsigned char b2, unsigned char b3);
+  
+  Word bit_reversal(Word start, Word bit_reversed_one, SWord adjustment);
+  
+  // r register number 0-15
+  void set_k16_reg(int r, Word value, int sign_extend);
+  
+  // r register number 0-3
+  void set_k32_reg(int r, DWord value, int sign_extend40);
+  
+  // p=0-7
+  Word *get_pointer_reg(int p);
 
 #ifdef __cplusplus
 }
