@@ -46,6 +46,7 @@ void mmem_set_EAB(struct _PipeLine *pipeP, struct _Registers *Reg);
 // Similar to smem_read_stg1 except it sets the EAB register instead
 // of the DAB
 void smem_set_EAB(struct _PipeLine *pipeP, struct _Registers *Reg);
+void lmem_set_EAB(struct _PipeLine *pipeP, struct _Registers *Reg);
 
 // This updates the auxillary registers and returns the read address
 // Generally, the CPL bit or equal 2 for memory mapped registers.
