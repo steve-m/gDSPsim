@@ -56,7 +56,7 @@ Instruction_Class MACD_Obj =
 
 static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-  smem_read_stg1_plus1(pipeP,Reg);
+  smem_read_stg1(pipeP,Reg);
 
   if ( pipeP->word_number == 1 )
     {

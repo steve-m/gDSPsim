@@ -112,13 +112,6 @@ void smem_read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
     }
 }
 
-// This is like smem_read_stg1 except it also increments Smem + 1
-// it also uses pipeP->storage2
-void smem_read_stg1_plus1(struct _PipeLine *pipeP, struct _Registers *Reg)
-{
-  FIXME();
-  smem_read_stg1(pipeP,Reg);
-}
 void mmem_read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   WordA DAB;

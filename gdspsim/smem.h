@@ -30,7 +30,6 @@ void smem_read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg);
 void mmem_read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg);
 // puts first address into DAB and second address into CAB
 void lmem_read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg);
-void smem_read_stg1_plus1(struct _PipeLine *pipeP, struct _Registers *Reg);
 
 // The basic read_stg1 for a smem. Handles 1 or 2 word smem. Places
 // the read address onto DAB.
