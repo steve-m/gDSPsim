@@ -27,6 +27,8 @@ GtkWidget *create_decode_window();
 void highlight_decode_index(unsigned long int index);
 void set_decode_index_max_range(unsigned long int lower_index, unsigned long int upper_index);
 void highlight_pipeline(WordA prefetch);
+// Convert a line number to the corresponding word
+WordA line2word(GArray *word2line, int line, WordA start);
 
 
 #endif // __DECODE_WINDOW_H__
