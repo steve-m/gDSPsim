@@ -30,7 +30,7 @@ static GPtrArray *machine_code(gchar *opcode_text);
 
 static gchar *mask[]=    { "111110z1 1uuuuuuu hhhhhhhh hhhhhhhh" };
 static gchar *opcode[] = { "FCALLz u h" };
-static gchar *comment[]= { "Branch $(z) $(s)" };
+static gchar *comment[]= { "Far Call $(z) $(u) $(h)" };
 
 /* This definition is global because another routine will make have
  * an array that points to all the different instruction classes.
@@ -61,7 +61,6 @@ static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
       if ( (pipeP->current_opcode & 0x200) == 0)
 	{
 	  pipeP->storage2 = Reg->PC;
-          Reg->Flush = Reg->Flush + 2;
     	}
       else
 	{
@@ -72,6 +71,10 @@ static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
   else
     {
       Reg->PC = Reg->IR;
+      if ( (pipeP->current_opcode & 0x200) == 0)
+	{
+          Reg->Flush = Reg->Flush + 2;
+    	}
     }
 }
 static void read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
