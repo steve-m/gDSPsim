@@ -22,17 +22,17 @@
 
 static gchar *mask[]=
   {
-    "0100 0100 0100 rrrr", // SFTS r,#-1
-    "0100 0100 0101 rrrr", // SFTS r,#1
-    "0101 1100 rrqq tt01", // sfts ACr,tu,ACq
-    "0001 0000 rrqq 0101 00nn nnnn  ", // sfts ACr,#n,ACq
+    "0100010p 01v0rrrr", // SFTS dst, #­1
+    "0100010p 01v1rrrr", // SFTS dst, #1
+    "0101110p RRrrtt01", // SFTS ACx, Tx[, ACy]
+    "0001000p RRrr0101 vvnnnnnn", // SFTS ACx, #SHIFTW[, ACy]
   };
 static gchar *opcode[] = 
 { 
-  "SFTS r,#-1",
-  "SFTS r,#1",
-  "SFTS r,t,q",
-  "SFTS r,#n,q",
+  "'SFTS' r,#-1",
+  "'SFTS' r,#1",
+  "'SFTS' r,t,R",
+  "'SFTS' r,#n,R",
 };
 
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg);
@@ -57,29 +57,39 @@ Instruction_Class SFTS_Obj =
 
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-  Opcode mach_code;
+  Opcode opcode;
+  int n,flag;
 
-  mach_code = pipeP->decode_nfo.mach_code;
+  opcode = pipeP->decode_nfo.mach_code;
 
+  flag = C54CM(MMR) ? (SHFT_M40_IS_1 | SHFT_DONT_SATURATE | 
+		       SHFT_NO_OVERFLOW_DETECTION) : 
+                      (SHFT_USE_M40 | SHFT_SIGN_EXTEND_USING_SXMD | 
+		       SHFT_USE_SATD_SATA | SHFT_SET_ACOV);
+    
   switch ( pipeP->opcode_subType )
     {
     case 0:
-      shifter(mach_code.bop[1]&0xf,8,-1,0,mach_code.bop[1]&0xf,Reg);
+      // SFTS dst, #­1
+      shifter(opcode.bop[1]&0xf,SHFT_CONSTANT,-1,flag,opcode.bop[1]&0xf,Reg);
       break;
-    case 1:
-      shifter(mach_code.bop[1]&0xf,8,1,0,mach_code.bop[1]&0xf,Reg);
-      break;
-    case 2:
-      shifter((mach_code.bop[1]&0xc0)>>6,(mach_code.bop[1]&0xc)>>2,0,0,(mach_code.bop[1]&0x30)>>4,Reg);
-      break;
-    case 3:
-      {
-	int n;
 
-	n = (int)SIGN6BIT_TO_UINT(mach_code.bop[2]&0x3f);
-	shifter((mach_code.bop[1]&0xc0)>>6,8,n,0,(mach_code.bop[1]&0x30)>>4,Reg);
-	break;
-      }
+    case 1:
+      // SFTS dst, #1
+      shifter(opcode.bop[1]&0xf,SHFT_CONSTANT,1,flag,opcode.bop[1]&0xf,Reg);
+      break;
+
+    case 2:
+      // SFTS ACx, Tx[, ACy]
+      shifter((opcode.bop[1]>>4)&0x3,(opcode.bop[1]>>2)&0x3,0,flag,(opcode.bop[1]>>6)&0x3,Reg);
+      break;
+
+    case 3:
+      // SFTS ACx, #SHIFTW[, ACy]
+      n = (int)SIGN6BIT_TO_UINT(opcode.bop[2]&0x3f);
+      shifter((opcode.bop[1]>>4)&0x3,SHFT_CONSTANT,n,flag,(opcode.bop[1]>>6)&0x3,Reg);
+      break;
+      
     }
 }
 

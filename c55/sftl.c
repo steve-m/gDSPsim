@@ -70,13 +70,13 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
     {
     case 0:
       // SFTL dst, #1
-      shifter((opcode.bop[1]>>4)&0xf, 8, 1, flag,
+      shifter((opcode.bop[1]>>4)&0xf, SHFT_CONSTANT, 1, flag,
 	      (opcode.bop[1]>>4)&0xf, Reg);
       break;
 
     case 1:
       // SFTL dst, #­1
-      shifter((opcode.bop[1]>>4)&0xf, 8, -1, flag,
+      shifter((opcode.bop[1]>>4)&0xf, SHFT_CONSTANT, -1, flag,
 	      (opcode.bop[1]>>4)&0xf, Reg);
       break;
 
@@ -89,7 +89,7 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
     case 3:
       // SFTL ACx, #SHIFTW[, ACy]
       n = (int)SIGN6BIT_TO_UINT(opcode.bop[2]&0x3f);
-      shifter((opcode.bop[1]>>4)&0x3, 8, n, flag, 
+      shifter((opcode.bop[1]>>4)&0x3, SHFT_CONSTANT, n, flag, 
 	      (opcode.bop[1]>>6)&0x3, Reg);
       break;
       
