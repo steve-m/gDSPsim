@@ -421,10 +421,10 @@ void lmem_read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
 	  Reg->Lmem1 = L1;
 
 	  if ( (indirect) &&  ( (mod==1) || (mod==2) || (mod==3) ||
-				(mod==8) || (mod=10) ) )
+				(mod==8) || (mod==10) ) )
 	    {
 	      L2 = update_smem(pipeP->current_opcode & 0xff , Reg, CPL(MMR));
-	      Reg->Lmem2 = L2;
+	      Reg->Lmem2 = L1 ^ 1;
 	    }
 	  else
 	    {
@@ -451,7 +451,10 @@ void lmem_read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
       reg_union.gint64 = 0;
       reg_union.words.low = L2;
       reg_union.words.high = L1;
-      
+      if ( SXM(MMR) )
+	{
+	  reg_union.gint64 = (gint32)reg_union.gi32.low;
+	}
       Reg->Shifter = reg_union.gp_reg;
     }
 }
@@ -498,7 +501,11 @@ void lmem_set_EAB(struct _PipeLine *pipeP, struct _Registers *Reg)
 	  if ( pipeP->cycles == 0 )
 	    Reg->EAB = update_smem(pipeP->current_opcode & 0xff , Reg, CPL(MMR));
 	  else if ( pipeP->cycles == 1 )
-	    Reg->EAB = update_smem(pipeP->current_opcode & 0xff , Reg, CPL(MMR));
+	    {
+	      Word tmp;
+	      tmp = update_smem(pipeP->current_opcode & 0xff , Reg, CPL(MMR));
+	      Reg->EAB = Reg->EAB ^ 1;
+	    }
 	}
       else
 	{
