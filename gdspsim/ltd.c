@@ -20,7 +20,10 @@
 #include "c54_core.h"
 #include <stdio.h>
 #include "smem.h"
+#include "memory.h"
 
+static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg);
+static void read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg);
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg);
 static GPtrArray *machine_code(gchar *opcode_text);
 
@@ -37,8 +40,8 @@ Instruction_Class LTD_Obj =
   NULL, // prefetch
   NULL, // fetch
   NULL, // decode
-  smem_read_stg1, // read_stg1 (access)
-  smem_read_stg2, // read_stg2 (read)
+  read_stg1, // read_stg1 (access)
+  read_stg2, // read_stg2 (read)
   execute, // execute
   num_words_for_smem, // number_words 
   NULL, // set_cycle_number
@@ -49,11 +52,30 @@ Instruction_Class LTD_Obj =
   machine_code
 };
 
+static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
+{
+  smem_read_stg1(pipeP,Reg);
+  if ( pipeP->word_number == 1 )
+    {
+      pipeP->storage1 = Reg->DAB;
+    }
+}
+
+static void read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
+{
+  smem_read_stg2(pipeP,Reg);
+  if ( pipeP->word_number == 1 )
+    {
+      Reg->EAB = pipeP->storage1 + 1;
+    }
+}
+
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   if ( pipeP->word_number == 1 )
     {
       MMR->T = Reg->DB;
+      write_data_mem(Reg->EAB,Reg->DB);
     }
 }
 
