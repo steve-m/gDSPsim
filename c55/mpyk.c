@@ -62,19 +62,19 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
     {
     case 0:
       r=(mach_code.bop[2]&0xc0)>>6;
-      R=(mach_code.bop[2]&0x3)>>4;
-      rnd = mach_code.bop[2]&0x1;
+      R=(mach_code.bop[2]&0x30)>>4;
+      rnd = (mach_code.bop[2]&0x1)<<2;
 
       Reg->P = (SWord)((char)(mach_code.bop[1]));
-      multiplier(7,r,8,R+4*rnd,Reg);
+      multiplier(7,r,8,R+rnd,Reg);
       break;
     case 1:
       r=(mach_code.bop[3]&0xc0)>>6;
-      R=(mach_code.bop[3]&0x3)>>4;
-      rnd = mach_code.bop[3]&0x1;
+      R=(mach_code.bop[3]&0x30)>>4;
+      rnd = (mach_code.bop[3]&0x1)<<2;
 
       Reg->P = mach_code.bop[1]<<8 | mach_code.bop[2];
-      multiplier(7,r,8,R+4*rnd,Reg);
+      multiplier(7,r,8,R+rnd,Reg);
       break;
     }
 }
