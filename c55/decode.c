@@ -906,7 +906,7 @@ SWord signed_bit_extract(char info, char *mask, struct _decoded_opcode *decode_n
   if ( sign_bit )
     {
       int k;
-      for (k=largest_bit+1;k<32;k++)
+      for (k=largest_bit;k<32;k++)
 	{
 	  ans = ans | (1<<k);
 	}
