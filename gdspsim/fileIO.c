@@ -22,6 +22,7 @@
 #include "memory.h"
 #include "string.h"
 #include "entryCB.h"
+#include <pipeline.h>
 
 static GtkWidget *fileIOW=NULL;
 GList *fileIOL=NULL;
@@ -103,11 +104,11 @@ static void applyCB( GtkWidget *W, struct _fileIO *io)
   str = gtk_entry_get_text(GTK_ENTRY(GTK_COMBO(io->reached_howW)->entry));
 
   if ( strcmp(str,"is read") == 0 )
-    reached_how = 0;
+    reached_how = MEMORY_READ;
   else if ( strcmp(str,"is written") == 0 )
-    reached_how = 1;
+    reached_how = MEMORY_WRITE;
   else if ( strcmp(str,"pipeline is executed") == 0 )
-    reached_how = 2;
+    reached_how = PIPELINE_EXECUTED;
   else 
     {
       printf("Error! %s:%d\n",__FILE__,__LINE__);
@@ -159,7 +160,6 @@ static void applyCB( GtkWidget *W, struct _fileIO *io)
   // OK, everything decoded properly, can apply
   io->mem_type_reached = mem_type_reached;
   io->address_reached = address_reached;
-  io->reached_how = reached_how;
   io->put_get = put_get;
   io->amount = amount;
   io->filename = g_strdup(filename);
@@ -169,6 +169,16 @@ static void applyCB( GtkWidget *W, struct _fileIO *io)
   if ( io->valid == 0 )
     {
       GtkWidget *connect_box,*separator;
+
+      io->reached_how = reached_how;
+      if ( io->reached_how == PIPELINE_EXECUTED)
+	{
+	  set_fileIO_break_on_pipeline(io);
+	}
+      else
+	{
+	  set_fileIO_break_on_memory(io);
+	}
 
       fileIOL = g_list_append(fileIOL,io);
       io->valid = 1;
@@ -186,6 +196,48 @@ static void applyCB( GtkWidget *W, struct _fileIO *io)
 
       gtk_widget_set_sensitive(io->applyB,FALSE);
       gtk_widget_set_sensitive(io->removeB,TRUE);
+
+    }
+  else
+    {
+      if ( reached_how == PIPELINE_EXECUTED)
+	{
+	  if ( io->reached_how == PIPELINE_EXECUTED )
+	    {
+	      io->reached_how = reached_how;
+	      update_fileIO_break_on_pipeline(io);
+	    }
+	  else
+	    {
+	      remove_fileIO_break_on_memory(io);
+	      io->reached_how = reached_how;
+  	      set_fileIO_break_on_pipeline(io);
+	    }
+	}
+      else
+	{
+	  if ( io->reached_how == PIPELINE_EXECUTED )
+	    {
+	      remove_fileIO_break_on_pipeline(io);
+	      io->reached_how = reached_how;
+	      set_fileIO_break_on_memory(io);
+	    }
+	  else
+	    {
+	      if ( io->reached_how == reached_how )
+		{
+		  io->reached_how = reached_how;
+		  update_fileIO_break_on_memory(io);
+		}
+	      else
+		{
+		  remove_fileIO_break_on_memory(io);
+		  io->reached_how = reached_how;
+		  set_fileIO_break_on_memory(io);
+		}
+	    }
+	}
+    
 
     }
 
@@ -223,15 +275,15 @@ static void fill_io(struct _fileIO *io)
 
       switch (io->reached_how)
 	{
-	case 0:
+	case MEMORY_READ:
 	  gtk_entry_set_text(GTK_ENTRY(GTK_COMBO(io->reached_howW)->entry),
 			     "is read");
 	  break;
-	case 1:
+	case MEMORY_WRITE:
 	  gtk_entry_set_text(GTK_ENTRY(GTK_COMBO(io->reached_howW)->entry),
 			     "is written");
 	  break;
-	case 2:
+	case PIPELINE_EXECUTED:
 	  gtk_entry_set_text(GTK_ENTRY(GTK_COMBO(io->reached_howW)->entry),
 			     "pipeline is executed");
 	  break;

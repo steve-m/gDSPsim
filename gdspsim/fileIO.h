@@ -24,11 +24,13 @@
 #include "chip_core.h"
 #include <stdio.h>
 
+typedef enum { MEMORY_READ=0, MEMORY_WRITE=1, PIPELINE_EXECUTED=2 } FileIOReached;
+
 struct _fileIO
 {
   int mem_type_reached; // Data or Program mem
   WordA address_reached; // reached
-  int reached_how;
+  FileIOReached  reached_how;
   int put_get; // put or get
   int amount;
   gchar *filename;
