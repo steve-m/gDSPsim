@@ -26,8 +26,12 @@ SRCS	= \
 	abs.c \
 	add.c \
 	addsub.c \
+	amar.c \
 	and.c \
+	asub.c \
+	b.c \
 	band.c \
+	bcc.c \
 	bclr.c \
 	bcnt.c \
 	bfxpa.c \
@@ -39,10 +43,16 @@ SRCS	= \
 	btstnot.c \
 	btstp.c \
 	btstset.c \
+	call.c \
+	cmp.c \
 	dual_multiply.c \
+	exp.c \
 	implied_parallel_instr.c \
 	mac.c \
+	mant.c \
 	mas.c \
+	max.c \
+	min.c \
 	mpy.c \
 	mpyk.c \
 	mpym.c \
@@ -54,18 +64,26 @@ SRCS	= \
 	mov_SpecRegMove.c \
 	mov_SpecRegSave.c \
 	neg.c \
+	nop.c \
 	not.c \
+	pop.c \
 	psh.c \
 	or.c \
+	ret.c \
 	rol.c \
 	ror.c \
+	rpt.c \
+	rptb.c \
+	rptblocal.c \
 	sftl.c \
 	sfts.c \
 	sftsc.c	\
+	sqa.c \
 	sqr.c \
 	sqrm.c \
 	sub.c \
 	subadd.c \
+	xcc.c \
 	xor.c \
 	alu.c \
 	chip_help.c \
