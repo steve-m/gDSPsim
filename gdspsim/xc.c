@@ -23,7 +23,7 @@
 #include "decode.h"
 #include "instruct_help.h"
 
-static void decode(struct _PipeLine *pipeP, struct _Registers *Reg);
+static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg);
 static GPtrArray *machine_code(gchar *opcode_text);
 
 static gchar *mask[]=    { "111111p1 cccccccc" };
@@ -38,11 +38,11 @@ Instruction_Class XC_Obj =
   "XC",
   NULL, // prefetch
   NULL, // fetch
-  decode, // decode
-  NULL, // read_stg1 (access)
+  NULL, // decode
+  read_stg1, // read_stg1 (access)
   NULL, // read_stg2 (read)
   NULL, // execute
-  return_2, // number_words 
+  NULL, // number_words 
   NULL, // set_cycle_number
   1,
   mask,
@@ -51,40 +51,13 @@ Instruction_Class XC_Obj =
   machine_code
 };
 
-static void decode(struct _PipeLine *pipeP, struct _Registers *Reg)
-{
-  if ( pipeP->word_number == 1 )
-    {
-      // Check condition codes
-      if ( check_condition(pipeP->current_opcode & 0xff) )
-	{
-	  Reg->PC = Reg->IR;;
-	  
-	  if ( (pipeP->current_opcode & 0x200) == 0 )
-	    {
-	      Reg->Flush = 1;
-	    }
-       	}
-      
-    }
-}
-
 static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-  if ( pipeP->word_number == 1 )
+  // Check condition codes
+  if ( !check_condition(pipeP->current_opcode & 0xff) )
     {
-      Reg->Dont_Fetch = 1;
-      // Check condition codes
-      if ( check_condition(pipeP->current_opcode & 0xff) )
-	{
-	  Reg->PC = Reg->IR;;
-	  
-	  if ( (pipeP->current_opcode & 0x200) == 0 )
-	    {
-	      Reg->Flush = 1;
-	    }
-       	}
-      
+      // Not true, flush next statements
+      Reg->Flush = Reg->Flush + ((pipeP->current_opcode & 0x200)>9);
     }
 }
 
