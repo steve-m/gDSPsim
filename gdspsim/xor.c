@@ -154,8 +154,7 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 		    reg_union2.gp_reg = MMR->A;
 		  }
 		
-		shift = signed_bit_extract('n',mask[3],
-					   pipeP->current_opcode,NULL);
+		shift = signed_5bit_extract(pipeP->current_opcode);
 		
 		reg_union.guint64 = ( reg_union.guint64 << shift ) ^
 		  reg_union2.guint64;
