@@ -23,7 +23,9 @@ VPATH = .:../gdspsim
 
 SRCS	= \
 	aadd.c \
+	abs.c \
 	add.c \
+	addsub.c \
 	and.c \
 	band.c \
 	bclr.c \
@@ -37,8 +39,13 @@ SRCS	= \
 	btstnot.c \
 	btstp.c \
 	btstset.c \
+	dual_multiply.c \
 	implied_parallel_instr.c \
+	mac.c \
+	mas.c \
+	mpy.c \
 	mpyk.c \
+	mpym.c \
 	mov_Mem2Mem.c \
 	mov_RegLoad.c \
 	mov_RegMove.c \
@@ -58,6 +65,7 @@ SRCS	= \
 	sqr.c \
 	sqrm.c \
 	sub.c \
+	subadd.c \
 	xor.c \
 	alu.c \
 	chip_help.c \
