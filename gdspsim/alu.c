@@ -25,13 +25,21 @@ struct _bytes
   unsigned char byte1;
   unsigned char byte2;
   unsigned char byte3;
-}; 
+};
+
+struct _words
+{
+  Word low;
+  Word high;
+};
+
 union _bitconv
 {
   gint32 i32;
   guint32 iu32;
-  Word word;
+  struct _words words;
   struct _bytes bytes;
+  
 };
 
 /* 
@@ -43,10 +51,11 @@ union _bitconv
  *      3, Y operand is from CB register
  * Omux 0, store answer in A
  *      1, store answer in B
- * flag bit 0-1, 0=add 1=Y-X 2=X-Y
- *      bit 2 shift DB and CB by 16 each (SUB)
+ * flag bit 0-1, 0=add 1=Y-X 2=X-Y 3=sub high word, add low word (DSADT)
+ *      bit 2 shift DB and CB by 16 each (SUB,SQDST,LMS)
  *      bit 3 40 bit mode
  *      bit 4 ignored SXM
+ *      bit 5 round result by adding 2^15
  */ 
 void alu(int Xmux, int Ymux, int Omux, int flag, struct _Registers *Reg)
 {
@@ -84,11 +93,11 @@ void alu(int Xmux, int Ymux, int Omux, int flag, struct _Registers *Reg)
 
   if ( (flag & 3)==0 )
     {
-      if ( (Xmux==1) & C16(MMR) )
+      if (  (flag&8) && C16(MMR) )
 	{
 	  X.words.low = Y.words.low + X.words.low;
-	  t.i32 = Y.words.high + X.words.high;
-	  X.words.high = t.word;
+	  t.i32 = (gint32)Y.words.high + (gint32)X.words.high;
+	  X.words.high = t.words.low;
 	  X.gp_reg.byte4 = t.bytes.byte3;
 	}
       else
@@ -101,8 +110,8 @@ void alu(int Xmux, int Ymux, int Omux, int flag, struct _Registers *Reg)
       if ( (Xmux==1) & C16(MMR) )
 	{
 	  X.words.low = Y.words.low - X.words.low;
-	  t.i32 = Y.words.high - X.words.high;
-	  X.words.high = t.word;
+	  t.i32 = (gint32)Y.words.high - (gint32)X.words.high;
+	  X.words.high = t.words.low;
 	  X.gp_reg.byte4 = t.bytes.byte3;
 	}
       else
@@ -112,27 +121,13 @@ void alu(int Xmux, int Ymux, int Omux, int flag, struct _Registers *Reg)
     }
   else if ( (flag&3)==2 )
     {
-      if (Ymux==2)
+      // X - Y
+      if ( (flag&8) && C16(MMR) )
 	{
-	  // dsubt uses this path
-	  if ( C16(MMR) )
-	    {
-	      X.words.low = X.words.low - Y.words.low;
-	      t.i32 = X.words.high - Y.words.low;
-	      X.words.high = t.word;
-	      X.gp_reg.byte4 = t.bytes.byte3;
-	    }
-	  else
-	    {
-	      X.words.high = X.words.low;
-	      X.gint64 = X.gint64 - Y.gint64;
-	    }
-	}
-      else if ( (Xmux==1) & C16(MMR) )
-	{
+	  // DRSUB is example of this path
 	  X.words.low = X.words.low - Y.words.low;
-	  t.i32 = X.words.high - Y.words.high;
-	  X.words.high = t.word;
+	  t.i32 = (gint32)X.words.high - (gint32)Y.words.low;
+	  X.words.high = t.words.low;
 	  X.gp_reg.byte4 = t.bytes.byte3;
 	}
       else
@@ -140,6 +135,38 @@ void alu(int Xmux, int Ymux, int Omux, int flag, struct _Registers *Reg)
 	  X.gint64 = X.gint64 - Y.gint64;
 	}
     }
+  else if ( (flag&3)==3 )
+    {
+      // See DSADT
+      if ( C16(MMR) )
+	{
+	  Y.words.high = Y.words.low;
+	  X.words.low = X.words.low + Y.words.low;
+	  t.i32 = (guint32)X.words.high - (guint32)Y.words.low;
+	  // X.words.high = t.words.low;
+	  X.gp_reg.byte4 = 0;//t.bytes.byte2;
+	}
+      else
+	{
+	  Y.words.high = Y.words.low;
+	  if ( SXM(MMR) )
+	    {
+	      X.gint64 = (gint64)X.gi32.low - (gint64)Y.gi32.low;
+	    }
+	  else
+	    {
+	      X.guint64 = X.guint64 - Y.guint64;
+	    }
+	}
+    }
+    
+  
+  if ( flag & 0x20 )
+    {
+      // Round
+      X.guint64 = X.guint64 + (1<<15);
+    }
+
 
   // Check for overflow and set overflow bit
   if ( X.gint64 > 0x7fffffff )
