@@ -26,9 +26,9 @@
 static GPtrArray *machine_code(gchar *opcode_text);
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg);
 
-static gchar *mask[]=    { "1111010s 10001110" };
+static gchar *mask[]=    { "1111010d 10001110" };
 static gchar *opcode[] = { "EXP d" };
-static gchar *comment[]= { "T=leading bits($(s))" };
+static gchar *comment[]= { "T=leading bits($(d))" };
 
 /* This definition is global because another routine will make have
  * an array that points to all the different instruction classes.
@@ -53,23 +53,24 @@ Instruction_Class EXP_Obj =
 
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-  int AorB,bit;
-  union _GP_Reg_Union regS;
+  int d,bit;
+  union _GP_Reg_Union reg_union;
 
-  AorB = (pipeP->current_opcode & 0x100 ) >> 8;
-  if ( AorB )
-    regS.gp_reg = MMR->B;
+  d = (pipeP->current_opcode & 0x100 ) >> 8;
+  reg_union.gint64 = 0;
+  if ( d )
+    reg_union.gp_reg = MMR->B;
   else
-    regS.gp_reg = MMR->A;
+    reg_union.gp_reg = MMR->A;
 
-  if ( regS.gint64 == 0 )
+  if ( reg_union.gint64 == 0 )
     MMR->T = 0;
   else
     {
-      if ( regS.gint64 < 0 )
+      if ( reg_union.gint64 < 0 )
 	{
 	  // Negative
-	  if ( regS.gint64 == -1 )
+	  if ( reg_union.gint64 == -1 )
 	    {
 	      MMR->T = -31;
 	    }
@@ -77,7 +78,7 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 	    {
 	      bit = 38;
 	      MMR->T=-8;
-	      while ( (regS.gint64 & (1<<bit)) == 1 )
+	      while ( (reg_union.gint64 & (1<<bit)) == 1 )
 		{
 		  bit--;
 		  (MMR->T)++;
@@ -88,7 +89,7 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 	{
 	  bit = 38;
 	  MMR->T=-8;
-	  while ( (regS.gint64 & (1<<bit)) == 0 )
+	  while ( (reg_union.gint64 & (1<<bit)) == 0 )
 	    {
 	      bit--;
 	      (MMR->T)++;
