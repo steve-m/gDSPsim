@@ -23,26 +23,15 @@
 #include <time.h>
 #include "memory.h"
 #include "string.h"
+#include "symbols.h"
 
 void set_PC(WordA new_pc);
 
 
-struct _symL
-{
-  gchar *name;
-  gint32 value;
-  gint16 type;
-  unsigned char numaux;
-  unsigned char class;
-  gint16 section_num;
-};
-
 // List of the whole symbol table
-GList *symbolL=NULL;
+extern GList *symbolL;
 // List of the symbol table that are labels, sorted on value
-GList *symbol_label=NULL;
-
-WordA start_address=0x0;
+extern GList *symbol_label;
 
 #define FILE_SIZE 100000
 GtkWidget *fileWidget=NULL;
@@ -166,6 +155,7 @@ void file_ok_sel2( GtkWidget        *w,
 	file_error(__LINE__,header,section_header);
 
       // Set the default view ranges
+      // This is the entry point.
       {
 	WordA sa;
 
@@ -253,7 +243,6 @@ void file_ok_sel2( GtkWidget        *w,
       int num_last=0;
       
       // There is a symbol table
-      printf("symbol=0x%x\n",CHAR_TO_UINT32(header->symbolP));
       
       sym = g_new(struct _symbol_element, CHAR_TO_UINT32(header->num_symbols) );
       
@@ -312,14 +301,6 @@ void file_ok_sel2( GtkWidget        *w,
 	      symL->class = sym[k].e_sclass;
 	      symL->section_num = *((gint16 *)&(sym[k].e_scnum[0]));
 	      
-	  
-	      // Look for starting address
-	      if ( strcmp(symL->name,"_c_int00") == 0 )
-		{
-		  start_address = symL->value;
-		  printf("found start 0x%x\n",start_address);
-		}
-
 	      num_last = symL->numaux;
 	      
 	      symbolL = g_list_append(symbolL,symL);
@@ -332,7 +313,7 @@ void file_ok_sel2( GtkWidget        *w,
 		}
 	    }
 	}
-
+      symbol_label = g_list_first(symbol_label);
     }
   // Debug
   //  print_mem_list();
