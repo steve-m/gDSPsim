@@ -60,12 +60,12 @@ SRCS	= \
 OBJS	= $(SRCS:%.c=%.o)
 
 .c.o:
-	$(CC) -Wall -ggdb -I../c55 -I../gdspsim `pkg-config gtk+ --cflags` -D_C55  -c $<
+	$(CC) -Wall -ggdb -I../c55 -I../gdspsim `pkg-config gnome gtk+ --cflags` -D_C55  -c $<
 
 all:	$(PROGRAM)
 
 $(PROGRAM):	$(OBJS)
-		$(CC) -rdynamic `pkg-config gtk+  --libs` -lgtkextra -o $(PROGRAM) $(OBJS)
+		$(CC) -rdynamic `pkg-config gnome gtk+  --libs` -o $(PROGRAM) $(OBJS) -lgtkextra 
 		@echo "done"
 
 install:	$(PROGRAM)
