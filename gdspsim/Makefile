@@ -169,6 +169,7 @@ OBJS	= \
 	memory_window.o \
 	multiplier.o \
 	pipeline.o \
+	preferences.o \
 	readfile.o \
 	register_window.o \
 	shifter.o \
