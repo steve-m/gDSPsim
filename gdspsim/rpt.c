@@ -81,16 +81,19 @@ static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
       smem_read_stg1(pipeP,Reg);
       return;
     case 1:
-      return;
+      {
+	Reg->RC = bit_extract('u',mask[1],pipeP->current_opcode,NULL);
+	return;
+      }
     case 2:
       // always 2 words
       if ( pipeP->word_number == 1 )
 	{
-	  pipeP->storage1 = Reg->IR;
+	  Reg->RC = Reg->IR;
 	}
       return;
     }
-};
+}
 
 static void read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
@@ -100,32 +103,15 @@ static void read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
     }
 };
 
-
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-  switch ( pipeP->opcode_subType )
+  if ( pipeP->opcode_subType == 0 )
     {
-    case 0:
       if ( pipeP->word_number == 1 )
 	{
 	  Reg->RC=Reg->DB;
 	  Reg->RC_first_pass = 1;
 	}
-      return;
-    case 1:
-      {
-	Word adjustment;
-
-	adjustment = bit_extract('u',mask[1],pipeP->current_opcode,NULL);
-	Reg->RC=adjustment;
-      }
-      return;
-    case 2:
-      if ( pipeP->word_number == 1 )
-	{
-	  Reg->RC=pipeP->storage1;
-	}
-      return;
     }
 }
 
