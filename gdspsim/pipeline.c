@@ -67,6 +67,14 @@ static struct _PipeLine *pipe_executeP=NULL;
  * execute   
  */
 
+/* Registers->Flush
+ * This is used for branching and XC, and is set the number
+ * of words in the pipeline to flush. it is usually set in
+ * read_stg1 and then the decode portion will be flushed in
+ * the same sample time of the simulation. The words will
+ * still be fetch, but discarded after the fetch
+ */
+
 void set_breakpoint(WordA bp)
 {
   g_return_if_fail(breakpoints);
@@ -139,7 +147,9 @@ int pipeline(struct _Registers *Registers)
       if ( Registers->Flush )
 	{
 	  Registers->PB = NOP_opcode;
-	}
+	  Registers->IR = NOP_opcode;
+          Registers->Flush--;
+        }
 
       if ( Registers->Dont_Decode == 0 && 
 	   ( ( Registers->RC == 0 ) || Registers->RC_first_pass ) ) 
