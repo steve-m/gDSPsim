@@ -20,12 +20,16 @@
 #include "c54_core.h"
 #include "hardware.h"
 #include <stdio.h>
+#include "memory.h"
 
+static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg);
+static void read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg);
+static void execute(struct _PipeLine *pipeP, struct _Registers *Reg);
 static GPtrArray *machine_code(gchar *opcode_text);
 
 static gchar *mask[]=    { "111101z0 11100100" };
 static gchar *opcode[] = { "FRETz" };
-static gchar *comment[]= { "return $(z)" };
+static gchar *comment[]= { "far return $(z)" };
 
 /* This definition is global because another routine will make have
  * an array that points to all the different instruction classes.
@@ -36,9 +40,9 @@ Instruction_Class FRET_Obj =
   NULL, // prefetch
   NULL, // fetch
   NULL, // decode
-  NULL, // read_stg1 (access)
-  NULL, // read_stg2 (read)
-  NULL, // execute
+  read_stg1, // read_stg1 (access)
+  read_stg2, // read_stg2 (read)
+  execute, // execute
   NULL, // number_words 
   NULL, // set_cycle_number
   1,
@@ -48,6 +52,36 @@ Instruction_Class FRET_Obj =
   machine_code
 };
 
+
+static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
+{
+  Reg->EAB = MMR->SP;
+  MMR->SP++;
+
+  Reg->Dont_Decode = 2;
+}
+static void read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
+{
+  int wait_state;
+
+  Reg->EAB = MMR->SP;
+  MMR->SP++;
+
+  pipeP->storage1 = read_data_mem(Reg->EAB,&wait_state);
+}
+
+static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
+{
+  int wait_state;
+
+  Reg->PC = read_data_mem(Reg->EAB,&wait_state);
+  MMR->XPC = pipeP->storage1;
+
+  if ( (pipeP->current_opcode & 0x200) == 0 )
+    {
+      Reg->Flush = Reg->Flush + 2;
+    }
+}
 
 /* Generates an array of Words that this opcode text generates or NULL
  * if it doesn't. There should not be any comments in the string
