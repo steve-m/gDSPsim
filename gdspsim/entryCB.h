@@ -22,6 +22,7 @@
 
 #include <gtk/gtk.h>
 #include "chip_core.h"
+#include <stdio.h>
 
 typedef void (*Entry_Hex_CB_Func)(GtkWidget *entry, guint64 num, gpointer data);
 
@@ -33,6 +34,10 @@ struct _entryCB_nfo
   gchar *text; // validated text that is inside entry widget
   gpointer data; // pointer passed by to CB_func
 };
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 // turn text into an address. returns TRUE is sucessful
 gboolean text_to_address(const gchar *ch, WordA *address);
@@ -49,4 +54,9 @@ void entry_wordCB( GtkWidget *widget, Word *reg );
 // only changes value under mask. mask assumed to have consecutive bits
 void entry_word_maskCB( GtkWidget *widget, Word *reg, Word mask );
 void entry_gpreg_maskCB( GtkWidget *widget, GP_Reg *reg, guint64 mask );
+
+#ifdef __cplusplus
+}
 #endif
+
+#endif // __ENTRY_CB_H__
