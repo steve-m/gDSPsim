@@ -58,6 +58,6 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   if (pipeP->word_number == 1 )
     {
-      alu( 1, 2, (pipeP->current_opcode & 0x100 )>>8, 9, Reg );
+      alu( 1, 2, (pipeP->current_opcode & 0x100 )>>8, 11, Reg );
     }
 }
