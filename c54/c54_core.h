@@ -95,6 +95,7 @@ struct _Registers
   Word PM;  // Program Memory Read for things like READA
   WordA PAR; // Program Memory Read Address for things like READA
   Word DAR; // Register to hold address for DAB mvdm,mvkd
+  Word EAR; // Register to hold address for EAB mvdk
   Word RC;  // Repeat Counter
   Word RTN; // Return address used for fast return from interrupt
   GP_Reg Shifter;
