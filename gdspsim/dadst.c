@@ -21,6 +21,7 @@
 #include "hardware.h"
 #include <stdio.h>
 #include "smem.h"
+#include "alu.h"
 
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg);
 
@@ -34,8 +35,8 @@ Instruction_Class DADST_Obj =
   NULL, // prefetch
   NULL, // fetch
   NULL, // decode
-  smem_read_stg1, // read_stg1 (access)
-  smem_read_stg2, // read_stg2 (read)
+  lmem_read_stg1, // read_stg1 (access)
+  lmem_read_stg2, // read_stg2 (read)
   execute, // execute
   NULL, // number_words 
   NULL, // set_cycle_number
@@ -55,22 +56,8 @@ Instruction_Class DADST_Obj =
 
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-  FIXME();
-  if ( C16(MMR) )
+  if (pipeP->word_number == 1 )
     {
-      // Dual 16-bit mode. dst[31?-16]=src[31-16]+Lmem[MSB]
-      //                   dst[15 - 0]=src[15- 0]+Lmem[LSB]
-      // The first Word are the MSB for Lmem
-      // Saturation and Overflow not affected
-    }
-  else
-    {
-    
-      // double precision mode
-      GP_Reg gp_reg;
-      
-      // Adds 40 bit dst = 32 bit Lmem + 40 bit src 
-      // The way I think it works, is that it the pointer points to
-      // the MSB
+      alu( 1, 2, (pipeP->current_opcode & 0x100 )>>8, 8, Reg );
     }
 }
