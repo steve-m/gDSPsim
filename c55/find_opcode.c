@@ -27,9 +27,19 @@
 
 extern Instruction_Class AADD_Obj;
 extern Instruction_Class ADD_Obj;
+extern Instruction_Class AND_Obj;
+extern Instruction_Class BAND_Obj;
 extern Instruction_Class BCLR_Obj;
 extern Instruction_Class BCNT_Obj;
+extern Instruction_Class BFXPA_Obj;
+extern Instruction_Class BFXTR_Obj;
+extern Instruction_Class BNOT_Obj;
 extern Instruction_Class BSET_Obj;
+extern Instruction_Class BTST_Obj;
+extern Instruction_Class BTSTCLR_Obj;
+extern Instruction_Class BTSTNOT_Obj;
+extern Instruction_Class BTSTSET_Obj;
+extern Instruction_Class BTSTP_Obj;
 extern Instruction_Class IMPLIED_PARALLEL_INSTR_Obj;
 extern Instruction_Class MOV_MEM_2_MEM_Obj;
 extern Instruction_Class MOV_REG_LOAD_Obj;
@@ -40,8 +50,12 @@ extern Instruction_Class MOV_SPEC_REG_MOVE_Obj;
 extern Instruction_Class MOV_SPEC_REG_SAVE_Obj;
 extern Instruction_Class MPYK_Obj;
 extern Instruction_Class NEG_Obj;
+extern Instruction_Class NOT_Obj;
 extern Instruction_Class OR_Obj;
+extern Instruction_Class ROL_Obj;
+extern Instruction_Class ROR_Obj;
 extern Instruction_Class PSH_Obj;
+extern Instruction_Class SFTL_Obj;
 extern Instruction_Class SFTS_Obj;
 extern Instruction_Class SFTSC_Obj;
 extern Instruction_Class SQR_Obj;
@@ -49,14 +63,24 @@ extern Instruction_Class SQRM_Obj;
 extern Instruction_Class SUB_Obj;
 extern Instruction_Class XOR_Obj;
 
-#define All_Objects_Len  23
+#define All_Objects_Len  37
 static const Instruction_Class *All_Objects[All_Objects_Len]=
 {
   &AADD_Obj,
   &ADD_Obj,
+  &AND_Obj,
+  &BAND_Obj,
   &BCLR_Obj,
   &BCNT_Obj,
+  &BFXPA_Obj,
+  &BFXTR_Obj,
+  &BNOT_Obj,
   &BSET_Obj,
+  &BTST_Obj,
+  &BTSTCLR_Obj,
+  &BTSTNOT_Obj,
+  &BTSTSET_Obj,
+  &BTSTP_Obj,
   &IMPLIED_PARALLEL_INSTR_Obj,
   &MOV_MEM_2_MEM_Obj,
   &MOV_REG_LOAD_Obj,
@@ -67,8 +91,12 @@ static const Instruction_Class *All_Objects[All_Objects_Len]=
   &MOV_SPEC_REG_SAVE_Obj,
   &MPYK_Obj,
   &NEG_Obj,
+  &NOT_Obj,
   &OR_Obj,
+  &ROL_Obj,
+  &ROR_Obj,
   &PSH_Obj,
+  &SFTL_Obj,
   &SFTS_Obj,
   &SFTSC_Obj,
   &SQR_Obj,
@@ -77,7 +105,7 @@ static const Instruction_Class *All_Objects[All_Objects_Len]=
   &XOR_Obj,
 };
 
-#define NUM_MASK_CODE 21
+#define NUM_MASK_CODE 23
 static Decode_Func mask_function[NUM_MASK_CODE]=
 {
   t3_decode,
@@ -89,6 +117,7 @@ static Decode_Func mask_function[NUM_MASK_CODE]=
   T_decode,
   U_decode,
   V_decode,
+  zZ_decode,
   c_decode,
   f_decode,
   h_decode,
@@ -101,8 +130,9 @@ static Decode_Func mask_function[NUM_MASK_CODE]=
   v_decode,
   xy_decode,
   xy_decode,
+  zZ_decode,
 };
-static gchar mask_code[NUM_MASK_CODE]={"3ACFGRTUVcfhmnprtuvxy"};
+static gchar mask_code[NUM_MASK_CODE]={"3ACFGRTUVZcfhmnprtuvxyz"};
 
 
 // Sets class,sub_type,length,mach_code1,mach_code2 of decode_nfo. 
