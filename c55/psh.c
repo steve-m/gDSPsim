@@ -143,11 +143,8 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
     case 5:
       // PSH dbl(Lmem)
       MMR->SP = MMR->SP - 2;
-      dword = Reg->DB2;
-      value = ((DWord)dword>>16);
-      wait_state = write_data_mem_long(MMR->SP,value);
-      value = dword&0xffff;
-      wait_state = write_data_mem_long(MMR->SP+1,value);
+      wait_state = write_data_mem_long(MMR->SP,Reg->DB);
+      wait_state = write_data_mem_long(MMR->SP+1,Reg->CB);
       break;
     }
 }

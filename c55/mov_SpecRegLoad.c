@@ -228,7 +228,7 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
     }
   else if ( pipeP->opcode_subType == 36 )
     {
-      Reg->RETA = Reg->DB2;
+      Reg->RETA = ((DWord)Reg->DB)<<16 | ((DWord)Reg->CB);
     }
   else
     {

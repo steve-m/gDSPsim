@@ -46,8 +46,8 @@ static gchar *mask[]=
   "11101101 ssssssss vvrr1004", // MOV[40] dbl(Lmem), ACx (verified, for 40)
 
   "10000001 xxxxxxyy yyyy10rr", // MOV Xmem, Ymem, ACx
-  "11101101 ssssssss xxrr101v", // MOV dbl(Lmem), pair(HI(ACx)) (verified)
-  "11101101 ssssssss xxrr110v", // MOV dbl(Lmem), pair(LO(ACx)) (verified)
+  "11101101 ssssssss vvrr101v", // MOV dbl(Lmem), pair(HI(ACx)) (verified)
+  "11101101 ssssssss vvrr110v", // MOV dbl(Lmem), pair(LO(ACx)) (verified)
   "11101101 ssssssss 00tt111v", // MOV dbl(Lmem), pair(TAx) (recheck,fixme?)
   };
 
@@ -110,7 +110,7 @@ static void address_stg(struct _PipeLine *pipeP, struct _Registers *Reg)
     case 11:
     case 12:
     case 13:
-    case 14:
+    case 14: // FIXME need to set DAB and CAB and change smem_read_stg_dbl
     case 16:
     case 17:
     case 18:
@@ -315,7 +315,7 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
     case 14:
       // MOV[40] dbl(Lmem), ACx
       r = (opcode.bop[2]>>4)&0x3;
-      dword = Reg->DB2;
+      dword = ((DWord)Reg->DB)<<16 | ((DWord)Reg->CB);
       m40 = opcode.bop[2]&1;
       set_k32_reg(r,dword,SXMD(MMR) & (M40(MMR) | m40));
       return;
@@ -334,34 +334,20 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
     case 16:
       // MOV dbl(Lmem), pair(HI(ACx))
       r = (opcode.bop[2]>>4)&0x3;
-      dword = Reg->DB2 & 0xffff0000;
-      set_k32_reg(r,dword,SXMD(MMR) & M40(MMR) );
-      dword = Reg->DB2 << 16;
-      r=r+1;
-      r=r&3;
-      set_k32_reg(r,dword,SXMD(MMR) & M40(MMR) );
+      set_k16_pair_HIreg(r, Reg->DB, Reg->CB, SXMD(MMR) & M40(MMR) );
       return;
 
     case 17:
       // MOV dbl(Lmem), pair(LO(ACx))
       r = (opcode.bop[2]>>4)&0x3;
-      kword = (DWord)(Reg->DB2 >> 16);
-      set_k16_reg(r,kword,SXMD(MMR) );
-      kword = Reg->DB2 & 0xffff;
-      r=r+1;
-      r=r&3;
-      set_k16_reg(r,kword,SXMD(MMR) );
+      set_k16_pair_LOreg(r, Reg->DB, Reg->CB, SXMD(MMR) & M40(MMR) );
       return;
 
     case 18:
       // MOV dbl(Lmem), pair(TAx)
       t = (opcode.bop[2]>>4)&0x3;
-      kword = (DWord)(Reg->DB2 >> 16);
-      set_k16_reg(r,kword,SXMD(MMR) );
-      kword = Reg->DB2 & 0xffff;
-      r=r+1;
-      r=r&3;
-      set_k16_reg(t+4,kword,0 );
+      set_k16_reg(t+4, Reg->DB, 0);
+      set_k16_reg(t+5, Reg->CB, 0);
       return;
 
     }

@@ -21,6 +21,7 @@
 #include <smem.h>
 #include <xymem.h>
 #include <shifter.h>
+#include <memory.h>
 
 // is this decode correct?
 // "11011101 ssssssss 00rr1000", // mov dbl(s),r
@@ -91,12 +92,10 @@ Instruction_Class MOV_REG_STORE_Obj =
 
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-  Word kword;
-  int r,uns,rnd,t,m40,sxmd;
+  int r,rnd,t,m40,flag;
   Opcode opcode;
-  union _GP_Reg_Union reg_union;
   SWord n;
-  DWord dword;
+
 
   opcode = pipeP->decode_nfo.mach_code;
 
@@ -180,14 +179,10 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 static void write_stg(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   Word kword;
-  int r,uns,rnd,t,m40;
+  int r;
   Opcode opcode;
-  union _GP_Reg_Union reg_union;
-  SWord n;
-  DWord dword;
 
   opcode = pipeP->decode_nfo.mach_code;
-
 
   switch ( pipeP->opcode_subType )
     {
