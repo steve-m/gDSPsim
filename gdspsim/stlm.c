@@ -36,7 +36,7 @@ static gchar *comment[]= { "$(m)=$(s)" };
  */
 Instruction_Class STLM_Obj =
 {
-  "STM",
+  "STLM",
   NULL, // prefetch
   NULL, // fetch
   NULL, // decode
