@@ -58,6 +58,10 @@ static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
   if ( pipeP->word_number == 2 )
     {
       MMR->SP--;
+    }
+  else
+    {
+      Reg->PC = Reg->IR;
       if ( (pipeP->current_opcode & 0x200) == 0)
 	{
 	  pipeP->storage2 = Reg->PC;
@@ -67,10 +71,6 @@ static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
 	{
 	  pipeP->storage2 = Reg->PC+2;
 	}
-    }
-  else
-    {
-      Reg->PC = Reg->IR;
     }
 }
 static void read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
