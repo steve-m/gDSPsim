@@ -42,7 +42,10 @@ gchar *r_decode(gchar *mask, char info, Word start_code, WordA *location);
 gchar *z_decode(gchar *mask, char info, Word start_code, WordA *location);
 gchar *sd_decode(gchar *mask, char info, Word start_code, WordA *location);
 gchar *xy_decode(gchar *mask, char info, Word start_code, WordA *location);
+// extract unsigned decimal number
 gchar *u_decode(gchar *mask, char info, Word start_code, WordA *location);
+// same as u_decode but adds plus 1 to the number
+gchar *p_decode(gchar *mask, char info, Word start_code, WordA *location);
 // Unsigned hex number
 gchar *h_decode(gchar *mask, char info, Word start_code, WordA *location);
 gchar *n_decode(gchar *mask, char info, Word start_code, WordA *location);
