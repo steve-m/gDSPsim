@@ -65,13 +65,26 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
   
   if ( pipeP->current_opcode & 0x100 )
     {
-      reg_union.gp_reg = MMR->B;
+      reg_union.guint64 = GP_REG_2_UINT64(MMR->B);
     }
   else
     {
-      reg_union.gp_reg = MMR->A;
+      reg_union.guint64 = GP_REG_2_UINT64(MMR->A);
     }
    
+  // Check for Saturation
+  if ( (SST(MMR)) && (SXM(MMR)==1) )
+    {
+      if (reg_union.gint64 > max_pos32)
+	{
+	  reg_union.gint64 = max_pos32;
+	}
+      else if (reg_union.gint64 < max_neg32)
+	{
+	  reg_union.gint64 = max_neg32;
+	}
+    }
+
   if ( pipeP->cycles == 0 )
     {
       // Write high word first
