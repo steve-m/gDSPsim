@@ -19,7 +19,7 @@
 CC = gcc
 PROGRAM	= gdspsim
 PREFIX = /usr
-VPATH = .:../gdspsim
+VPATH = .:../gdspsim:../gtkextra/
 
 OBJS	= \
 	abdst.o \
@@ -173,23 +173,33 @@ OBJS	= \
 	smem.o \
 	string_func.o \
 	symbols.o \
-	xymem.o
+	xymem.o \
+	gtkplotdata.o \
+	gtkplotpc.o \
+	gtkplot.o \
+	gtkpsfont.o \
+	gtkplotcanvas.o \
+	gtkplotpolar.o \
+	gtkplotgdk.o \
+	gtkplotsurface.o \
+	gtkplotdt.o \
+	gtkplot3d.o 
 
 SRCS	= $(OBJS:%.o=%.c)
 
 #$(OBJS):	$(SRCS) $(DEPS)
 .c.o:
-	$(CC) -Wall -ggdb -I../c54 -I../gdspsim -I. `pkg-config gtk+ --cflags`  -c -D_C54 $<
+	$(CC) -Wall -ggdb -I../c54 -I../gdspsim -I. -I.. `pkg-config gnome gtk+ --cflags`   -c -D_C54 $<
 
 all:	$(PROGRAM)
 
 $(PROGRAM):	$(OBJS)
-		$(CC) -rdynamic `pkg-config gtk+  --libs` -lgtkextra -o $(PROGRAM) $(OBJS)
+		$(CC) -rdynamic `pkg-config gnome gtk+ --libs`  -o $(PROGRAM) $(OBJS)
 		@echo "done"
+#		$(CC) -rdynamic `pkg-config gtk+  --libs`  -lgtkextra -o $(PROGRAM) $(OBJS)
 
 install:	$(PROGRAM)
 		install -D --mode=755 $(PROGRAM) $(PREFIX)/bin/$(PROGRAM)
-		install -D --mode=644 stop.xpm $(PREFIX)/share/$(PROGRAM)/stop.xpm
 
 clean:		
 		/bin/rm -f *.o $(PROGRAM)
