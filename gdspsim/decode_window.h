@@ -1,7 +1,7 @@
 /*
  * gDSPsim - GNU Digital Signal Processor Simulator
  *
- * Copyright (C) 2001, Kerry Keal, kerry@industrialmusic.com
+ * Copyright (C) 2001-2002, Kerry Keal, kerry@industrialmusic.com
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -21,7 +21,11 @@
 #define __DECODE_WINDOW_H__
 
 #include <gtk/gtk.h>
-#include "c54_core.h"
+#include "chip_core.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 void create_decode_window();
 void set_decode_index_max_range(unsigned long int lower_index, unsigned long int upper_index);
@@ -30,6 +34,8 @@ void highlight_pipeline(WordA follow);
 void update_pipeline(WordA prefetch);
 // Convert a line number to the corresponding word
 WordA line2word(GArray *word2line, int line, WordA start);
-
+#ifdef __cplusplus
+}
+#endif
 
 #endif // __DECODE_WINDOW_H__
