@@ -138,7 +138,7 @@ Instruction_Class BCLR_Obj =
   execute, // execute
   write_stg, // write 
   NULL, // write_plus
-  5,
+  6,
   mask,
   opcode,
 };
@@ -163,7 +163,8 @@ static void read_stg(struct _PipeLine *pipeP, struct _Registers *Reg)
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   Opcode opcode;
-  int bit,r;
+  int r;
+  Word bit;
   union _GP_Reg_Union reg_union;
 
   opcode = pipeP->decode_nfo.mach_code;
@@ -172,15 +173,15 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
     {
     case 0:
       bit = (opcode.bop[1]>>4)&0xf;
-      MMR->ST0_55 = MMR->ST0_55 | 1<<bit;
+      MMR->ST0_55 = MMR->ST0_55 & ~(1<<bit);
       break;
     case 1:
       bit = (opcode.bop[1]>>4)&0xf;
-      MMR->ST0_55 = MMR->ST1_55 | 1<<bit;
+      MMR->ST0_55 = MMR->ST1_55 & ~(1<<bit);
       break;
     case 2:
       bit = (opcode.bop[1]>>4)&0xf;
-      MMR->ST0_55 = MMR->ST2_55 | 1<<bit;
+      MMR->ST0_55 = MMR->ST2_55 & ~(1<<bit);
       break;
     case 3:
       bit = (opcode.bop[1]>>4)&0xf;
@@ -189,22 +190,35 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 	  // flush pipeline
 	  FIXME();
 	}
-      MMR->ST0_55 = MMR->ST3_55 | 1<<bit;
+      MMR->ST0_55 = MMR->ST3_55 & ~(1<<bit);
       break;
     case 4:
       // BCLR src, Smem
       r = (opcode.bop[2]>>4)&0xf;
       reg_union = get_register(r,0);
       bit = reg_union.words.low & 0xf;
-      pipeP->storage1 = Reg->DB | 1<<bit;
+      pipeP->storage1 = Reg->DB & ~(1<<bit);
       break;
     case 5:
       // BCLR Baddr, src
       r = (opcode.bop[2]>>4)&0xf;
-      bit = Reg->DB & 0xf;
-      reg_union = get_register(r,0);
-      reg_union.guint64 = reg_union.guint64  | 1<<bit;
-      set_register(reg_union,r);
+      if ( r < 4 )
+	{
+	  bit = Reg->DB & 0x3f;
+	  if ( bit < 40 )
+	    {
+	      reg_union = get_register(r,0);
+	      reg_union.guint64 = reg_union.guint64 & ~(1<<bit);
+	      set_register(reg_union,r);
+	    }
+	}
+      else
+	{
+	  bit = Reg->DB & 0xf;
+	  reg_union = get_register(r,0);
+	  reg_union.guint64 = reg_union.guint64 & ~(1<<bit);
+	  set_register(reg_union,r);
+	}
       break;
     }
 }
