@@ -28,7 +28,7 @@ static gchar *mask[]=
 
 static gchar *opcode[] = 
 {
-  "'BCNT' r,R,C,t", // AND src, dst
+  "'BCNT' r,R,C,t", // BCNT ACx, ACy,TCx, Tx
 };
 
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg);
