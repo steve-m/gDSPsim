@@ -20,6 +20,7 @@
 #include "shifter.h"
 #include "decode.h"
 #include "memory.h"
+#include "c54_core.h"
 
 // mux (input control)
 // 0 = A
@@ -31,6 +32,8 @@
 // 1 = ASM
 // 2 = Immediate
 // 3 = ASM-16
+// 4 = Immediate (Logical) see SFTL
+// 5 = Immediate (Arithmetically) see SFTA
 
 // output_mux
 // 0 = Store in A
@@ -76,20 +79,56 @@ inline void shifter(Word input_mux, struct _Registers *Reg, Word shift_mux, SWor
       break;
     }
 
-  if ( SXM(MMR) )
+  if ( shift_mux == 4 )
+    {
+      // Logical shift
+      if ( shift < 0 )
+	{
+	  set_C ( MMR,(reg.guint64 & (1<<(-1-shift))) >> (-1-shift) );
+	  reg.gu32.high = (guint32)0;
+	  reg.guint64 = reg.guint64 >> -shift;
+	}
+      else if ( shift > 0 )
+	{
+	  set_C ( MMR,(reg.guint64 & (1<<(32-shift))) >> (32-shift) );
+	  reg.guint64 = reg.gint64 << shift;
+	  reg.gu32.high = (guint32)0;
+	}
+      else
+	{
+	  set_C(MMR,0);
+	}
+    }
+  else if ( shift_mux == 5 )
+    {
+      
+    }
+  else if ( SXM(MMR) )
     {
       // Sign extended
       if ( shift < 0 )
-	reg.gint64 = reg.gint64 >> -shift;
+	{
+	  set_C ( MMR,(reg.guint64 & (1<<(-1-shift))) >> (-1-shift) );
+	  reg.gint64 = reg.gint64 >> -shift;
+	}
       else
-	reg.gint64 = reg.gint64 << shift;
+	{
+	  set_C ( MMR,(reg.guint64 & (1<<(39-shift))) >> (39-shift) );	  
+	  reg.gint64 = reg.gint64 << shift;
+	}
     }
   else
     {
       if ( shift < 0 )
-	reg.gint64 = reg.guint64 >> -shift;
+	{
+	  set_C ( MMR,(reg.guint64 & (1<<(-1-shift))) >> (-1-shift) );
+	  reg.guint64 = reg.guint64 >> -shift;
+	}
       else
-	reg.gint64 = reg.guint64 << shift;
+	{
+	  set_C ( MMR,(reg.guint64 & (1<<(39-shift))) >> (39-shift) );	  
+	  reg.guint64 = reg.guint64 << shift;
+	}
     }
 
   switch ( output_mux )
