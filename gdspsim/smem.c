@@ -49,17 +49,21 @@ void mmem_set_EAB(struct _PipeLine *pipeP, struct _Registers *Reg)
 
 void smem_set_EAB(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-  if ( pipeP->total_words > 1 )
+  int num_words;
+
+  num_words = num_words_for_smem(pipeP);
+
+  if ( num_words > 1 )
     {
       // word_number counts down from total_words
-      if ( pipeP->word_number == 1 )
+      if ( (pipeP->total_words - pipeP->word_number) == 1 )
 	{
 	  Reg->EAB = update_smem_2words(pipeP->current_opcode & 0xff , 
 					pipeP->storage1 , Reg);
 	  printf("smem_set_EAB EAB=0x%x opcode=0x%x next=0x%x\n",Reg->EAB,pipeP->current_opcode,pipeP->storage1);
 	}
     }
-  else
+  else if ( pipeP->word_number == 1 )
     {
       // This updates the auxillary registers 
       Reg->EAB = update_smem(pipeP->current_opcode & 0xff , Reg, CPL(MMR));
@@ -85,7 +89,7 @@ void smem_read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
 	  Reg->DAB = DAB;
 	}
     }
-  else
+  else if ( pipeP->word_number == 1 )
     {
       // This updates the auxillary registers 
       DAB = update_smem(pipeP->current_opcode & 0xff , Reg, CPL(MMR));
@@ -109,6 +113,13 @@ void smem_read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
     }
 }
 
+// This is like smem_read_stg1 except it also increments Smem + 1
+// it also uses pipeP->storage2
+void smem_read_stg1_plus1(struct _PipeLine *pipeP, struct _Registers *Reg)
+{
+  FIXME();
+  smem_read_stg1(pipeP,Reg);
+}
 void mmem_read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   WordA DAB;
@@ -169,65 +180,65 @@ Word update_smem( int Smem, struct _Registers *Reg, int Ref)
     }
   else
     {
-  g_return_val_if_fail( Smem & 0x80, (Word)0); // Must be an indirect operation
+      g_return_val_if_fail( Smem & 0x80, (Word)0); // Must be an indirect operation
 
-  mod = (Smem & (8+16+32+64) ) >> 3;
+      mod = (Smem & (8+16+32+64) ) >> 3;
   
-  g_return_val_if_fail( mod < 12 , (Word)0 ); // Must be a 1 word smem operation
+      g_return_val_if_fail( mod < 12 , (Word)0 ); // Must be a 1 word smem operation
   
-  // Get the particular pointer register
-  arfP=get_pointer_reg(Smem & 7,Reg, CMPT(MMR));
+      // Get the particular pointer register
+      arfP=get_pointer_reg(Smem & 7,Reg, CMPT(MMR));
   
-  switch (mod & 0xf)
-    {
-    case 0:
-      return *arfP;
-    case 1:
-      ReadAddress = *arfP;
-      *arfP = *arfP - 1;
-      return ReadAddress;
-    case 2:
-      ReadAddress = *arfP;
-      *arfP = *arfP + 1;
-      return ReadAddress;
-    case 3:
-      *arfP = *arfP + 1;
-      return *arfP;
-    case 4:
-      ReadAddress = *arfP;
-      *arfP = bit_reversal(*arfP,(SWord)-1,MMR->ar0);
-      return ReadAddress;
-    case 5:
-      ReadAddress = *arfP;
-      *arfP = *arfP - MMR->ar0;
-      return ReadAddress;
-    case 6:
-      ReadAddress = *arfP;
-      *arfP = *arfP + MMR->ar0;
-      return ReadAddress;
-    case 7:
-      ReadAddress = *arfP;
-      *arfP = bit_reversal(*arfP,1,MMR->ar0);
-      return ReadAddress;
-    case 8:
-      ReadAddress = *arfP;
-      *arfP = circular_update(*arfP,(SWord)-1,MMR->BK);
-      return ReadAddress;
-    case 9:
-      ReadAddress = *arfP;
-      *arfP = circular_update(*arfP,-((SWord)MMR->ar0),MMR->BK);
-      return ReadAddress;
-    case 10:
-      ReadAddress = *arfP;
-      *arfP = circular_update(*arfP,(SWord)1,MMR->BK);
-      return ReadAddress;
-    case 11:
-      ReadAddress = *arfP;
-      *arfP = circular_update(*arfP,(SWord)MMR->ar0,MMR->BK);
-      return ReadAddress;
+      switch (mod & 0xf)
+	{
+	case 0:
+	  return *arfP;
+	case 1:
+	  ReadAddress = *arfP;
+	  *arfP = *arfP - 1;
+	  return ReadAddress;
+	case 2:
+	  ReadAddress = *arfP;
+	  *arfP = *arfP + 1;
+	  return ReadAddress;
+	case 3:
+	  *arfP = *arfP + 1;
+	  return *arfP;
+	case 4:
+	  ReadAddress = *arfP;
+	  *arfP = bit_reversal(*arfP,(SWord)-1,MMR->ar0);
+	  return ReadAddress;
+	case 5:
+	  ReadAddress = *arfP;
+	  *arfP = *arfP - MMR->ar0;
+	  return ReadAddress;
+	case 6:
+	  ReadAddress = *arfP;
+	  *arfP = *arfP + MMR->ar0;
+	  return ReadAddress;
+	case 7:
+	  ReadAddress = *arfP;
+	  *arfP = bit_reversal(*arfP,1,MMR->ar0);
+	  return ReadAddress;
+	case 8:
+	  ReadAddress = *arfP;
+	  *arfP = circular_update(*arfP,(SWord)-1,MMR->BK);
+	  return ReadAddress;
+	case 9:
+	  ReadAddress = *arfP;
+	  *arfP = circular_update(*arfP,-((SWord)MMR->ar0),MMR->BK);
+	  return ReadAddress;
+	case 10:
+	  ReadAddress = *arfP;
+	  *arfP = circular_update(*arfP,(SWord)1,MMR->BK);
+	  return ReadAddress;
+	case 11:
+	  ReadAddress = *arfP;
+	  *arfP = circular_update(*arfP,(SWord)MMR->ar0,MMR->BK);
+	  return ReadAddress;
 
-      
-    }
+	  
+	}
     }
 
   return -1;
@@ -368,3 +379,56 @@ Word bit_reversal(Word start, Word bit_reversed_one, SWord adjustment)
 
   return base+index;
 }
+
+void lmem_read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
+{
+  Word L1,L2;
+  int num_words;
+
+  num_words = num_words_for_smem(pipeP);
+
+  if ( num_words > 1 )
+    {
+      // word_number counts down from total_words
+      if ( (pipeP->total_words - pipeP->word_number) == 1 )
+	{
+	  L1 = update_smem_2words(pipeP->current_opcode & 0xff , 
+				  Reg->IR , Reg );
+	  L2 = update_smem_2words(pipeP->current_opcode & 0xff , 
+				   Reg->IR , Reg );
+	  Reg->Lmem1 = L1;
+	  Reg->Lmem2 = L2;
+	}
+    }
+  else
+    {
+      // This updates the auxillary registers 
+      L1 = update_smem(pipeP->current_opcode & 0xff , Reg, CPL(MMR));
+      Reg->Lmem1 = L1;
+      L2 = update_smem(pipeP->current_opcode & 0xff , Reg, CPL(MMR));
+      Reg->Lmem2 = L2;
+    }
+}
+
+void lmem_read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
+{
+  int wait_state;
+  int num_words;
+  Word L1,L2;
+
+  num_words = num_words_for_smem(pipeP);
+
+  if ( (num_words == 1) ||
+       ( (pipeP->total_words - pipeP->word_number) == 1 ) )
+    {
+      union _GP_Reg_Union reg_union;
+      L1 = read_data_mem(Reg->Lmem1,&wait_state);
+      L2 = read_data_mem(Reg->Lmem2,&wait_state);
+      reg_union.gint64 = 0;
+      reg_union.words.low = L1;
+      reg_union.words.high = L2;
+      
+      Reg->Shifter = reg_union.gp_reg;
+    }
+}
+
