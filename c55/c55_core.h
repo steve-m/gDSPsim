@@ -236,6 +236,8 @@ struct _MMR
 extern struct _MMR *MMR;
 extern struct _Registers *Reg;
 
+#define CARRY(Reg)((((Reg)->ST0_55)&0x800)>>11)
+
 // Convenience macros to read status bits
 #define BRAF(Reg)((((Reg)->ST1_55)&0x8000)>>15)
 #define CPL(Reg)((((Reg)->ST1_55)&0x4000)>>14)
@@ -266,6 +268,7 @@ extern struct _Registers *Reg;
 #define set_TC2(Reg,data)((Reg)->ST0_55=((Reg)->ST0_55 & 0xefff)|((data) & 0x1)<<12)
 // if x=0, set TC1 otherwise set TC2
 #define set_TCx(Reg,x,data)((Reg)->ST0_55=(x)?((Reg)->ST0_55 & 0xefff)|((data) & 0x1)<<12 : ((Reg)->ST0_55 & 0xdfff)|((data) & 0x1)<<13)
+#define set_CARRY(Reg,data)((Reg)->ST0_55=((Reg)->ST0_55 & 0xf7ff)|((data) & 0x1)<<11)
 #define set_ACOV0(Reg,data)((Reg)->ST0_55=((Reg)->ST0_55 & 0xfbff)|((data) & 0x1)<<10)
 #define set_ACOV1(Reg,data)((Reg)->ST0_55=((Reg)->ST0_55 & 0xfdff)|((data) & 0x1)<<9)
 
@@ -286,6 +289,7 @@ struct _Registers
   Word CB;  // Data Memory Read from 2nd Data Memory Bus
   Word BB;
   Word EAB; // Write Bus Address
+  Word EB; // Write Data Register
   Word P;
   Word PM;  // Program Memory Read for things like READA
   WordA PAR; // Program Memory Read Address for things like READA
@@ -376,8 +380,18 @@ typedef struct _Instruction_Class Instruction_Class;
 
 #define FIXME()(printf("FIXME %s:%d\n",__FILE__,__LINE__))
 
-#define SWORD_2_GP_REG(g,s)( (g).byte0=(s).byte
+//#define SWORD_2_GP_REG(g,s)( (g).byte0=(s).byte
 #define SIGN6BIT_TO_UINT(x)( ((x) & 0x20) ? ( ( (unsigned int)(-1) ^ 0x3f)  | ((x)&0x3f)) : ((x)&0x3f) ) 
+
+// Set type GP_Reg (gp) equal to msb<<8 | lsb, sign extending if desired
+#define BYTES_TO_GP_REG(gp,sign_extend,msb,lsb)({ (gp).bgp.byte0 = (lsb); (gp).bgp.byte1 = (msb); (gp).wgp.word1 = ( (sign_extend) && (msb&0x80) ) ? 0xffff : 0x0;  (gp).bgp.byte4 = ( (sign_extend) && (msb&0x80) ) ? 0xff : 0x0;  }) 
+
+// Set type GP_Reg (gp) equal to msb<<24 | lsb<<16, sign extending if desired
+#define BYTES_SHFT16_TO_GP_REG(gp,sign_extend,msb,lsb)({ (gp).wgp.word0 = 0; (gp).bgp.byte2 = (lsb); (gp).bgp.byte3 = (msb); (gp).bgp.byte4 = ( (sign_extend) && (msb&0x80) ) ? 0xff : 0x0;  }) 
+
+#define GP_REG_TO_UINT64(gp)( (((guint64)(gp).bgp.byte4)<< 32) | ((guint64)(gp).dword) )
+// convert with sign extention
+#define GP_REG_TO_INT64(gp)( (gp).bgp.byte4 & 0x80 ? (gint64)((guint64)(0xffffff0000000000) | GP_REG_TO_UINT64(gp)) : (gint64)GP_REG_TO_UINT64(gp) )
 
 #define ENTRY_CHAR_WIDTH 8
 #define ENTRY_CHAR_HEIGHT 24
