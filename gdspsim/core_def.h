@@ -61,6 +61,7 @@ struct _GP_Words
 {
   Word low;
   Word high;
+  Word ext;
 };
 
 struct _GP32
@@ -92,6 +93,13 @@ union _8_bits
   unsigned char u8;
 };
 
+union _16_bits
+{
+  SWord s16;
+  Word u16;
+};
+
+#define GP_REG_2_UINT64(x) ( ((x).byte4 & 0x80 ) ? ( (guint64)0xffffff0000000000 |((guint64)(x).byte4)<<32|((guint64)(x).byte3)<<24|((guint64)(x).byte2)<<16|((guint64)(x).byte1)<<8|((guint64)(x).byte0)) : (((guint64)(x).byte4)<<32|((guint64)(x).byte3)<<24|((guint64)(x).byte2)<<16|((guint64)(x).byte1)<<8|((guint64)(x).byte0)) )
 
 // Used to tell if the opcode tag is used in the notation. 
 #define INCLUDE_OPCODE_IN_DECODE 1
