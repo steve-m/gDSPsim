@@ -24,7 +24,8 @@
 #include "entryCB.h"
 #include <pipeline.h>
 
-static GtkWidget *fileIOW=NULL;
+static GtkWidget *fileOW=NULL;
+static GtkWidget *fileIW=NULL;
 GList *fileIOL=NULL;
 GtkWidget *vbox_main;
 struct _fileIO *io_new;
@@ -35,34 +36,59 @@ static void fill_io(struct _fileIO *io);
 
 static void destroy_window_CB( GtkWidget *W, gpointer data )
 {
-  fileIOW=NULL;
+  if ( (int)data == 1 )
+    fileIW = NULL;
+  else
+    fileOW=NULL;
 }
 
+static void destroy_io(struct _fileIO *io)
+{
+  if ( io )
+    {
+      // destroys this structure
+      if ( io->filename )
+	g_free(io->filename);
+      if ( io->file )
+	fclose(io->file);
+
+      // fixme, destoy widgets
+      g_free(io);
+    }
+}
 static void address_reachedCB( GtkWidget *W, struct _fileIO *io)
 {
-  io->modified |= 1;
-  if ( io->modified == 0xf )
+  // fixme. make sure a valid address has been set before setting
+  // the modified bit
+  io->modified |= ADDRESS_REACHED_SET;
+  if ( io->modified == ALL_SET )
     gtk_widget_set_sensitive(io->applyB,TRUE);
 }
 
 static void amountCB( GtkWidget *W, struct _fileIO *io)
 {
-  io->modified |= 2;
-  if ( io->modified == 0xf )
+  // fixme. make sure a valid amount has been set before setting
+  // the modified bit
+  io->modified |= AMOUNT_SET;
+  if ( io->modified == ALL_SET )
     gtk_widget_set_sensitive(io->applyB,TRUE);
 }
 
 static void filenameCB( GtkWidget *W, struct _fileIO *io)
 {
-  io->modified |= 4;
-  if ( io->modified == 0xf )
+  // fixme. make sure a valid filename has been set before setting
+  // the modified bit
+  io->modified |= FILENAME_SET;
+  if ( io->modified == ALL_SET )
     gtk_widget_set_sensitive(io->applyB,TRUE);
 }
 
 static void address_accessCB( GtkWidget *W, struct _fileIO *io)
 {
-  io->modified |= 8;
-  if ( io->modified == 0xf )
+  // fixme. make sure a valid filename has been set before setting
+  // the modified bit
+  io->modified |= ADDRESS_ACCESS_SET;
+  if ( io->modified == ALL_SET )
     gtk_widget_set_sensitive(io->applyB,TRUE);
 }
 
@@ -71,12 +97,12 @@ static void applyCB( GtkWidget *W, struct _fileIO *io)
   int mem_type_reached;
   WordA address_reached; // reached
   int reached_how;
-  int put_get; // put or get
   int amount;
   gchar *filename;
   int type_access;
   int address_access;
   gchar *str;
+  void (*registerF)(struct _fileIO *io);
 
   str = gtk_entry_get_text(GTK_ENTRY(GTK_COMBO(io->mem_type_reachedW)->entry));
 
@@ -104,24 +130,21 @@ static void applyCB( GtkWidget *W, struct _fileIO *io)
   str = gtk_entry_get_text(GTK_ENTRY(GTK_COMBO(io->reached_howW)->entry));
 
   if ( strcmp(str,"is read") == 0 )
-    reached_how = MEMORY_READ;
-  else if ( strcmp(str,"is written") == 0 )
-    reached_how = MEMORY_WRITE;
-  else if ( strcmp(str,"pipeline is executed") == 0 )
-    reached_how = PIPELINE_EXECUTED;
-  else 
     {
-      printf("Error! %s:%d\n",__FILE__,__LINE__);
-      return;
+      reached_how = MEMORY_READ;
+      registerF = set_fileIO_break_on_memory;
     }
-
-  str = gtk_entry_get_text(GTK_ENTRY(GTK_COMBO(io->put_getW)->entry));
-
-  if ( strcmp(str,"put") == 0 )
-    put_get = 0;
-  else if ( strcmp(str,"get") == 0 )
-    put_get = 1;
-  else
+  else if ( strcmp(str,"is written") == 0 )
+    {
+      reached_how = MEMORY_WRITE;
+      registerF = set_fileIO_break_on_memory;
+    }
+  else if ( strcmp(str,"is executed") == 0 )
+    {
+      reached_how = PIPELINE_EXECUTED;
+      registerF = set_fileIO_break_on_pipeline;
+    }
+  else 
     {
       printf("Error! %s:%d\n",__FILE__,__LINE__);
       return;
@@ -160,25 +183,18 @@ static void applyCB( GtkWidget *W, struct _fileIO *io)
   // OK, everything decoded properly, can apply
   io->mem_type_reached = mem_type_reached;
   io->address_reached = address_reached;
-  io->put_get = put_get;
   io->amount = amount;
   io->filename = g_strdup(filename);
   io->type_access = type_access;
   io->address_access = address_access;
+  io->reached_how = reached_how;
 
   if ( io->valid == 0 )
     {
       GtkWidget *connect_box,*separator;
 
-      io->reached_how = reached_how;
-      if ( io->reached_how == PIPELINE_EXECUTED)
-	{
-	  set_fileIO_break_on_pipeline(io);
-	}
-      else
-	{
-	  set_fileIO_break_on_memory(io);
-	}
+      io->registerF = registerF;
+      io->registerF(io);
 
       fileIOL = g_list_append(fileIOL,io);
       io->valid = 1;
@@ -189,53 +205,29 @@ static void applyCB( GtkWidget *W, struct _fileIO *io)
 
       io_new = g_new(struct _fileIO,1);
       io_new->valid = 0;
+      io_new->input = io->input;
       connect_box = create_io(io_new);
       gtk_box_pack_start(GTK_BOX(vbox_main),connect_box,FALSE,FALSE,0);
 
       io_new->connect_box = connect_box;
 
-      gtk_widget_set_sensitive(io->applyB,FALSE);
       gtk_widget_set_sensitive(io->removeB,TRUE);
 
     }
   else
     {
-      if ( reached_how == PIPELINE_EXECUTED)
+      // Reapply
+      if ( io->registerF == registerF )
 	{
-	  if ( io->reached_how == PIPELINE_EXECUTED )
-	    {
-	      io->reached_how = reached_how;
-	      update_fileIO_break_on_pipeline(io);
-	    }
-	  else
-	    {
-	      remove_fileIO_break_on_memory(io);
-	      io->reached_how = reached_how;
-  	      set_fileIO_break_on_pipeline(io);
-	    }
+	  // Update
+	  io->updateF(io);
 	}
       else
 	{
-	  if ( io->reached_how == PIPELINE_EXECUTED )
-	    {
-	      remove_fileIO_break_on_pipeline(io);
-	      io->reached_how = reached_how;
-	      set_fileIO_break_on_memory(io);
-	    }
-	  else
-	    {
-	      if ( io->reached_how == reached_how )
-		{
-		  io->reached_how = reached_how;
-		  update_fileIO_break_on_memory(io);
-		}
-	      else
-		{
-		  remove_fileIO_break_on_memory(io);
-		  io->reached_how = reached_how;
-		  set_fileIO_break_on_memory(io);
-		}
-	    }
+	  // Delete old, register new
+	  io->removeF(io);
+	  io->registerF=registerF;
+	  io->registerF(io);
 	}
     
 
@@ -246,78 +238,90 @@ static void applyCB( GtkWidget *W, struct _fileIO *io)
 
 static void removeCB( GtkWidget *W, struct _fileIO *io )
 {
-  gtk_widget_hide(io->connect_box);
+  gtk_widget_set_sensitive(io->removeB,FALSE);
+  // unregister set
+  io->removeF(io);
+  io->registerF=NULL;
+  if ( io->valid == 1 )
+    {
+      gtk_widget_hide(io->connect_box);
+      // Totally delete
+      destroy_io(io);
+    }
 }
 
-static void closeCB( GtkWidget *W, struct _fileIO *io )
+static void restartCB( GtkWidget *W, struct _fileIO *io )
 {
   fclose(io->file);
   io->file = NULL;
-  gtk_widget_set_sensitive(io->closeB,FALSE);
+  gtk_widget_set_sensitive(io->restartB,FALSE);
 }
 
+static void flushCB( GtkWidget *W, struct _fileIO *io )
+{
+  fflush(io->file);
+}
 
+// Fills up the widget structure based upon io.
 static void fill_io(struct _fileIO *io)
 {
   gchar tmp_str[100];
 
-  if ( io->valid )
-    {
-      if ( io->mem_type_reached == DATA_MEM_TYPE )
-	gtk_entry_set_text(GTK_ENTRY(GTK_COMBO(io->mem_type_reachedW)->entry),
-			   "data");
-      else if ( io->mem_type_reached == PROGRAM_MEM_TYPE )
-	gtk_entry_set_text(GTK_ENTRY(GTK_COMBO(io->mem_type_reachedW)->entry),
-			   "program");
+  if ( io->mem_type_reached == DATA_MEM_TYPE )
+    gtk_entry_set_text(GTK_ENTRY(GTK_COMBO(io->mem_type_reachedW)->entry),
+		       "data");
+  else if ( io->mem_type_reached == PROGRAM_MEM_TYPE )
+    gtk_entry_set_text(GTK_ENTRY(GTK_COMBO(io->mem_type_reachedW)->entry),
+		       "program");
 
+  if ( io->modified & ADDRESS_REACHED_SET )
+    {
       g_snprintf(tmp_str,(size_t)100,"0x%x",io->address_reached);
       gtk_entry_set_text(GTK_ENTRY(io->address_reachedW), tmp_str);
+    }
 
-      switch (io->reached_how)
-	{
-	case MEMORY_READ:
-	  gtk_entry_set_text(GTK_ENTRY(GTK_COMBO(io->reached_howW)->entry),
-			     "is read");
-	  break;
-	case MEMORY_WRITE:
-	  gtk_entry_set_text(GTK_ENTRY(GTK_COMBO(io->reached_howW)->entry),
-			     "is written");
-	  break;
-	case PIPELINE_EXECUTED:
-	  gtk_entry_set_text(GTK_ENTRY(GTK_COMBO(io->reached_howW)->entry),
-			     "pipeline is executed");
-	  break;
-	}
-      
-
-      switch (io->put_get)
-	{
-	case 0:
-	  gtk_entry_set_text(GTK_ENTRY(GTK_COMBO(io->put_getW)->entry),
-			     "put");
-	  break;
-	case 1:
-	  gtk_entry_set_text(GTK_ENTRY(GTK_COMBO(io->put_getW)->entry),
-			     "get");
-	  break;
-	}
-
+  switch (io->reached_how)
+    {
+    case MEMORY_READ:
+      gtk_entry_set_text(GTK_ENTRY(GTK_COMBO(io->reached_howW)->entry),
+			 "is read");
+      break;
+    case MEMORY_WRITE:
+      gtk_entry_set_text(GTK_ENTRY(GTK_COMBO(io->reached_howW)->entry),
+			 "is written");
+      break;
+    case PIPELINE_EXECUTED:
+      gtk_entry_set_text(GTK_ENTRY(GTK_COMBO(io->reached_howW)->entry),
+			 "is executed");
+      break;
+    }
+  
+  
+  if ( io->modified & AMOUNT_SET )
+    {
       g_snprintf(tmp_str,(size_t)100,"%d",io->amount);
       gtk_entry_set_text(GTK_ENTRY(io->amountW), tmp_str);
-
+    }
+  
+  if ( (io->modified & FILENAME_SET) && io->filename )
+    {
       gtk_entry_set_text(GTK_ENTRY(io->filenameW), io->filename);
+    }
 
-      if ( io->type_access == DATA_MEM_TYPE )
-	gtk_entry_set_text(GTK_ENTRY(GTK_COMBO(io->type_accessW)->entry),
-			   "data");
-      else if ( io->type_access == PROGRAM_MEM_TYPE )
-	gtk_entry_set_text(GTK_ENTRY(GTK_COMBO(io->type_accessW)->entry),
-			   "program");
-
+  if ( io->type_access == DATA_MEM_TYPE )
+    gtk_entry_set_text(GTK_ENTRY(GTK_COMBO(io->type_accessW)->entry),
+		       "data");
+  else if ( io->type_access == PROGRAM_MEM_TYPE )
+    gtk_entry_set_text(GTK_ENTRY(GTK_COMBO(io->type_accessW)->entry),
+		       "program");
+  
+  if ( io->modified & ADDRESS_ACCESS_SET )
+    {
       g_snprintf(tmp_str,(size_t)100,"0x%x",io->address_access);
       gtk_entry_set_text(GTK_ENTRY(io->address_accessW), tmp_str);
     }
 }
+
 
 static GtkWidget *create_io(struct _fileIO *io)
 {
@@ -347,7 +351,6 @@ static GtkWidget *create_io(struct _fileIO *io)
   gtk_editable_set_editable(GTK_EDITABLE(GTK_COMBO(combo)->entry),FALSE);
   io->mem_type_reachedW = combo;
 
-  printf("combo widget 0x%x\n",(unsigned int)combo);
   // address
   label = gtk_label_new(" address ");
   gtk_box_pack_start(GTK_BOX(hbox),label,FALSE,FALSE,0);
@@ -372,7 +375,7 @@ static GtkWidget *create_io(struct _fileIO *io)
   items = NULL;
   items = g_list_append(items, "is read");
   items = g_list_append(items, "is written");
-  items = g_list_append(items, "pipeline is executed");
+  items = g_list_append(items, "is executed");
   combo = gtk_combo_new();
   gtk_combo_set_popdown_strings (GTK_COMBO (combo), items);
   io->reached_howW = combo;
@@ -387,18 +390,15 @@ static GtkWidget *create_io(struct _fileIO *io)
   hbox = gtk_hbox_new(FALSE,0);
   gtk_box_pack_start(GTK_BOX(vbox),hbox,FALSE,FALSE,0);
 
-  // put/get
-  items = NULL;
-  items = g_list_append(items, "put");
-  items = g_list_append(items, "get");
-  combo = gtk_combo_new();
-  gtk_widget_set_usize(GTK_WIDGET(combo),6*ENTRY_CHAR_WIDTH,ENTRY_CHAR_HEIGHT); 
-  gtk_combo_set_popdown_strings (GTK_COMBO (combo), items);
-  gtk_box_pack_start(GTK_BOX(hbox),combo,FALSE,FALSE,0);
-  gtk_widget_show(combo);
-  gtk_editable_set_editable(GTK_EDITABLE(GTK_COMBO(combo)->entry),FALSE);
-  io->put_getW = combo;
+  // read/write
+  if ( io->input )
+    label = gtk_label_new(" read ");
+  else
+    label = gtk_label_new(" write ");
+  gtk_box_pack_start(GTK_BOX(hbox),label,FALSE,FALSE,0);
+  gtk_widget_show(label);
  
+  // Number of data
   entry = gtk_entry_new();
 #ifdef GTK2
   gtk_entry_set_width_chars(GTK_ENTRY(entry),13);
@@ -414,29 +414,7 @@ static GtkWidget *create_io(struct _fileIO *io)
 		     GTK_SIGNAL_FUNC (amountCB), io);
 
   // entries of
-  label = gtk_label_new(" entries of file ");
-  gtk_box_pack_start(GTK_BOX(hbox),label,FALSE,FALSE,0);
-  gtk_widget_show(label);
-
- 
-  entry = gtk_entry_new();
-#ifdef GTK2
-  gtk_entry_set_width_chars(GTK_ENTRY(entry),13);
-#else
-  gtk_widget_set_usize(GTK_WIDGET(entry),13*ENTRY_CHAR_WIDTH,ENTRY_CHAR_HEIGHT); 
-#endif
-  gtk_widget_show (entry);  
-  gtk_entry_set_max_length(GTK_ENTRY(entry),13);
-  gtk_box_pack_start(GTK_BOX(hbox),entry,FALSE,FALSE,0);
-  gtk_widget_show (entry);  
-  io->filenameW = entry;
-  gtk_signal_connect(GTK_OBJECT(entry), "changed",
-		     GTK_SIGNAL_FUNC (filenameCB), io);
-
-  // file
-
-  // into
-  label = gtk_label_new(" into ");
+  label = gtk_label_new(" entries of ");
   gtk_box_pack_start(GTK_BOX(hbox),label,FALSE,FALSE,0);
   gtk_widget_show(label);
 
@@ -454,7 +432,7 @@ static GtkWidget *create_io(struct _fileIO *io)
   io->type_accessW = combo;
 
   // address
-  label = gtk_label_new(" address ");
+  label = gtk_label_new(" memory, address ");
   gtk_box_pack_start(GTK_BOX(hbox),label,FALSE,FALSE,0);
   gtk_widget_show(label);
 
@@ -472,6 +450,32 @@ static GtkWidget *create_io(struct _fileIO *io)
   io->address_accessW = entry;
   gtk_signal_connect(GTK_OBJECT(entry), "changed",
 		     GTK_SIGNAL_FUNC (address_accessCB), io);
+
+
+  // into/from
+  if ( io->input )
+    label = gtk_label_new(" from file ");
+  else
+    label = gtk_label_new(" into file ");
+  gtk_box_pack_start(GTK_BOX(hbox),label,FALSE,FALSE,0);
+  gtk_widget_show(label);
+
+ 
+  // file
+  entry = gtk_entry_new();
+#ifdef GTK2
+  gtk_entry_set_width_chars(GTK_ENTRY(entry),13);
+#else
+  gtk_widget_set_usize(GTK_WIDGET(entry),13*ENTRY_CHAR_WIDTH,ENTRY_CHAR_HEIGHT); 
+#endif
+  gtk_widget_show (entry);  
+  gtk_entry_set_max_length(GTK_ENTRY(entry),13);
+  gtk_box_pack_start(GTK_BOX(hbox),entry,FALSE,FALSE,0);
+  gtk_widget_show (entry);  
+  io->filenameW = entry;
+  gtk_signal_connect(GTK_OBJECT(entry), "changed",
+		     GTK_SIGNAL_FUNC (filenameCB), io);
+
 
   gtk_widget_show(hbox);
   gtk_widget_show(vbox);
@@ -493,52 +497,92 @@ static GtkWidget *create_io(struct _fileIO *io)
 		     GTK_SIGNAL_FUNC (removeCB), io);
   gtk_widget_show(io->removeB);
 
-  if (io->valid)
+  if (io->valid==0)
     {
-      io->modified = 0xf;
-      fill_io(io);
-    }
-  else
-    {
+      // Set defaults
+      io->mem_type_reached = PROGRAM_MEM_TYPE;
+      io->address_reached = 0x0;
+      io->reached_how = PIPELINE_EXECUTED;
+      io->amount = 0;
+      io->filename = NULL;
+      io->type_access = DATA_MEM_TYPE;
+      io->address_access = 0;
+      io->file = NULL;
+      io->modified = 0x0;
+      io->registerF = NULL;
+      io->updateF = NULL;
+      io->removeF = NULL;
+
       gtk_widget_set_sensitive(io->removeB,FALSE);
     }
 
-  io->closeB = gtk_button_new_with_label("Close File");
-  gtk_box_pack_start(GTK_BOX(hbox),io->closeB,FALSE,FALSE,0);
-  gtk_signal_connect(GTK_OBJECT(io->closeB), "pressed",
-		     GTK_SIGNAL_FUNC (closeCB), io);
+  fill_io(io);
+
+  // Restart Button
+  io->restartB = gtk_button_new_with_label("Restart File");
+  gtk_box_pack_start(GTK_BOX(hbox),io->restartB,FALSE,FALSE,0);
+  gtk_signal_connect(GTK_OBJECT(io->restartB), "pressed",
+		     GTK_SIGNAL_FUNC (restartCB), io);
   if ( io->file )
-    gtk_widget_set_sensitive(io->closeB,TRUE);
+    gtk_widget_set_sensitive(io->restartB,TRUE);
   else
-    gtk_widget_set_sensitive(io->closeB,FALSE);
-  gtk_widget_show(io->closeB);
+    gtk_widget_set_sensitive(io->restartB,FALSE);
+  gtk_widget_show(io->restartB);
+
+  if ( io->input != 0 )
+    {
+      io->flushB = gtk_button_new_with_label("Flush File");
+      gtk_box_pack_start(GTK_BOX(hbox),io->flushB,FALSE,FALSE,0);
+      gtk_signal_connect(GTK_OBJECT(io->flushB), "pressed",
+			 GTK_SIGNAL_FUNC (flushCB), io);
+      if ( io->file )
+	gtk_widget_set_sensitive(io->flushB,TRUE);
+      else
+	gtk_widget_set_sensitive(io->flushB,FALSE);
+      gtk_widget_show(io->flushB);
+    }
 
   return vbox;
 }
 
 void create_fileIO(GtkWidget *widget, gpointer data)
 {
-  GtkWidget *scrolledW,*connect_box,*separator;
+  GtkWidget *scrolledW,*connect_box,*separator,*mainW;
   struct _fileIO *io;
   int num_file=0;
   GList *list;
 
-  if ( fileIOW != NULL )
-    return;
+  if ( (int)data == 0 )
+    {
+      if ( fileOW != NULL )
+	return;
 
-  fileIOW = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-  gtk_widget_set_usize(fileIOW,600,300); 
+      fileOW = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+      gtk_widget_set_name( fileOW, "Connect Data to an Output File" );
+      gtk_window_set_title( GTK_WINDOW(fileOW), "Connect Data to an Output File" );
+      mainW = fileOW;
+    }
+  else
+    {
+      if ( fileIW != NULL )
+	return;
+      
+      fileIW = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+      gtk_widget_set_name( fileIW, "Connect Input File to Data" );
+      gtk_window_set_title( GTK_WINDOW(fileIW), "Connect Input File to Data" );
+      mainW = fileIW;
+    }
 
-  gtk_signal_connect(GTK_OBJECT(fileIOW),"destroy",
-		     (GtkSignalFunc)destroy_window_CB,NULL);
+  gtk_widget_set_usize(mainW,660,300); 
 
-  gtk_widget_set_name( fileIOW, "Connect File" );
-  gtk_window_set_title( GTK_WINDOW(fileIOW), "Connect File" );
-  gtk_container_set_border_width ( GTK_CONTAINER(fileIOW), 0);
+  gtk_signal_connect(GTK_OBJECT(mainW),"destroy",
+		     (GtkSignalFunc)destroy_window_CB,data);
+
+  gtk_container_set_border_width ( GTK_CONTAINER(mainW), 0);
 
   scrolledW = gtk_scrolled_window_new(NULL, NULL);
   gtk_widget_show(scrolledW);
-  gtk_container_add(GTK_CONTAINER (fileIOW), scrolledW);
+  gtk_container_add(GTK_CONTAINER (mainW), scrolledW);
 
   vbox_main = gtk_vbox_new(FALSE,6);
   gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(scrolledW),vbox_main);
@@ -549,29 +593,35 @@ void create_fileIO(GtkWidget *widget, gpointer data)
   while ( list )
     {
       io = list->data;
-      io->modified = 0;
-      connect_box = create_io((struct _fileIO *)list->data);
-      gtk_box_pack_start(GTK_BOX(vbox_main),connect_box,FALSE,FALSE,0);
-      io->connect_box = connect_box;
-      
-      separator = gtk_hseparator_new();
-      gtk_widget_show(separator);
-      gtk_box_pack_start(GTK_BOX(vbox_main),separator,FALSE,FALSE,0);
+      if ( io->input == (int)data )
+	{
+	  connect_box = create_io((struct _fileIO *)list->data);
 
-      list=list->next;
-      num_file++;
+	  gtk_box_pack_start(GTK_BOX(vbox_main),connect_box,FALSE,FALSE,0);
+	  io->connect_box = connect_box;
+	  
+	  separator = gtk_hseparator_new();
+	  gtk_widget_show(separator);
+	  gtk_box_pack_start(GTK_BOX(vbox_main),separator,FALSE,FALSE,0);
+	  
+	  list=list->next;
+	  num_file++;
+	}
     }
 
   
   io_new = g_new(struct _fileIO,1);
   io_new->valid = 0;
+  io_new->input = (int)data;
+  
   connect_box = create_io(io_new);
+
   gtk_box_pack_start(GTK_BOX(vbox_main),connect_box,FALSE,FALSE,0);
 
   io_new->connect_box = connect_box;
   io_new->modified = 0;
 
-  gtk_widget_show(fileIOW);
+  gtk_widget_show(mainW);
   
 }
 
@@ -580,7 +630,7 @@ void fileIO_process(struct _fileIO *io)
   int k,available,amount_written,wait_state;
   Word wrd;
 
-  if ( io->put_get == 0 )
+  if ( io->input == 0 )
     {
       // Open file if needed
       if ( io->file == NULL )
@@ -591,7 +641,7 @@ void fileIO_process(struct _fileIO *io)
 	      printf("Error cannot create file!\n");
 	      return;
 	    }
-	  gtk_widget_set_sensitive(io->closeB,TRUE);
+	  gtk_widget_set_sensitive(io->restartB,TRUE);
 	}
 
       // putting into a file
@@ -602,7 +652,7 @@ void fileIO_process(struct _fileIO *io)
 	    {
 	      printf("Warning reading unitialized memory\n");
 	    }
-	  amount_written = fprintf(io->file,"0x%x",wrd);
+	  amount_written = fprintf(io->file,"0x%x\n",wrd);
 	  if ( amount_written <= 0 )
 	    {
 	      printf("Error cannot write to file!\n");
@@ -622,7 +672,8 @@ void fileIO_process(struct _fileIO *io)
 	      printf("Error cannot open file!\n");
 	      return;
 	    }
-	  gtk_widget_set_sensitive(io->closeB,TRUE);
+	  gtk_widget_set_sensitive(io->restartB,TRUE);
+       	  gtk_widget_set_sensitive(io->flushB,TRUE);
 	}
       // reading from a file 
       for (k=0;k<io->amount;k++)
