@@ -70,16 +70,36 @@ static struct _PipeLine *pipe_executeP=NULL;
 /* Registers->Flush
  * This is used for branching and XC, and is set the number
  * of words in the pipeline to flush. it is usually set in
- * read_stg1 and then the decode portion will be flushed in
- * the same sample time of the simulation. The words will
- * still be fetch, but discarded after the fetch
+ * the last word of read_stg1 and then the decode portion 
+ * will be flushed in the same sample time of the simulation. 
+ * The words will still be fetch, but discarded after the fetch
+ *
+ * Register->Dont_Decode
+ * This is used to insert a pipeline stall. This is usually
+ * set in the last word of read_stg1. It inserts some NOP
+ * in place of what would have been a decode. The decode statement
+ * is not lost.
  */
 
-void set_breakpoint(WordA bp)
+// Return 1 if breakpoint set, 0 if breakpoint removed
+int toggle_breakpoint(WordA bp)
 {
-  g_return_if_fail(breakpoints);
+  int k;
+
+  g_return_val_if_fail(breakpoints,0);
+  
+  for (k=0;k<breakpoints->len;k++)
+    {
+      if ( g_array_index(breakpoints,WordA,k) == bp )
+	{
+	  // Turn break point off
+	  g_array_remove_index_fast(breakpoints,k);
+	  return 0;
+	}
+    }
   
   g_array_append_val(breakpoints,bp);
+  return 1;
 }
 
 static void pipe_debug(struct _PipeLine *pipeP)
@@ -223,15 +243,11 @@ int pipeline(struct _Registers *Registers)
   pipe_debug(pipe_decodeP);
   printf("\n");
 
-  highlight_pipeline(Registers->PAB);
+  highlight_pipeline(Registers->PAB,1);
   
   fill_reg_entries(Registers);
   update_all_memory_windows();
   
-  if ( Registers->Flush )
-    {
-      Registers->Flush = 0;
-    }
   
   if ( Registers->Dont_Decode == 0 && 
        ( ( Registers->RC == 0 ) || Registers->RC_first_pass ) ) 
@@ -290,6 +306,7 @@ void default_registers(struct _Registers *Registers)
   Registers->PAR = 0;
   Registers->RC = 0;
   Registers->Flush = 0;
+  Registers->Dont_Fetch = 0;
   Registers->Special_Flush = 0;
   Registers->RC_first_pass = 0;
   Registers->Dont_Decode = 0;
