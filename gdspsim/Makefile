@@ -113,6 +113,9 @@ OBJS	= \
 	sfta.o \
 	sftc.o \
 	sftl.o \
+	squr.o \
+	squra.o \
+	squrs.o \
 	st.o \
 	st_ld.o \
 	sth.o \
