@@ -20,6 +20,7 @@
 #include "memory.h"
 #include "stdio.h"
 #include "memory_window.h"
+#include "preferences.h"
 
 struct _def_mem
 {
@@ -91,6 +92,28 @@ Word read_mem(WordA offset, int *wait_state, MemType type, int *available)
 	      mem_element = mem_page->mem + (offset-mem_page->start);
 	      return *mem_element;
 	    }
+	}
+    }
+
+  if ( type == PROGRAM_MEM_TYPE )
+    {
+      if ( bound_program_mem_read && (gStopRun==0))
+	{
+	  gStopRun=1;
+	}
+    }
+  else if ( type == DATA_MEM_TYPE )
+    {
+      if ( bound_data_mem_read && (gStopRun==0))
+	{
+	  gStopRun=1;
+	}
+      if ( add_data_mem_on_read )
+	{
+	  // This will put this address in avalible memory
+	  cp_to_mem(0,offset,1,type);
+	  *wait_state=0;
+	  return 0;
 	}
     }
 
@@ -167,11 +190,14 @@ static int write_mem(WordA offset, Word value, MemType type)
 	}
     }
 
-  printf("Memory access violation writing 0x%x of type=%d\n",offset,type);
-  printf("Adding it to accessable memory!\n");
+  if ( (type==DATA_MEM_TYPE) && (add_data_mem_on_write) )
+    {
+      // This will put this address in avalible memory
+      cp_to_mem(&value,offset,1,type);
+      return 0;
+    }
 
-  // This will put this address in avalible memory
-  cp_to_mem(&value,offset,1,type);
+  printf("Memory access violation writing 0x%x of type=%d\n",offset,type);
     
   return 0;
 }
