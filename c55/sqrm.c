@@ -23,12 +23,12 @@
 
 static gchar *mask[]=
   {
-    "11010011 aaaaaaaa 3frr10vv",
+    "11010011 ssssssss 3frr10vv", // SQRM[R] [T3 = ]Smem, ACx
   };
 
 static gchar *opcode[] = 
 { 
-  "'SQRM'f 3a,r",
+  "'SQRM'f 3s,r",
 };
 
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg);
@@ -51,17 +51,17 @@ Instruction_Class SQRM_Obj =
 
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-  Opcode mach_code;
-  int r,rnd;
+  Opcode opcode;
+  int r,flag;
 
-  mach_code = pipeP->decode_nfo.mach_code;
+  opcode = pipeP->decode_nfo.mach_code;
 
-  r=(mach_code.bop[2]&0x30)>>4;
-  rnd = (mach_code.bop[2]&0x40)>>4;
+  r=(opcode.bop[2]>>4)&0x3;
+  flag = (opcode.bop[2]&0x40) ? MULT_ROUND : 0;
   
-  multiplier(4,4,8,r+rnd,Reg);
+  multiplier(MULT_DB,MULT_DB,MULT_NO_MAC,r,flag,Reg);
   
-  if (mach_code.bop[2] & 0x80)
+  if ( opcode.bop[2]&0x80 )
     {
       MMR->T3 = Reg->DB;
     }

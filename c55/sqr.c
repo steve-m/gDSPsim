@@ -52,16 +52,16 @@ Instruction_Class SQR_Obj =
 
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-  Opcode mach_code;
-  int r,R,rnd;
+  Opcode opcode;
+  int r,R,flag;
 
-  mach_code = pipeP->decode_nfo.mach_code;
+  opcode = pipeP->decode_nfo.mach_code;
 
-  r=(mach_code.bop[1]&0xc0)>>6;
-  R=(mach_code.bop[1]&0x30)>>4;
-  rnd = (mach_code.bop[1]&0x1)<<2;
+  r=(opcode.bop[1]>>6)&0x3;
+  R=(opcode.bop[1]>>4)&0x3;
+  flag = (opcode.bop[1]&0x1) ? MULT_ROUND : 0;
   
-  multiplier(r,r,8,R+rnd,Reg);
+  multiplier(r,r,MULT_NO_MAC,R,flag,Reg);
 }
 
 
