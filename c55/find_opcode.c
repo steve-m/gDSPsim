@@ -29,8 +29,12 @@ extern Instruction_Class AADD_Obj;
 extern Instruction_Class ABS_Obj;
 extern Instruction_Class ADD_Obj;
 extern Instruction_Class ADDSUB_Obj;
+extern Instruction_Class AMAR_Obj;
 extern Instruction_Class AND_Obj;
+extern Instruction_Class ASUB_Obj;
+extern Instruction_Class B_Obj;
 extern Instruction_Class BAND_Obj;
+extern Instruction_Class BCC_Obj;
 extern Instruction_Class BCLR_Obj;
 extern Instruction_Class BCNT_Obj;
 extern Instruction_Class BFXPA_Obj;
@@ -42,10 +46,16 @@ extern Instruction_Class BTSTCLR_Obj;
 extern Instruction_Class BTSTNOT_Obj;
 extern Instruction_Class BTSTSET_Obj;
 extern Instruction_Class BTSTP_Obj;
+extern Instruction_Class CALL_Obj;
+extern Instruction_Class CMP_Obj;
 extern Instruction_Class DUAL_MULTIPLY_Obj;
+extern Instruction_Class EXP_Obj;
 extern Instruction_Class IMPLIED_PARALLEL_INSTR_Obj;
 extern Instruction_Class MAC_Obj;
+extern Instruction_Class MANT_Obj;
 extern Instruction_Class MAS_Obj;
+extern Instruction_Class MAX_Obj;
+extern Instruction_Class MIN_Obj;
 extern Instruction_Class MOV_MEM_2_MEM_Obj;
 extern Instruction_Class MOV_REG_LOAD_Obj;
 extern Instruction_Class MOV_REG_MOVE_Obj;
@@ -55,30 +65,43 @@ extern Instruction_Class MOV_SPEC_REG_MOVE_Obj;
 extern Instruction_Class MOV_SPEC_REG_SAVE_Obj;
 extern Instruction_Class MPY_Obj;
 extern Instruction_Class MPYK_Obj;
+extern Instruction_Class MPYM_Obj;
 extern Instruction_Class NEG_Obj;
+extern Instruction_Class NOP_Obj;
 extern Instruction_Class NOT_Obj;
 extern Instruction_Class OR_Obj;
+extern Instruction_Class POP_Obj;
+extern Instruction_Class PSH_Obj;
+extern Instruction_Class RET_Obj;
 extern Instruction_Class ROL_Obj;
 extern Instruction_Class ROR_Obj;
-extern Instruction_Class PSH_Obj;
+extern Instruction_Class RPT_Obj;
+extern Instruction_Class RPTB_Obj;
+extern Instruction_Class RPTBLOCAL_Obj;
 extern Instruction_Class SFTL_Obj;
 extern Instruction_Class SFTS_Obj;
 extern Instruction_Class SFTSC_Obj;
+extern Instruction_Class SQA_Obj;
 extern Instruction_Class SQR_Obj;
 extern Instruction_Class SQRM_Obj;
 extern Instruction_Class SUB_Obj;
 extern Instruction_Class SUBADD_Obj;
+extern Instruction_Class XCC_Obj;
 extern Instruction_Class XOR_Obj;
 
-#define All_Objects_Len  44
+#define All_Objects_Len  63
 static const Instruction_Class *All_Objects[All_Objects_Len]=
 {
   &AADD_Obj,
   &ABS_Obj,
   &ADD_Obj,
   &ADDSUB_Obj,
+  &AMAR_Obj,
   &AND_Obj,
+  &ASUB_Obj,
+  &B_Obj,
   &BAND_Obj,
+  &BCC_Obj,
   &BCLR_Obj,
   &BCNT_Obj,
   &BFXPA_Obj,
@@ -90,10 +113,16 @@ static const Instruction_Class *All_Objects[All_Objects_Len]=
   &BTSTNOT_Obj,
   &BTSTSET_Obj,
   &BTSTP_Obj,
+  &CALL_Obj,
+  &CMP_Obj,
   &DUAL_MULTIPLY_Obj,
+  &EXP_Obj,
   &IMPLIED_PARALLEL_INSTR_Obj,
   &MAC_Obj,
+  &MANT_Obj,
   &MAS_Obj,
+  &MAX_Obj,
+  &MIN_Obj,
   &MOV_MEM_2_MEM_Obj,
   &MOV_REG_LOAD_Obj,
   &MOV_REG_MOVE_Obj,
@@ -103,41 +132,56 @@ static const Instruction_Class *All_Objects[All_Objects_Len]=
   &MOV_SPEC_REG_SAVE_Obj,
   &MPY_Obj,
   &MPYK_Obj,
+  &MPYM_Obj,
   &NEG_Obj,
+  &NOP_Obj,
   &NOT_Obj,
   &OR_Obj,
+  &POP_Obj,
+  &PSH_Obj,
+  &RET_Obj,
   &ROL_Obj,
   &ROR_Obj,
-  &PSH_Obj,
+  &RPT_Obj,
+  &RPTB_Obj,
+  &RPTBLOCAL_Obj,
   &SFTL_Obj,
   &SFTS_Obj,
   &SFTSC_Obj,
+  &SQA_Obj,
   &SQR_Obj,
   &SQRM_Obj,
   &SUB_Obj,
   &SUBADD_Obj,
+  &XCC_Obj,
   &XOR_Obj,
 };
 
-#define NUM_MASK_CODE 27
+#define NUM_MASK_CODE 33
 static Decode_Func mask_function[NUM_MASK_CODE]=
 {
   t3_decode,
   m4_decode,
   A_decode,
   C_decode,
+  C_decode,
   F_decode,
   G_decode,
   U_decode,
   V_decode,
+  L_decode,
   rR_decode,
   T_decode,
   U_decode,
   V_decode,
+  X_decode,
+  X_decode,
   zZ_decode,
+  b_decode,
   c_decode,
   f_decode,
   h_decode,
+  l_decode,
   m_decode,
   n_decode,
   p_decode,
@@ -150,7 +194,7 @@ static Decode_Func mask_function[NUM_MASK_CODE]=
   xy_decode,
   zZ_decode,
 };
-static gchar mask_code[NUM_MASK_CODE]={"34ACFGHIRTUVZcfhmnprstuvxyz"};
+static gchar mask_code[NUM_MASK_CODE]={"34ACDFGHILRTUVXYZbcfhlmnprstuvxyz"};
 
 
 // Sets class,sub_type,length,mach_code1,mach_code2 of decode_nfo. 
@@ -189,7 +233,7 @@ void mach_code_to_text( struct _decoded_opcode *decode_nfo,
 
   if ( decode_nfo->class == NULL )
     {
-      op->opcode_text = g_strdup("Undefined");
+      op->opcode_text = g_strdup(".byte");
       op->machine_code = g_strdup_printf("0x%.2x",decode_nfo->mach_code.bop[0]);
       return;
     }
@@ -474,16 +518,15 @@ void decoded_opcodes(GPtrArray *textA,WordA start,WordA end, GArray *word2line)
   struct _decoded_opcode decode_nfo;
   int num_to_read;
 
-  decode_nfo.length = MAX_OP_LEN;
   num_to_read = MAX_OP_LEN;
 
   while (start < end)
     {
       op = g_new(struct _decode_opcode,1);
 
-      for (k=MAX_OP_LEN-num_to_read;k<MAX_OP_LEN;k++)
+      for (k=0;k<MAX_OP_LEN-num_to_read;k++)
 	{
-	  decode_nfo.mach_code.bop[k-MAX_OP_LEN+num_to_read] = decode_nfo.mach_code.bop[k];
+	  decode_nfo.mach_code.bop[k] = decode_nfo.mach_code.bop[k+num_to_read];
 	}
       for (k=0;k<num_to_read;k++)
 	{
@@ -501,6 +544,8 @@ void decoded_opcodes(GPtrArray *textA,WordA start,WordA end, GArray *word2line)
 	  for(k=start;k<start+decode_nfo.length;k++)
 	    {
 	      gchar *sym_name;
+
+	      // fixme, why get symbol for every byte instead of just 1st
 
 	      sym_name=get_symbol(k);
 	      if (sym_name)
@@ -531,7 +576,7 @@ void decoded_opcodes(GPtrArray *textA,WordA start,WordA end, GArray *word2line)
       g_ptr_array_add(textA,op);
 	  
       start = start + decode_nfo.length;
-      num_to_read = MAX_OP_LEN - decode_nfo.length;
+      num_to_read = decode_nfo.length;
       line_no++;
     }
 }
