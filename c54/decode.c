@@ -1197,11 +1197,11 @@ SWord signed_5bit_extract(Word mach_code)
 {
   SWord bits;
 
-  bits = mach_code & 0xf;
+  bits = mach_code & 0x1f;
   if ( bits & 0x10 )
     {
       // Negative number
-      bits = bits - 16;
+      bits = (bits&0xf) - 16;
     }
   return bits;
 }
