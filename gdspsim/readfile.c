@@ -151,16 +151,16 @@ void open_file( const gchar *filename )
 	WordA sa;
 
 	sa = (WordA)CHAR_TO_UINT32(opt_hdr->start_address);
-	set_prog_mem_start_end(sa,sa+0x100);
-	set_program_start(sa);
+	set_prog_mem_start_end(PROG_MEM_CONV*sa,PROG_MEM_CONV*sa+0x100);
+	set_program_start(PROG_MEM_CONV*sa);
       }
     }
   else
     {
       opt_hdr=NULL;
       relocate=0x80; // To put .obj files in a reasonable location
-      set_prog_mem_start_end(relocate,relocate+0x100 );
-      set_program_start(relocate);
+      set_prog_mem_start_end(2*relocate,2*relocate+0x500 );
+      set_program_start(2*relocate);
     }
 
   
