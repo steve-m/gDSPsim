@@ -19,19 +19,16 @@
       
 #include <chip_core.h>
 #include <smem.h>
-#include <xymem.h>
-#include <shifter.h>
-#include <memory.h>
 #include <chip_help.h>
 
 static gchar *mask[]=
 {
-  "0001000p vvrr1010 RRttxxxC", // BCNT ACx, ACy,TCx, Tx
+  "0001000p vvrr1010 RRttvvvC", // BCNT ACx, ACy,TCx, Tx
 };
 
 static gchar *opcode[] = 
 {
-  "'BCNT' r,R,T,t", // AND src, dst
+  "'BCNT' r,R,C,t", // AND src, dst
 };
 
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg);
