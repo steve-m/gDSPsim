@@ -51,6 +51,8 @@ static gchar *mask[]=
   "11101011 ssssssss vvrr1111", // MOV pair(LO(ACx)), dbl(Lmem)
   "11101011 ssssssss rrrr1100", // MOV pair(TAx), dbl(Lmem)
   "10000000 xxxxxxyy yyyy10rr", // MOV ACx, Xmem, Ymem
+
+  "10001100 xxxxxxyy yyyyrrrr 1100RRRR", // MOV r,Xmem || MOV R,Ymem
   };
 
 static gchar *opcode[] = 
@@ -78,6 +80,8 @@ static gchar *opcode[] =
   "'MOV' 'pair(LO'(r)),'dbl'(s)", // MOV pair(LO(ACx)), dbl(Lmem)
   "'MOV' 'pair'(r),'dbl'(s)", // MOV pair(TAx), dbl(Lmem)
   "'MOV' r,x,y", // MOV ACx, Xmem, Ymem
+
+  "'MOV' r,x || 'MOV' R,y", // MOV r,Xmem || MOV R,Ymem
 };
 
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg);
@@ -94,7 +98,7 @@ Instruction_Class MOV_REG_STORE_Obj =
   execute, // execute
   write_stg, // write 
   NULL, // write_plus
-  20,
+  21,
   mask,
   opcode,
 };
@@ -182,7 +186,8 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 
       smem_set_EAB_b2(pipeP,Reg);
       return;
-
+    default:
+      printf("Not finished\n");
 
 
     }
