@@ -18,10 +18,8 @@
 */
 
 #include "c54_core.h"
-#include "hardware.h"
+#include "alu.h"
 #include "smem.h"
-#include <stdio.h>
-#include "memory.h"
 
 static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg);
 static void read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg);
@@ -84,17 +82,20 @@ static void read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
 
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-  Word EB;
+  Word CB;
 
   if ( (pipeP->total_words == 3) && (pipeP->word_number==2) )
     Reg->EAB = pipeP->storage2;
 
   if ( pipeP->word_number == 1 )
     {
-      // Add Reg->DB to pipeP->storage1 and store in Reg->EAB
-      EB = Reg->DB + pipeP->storage1;
       
-      write_data_mem(Reg->EAB,EB);
+      // Add Reg->DB to pipeP->storage1 and store in Reg->EAB
+      // temporarily move pipeP->storage1 to Reg->CB
+      CB = Reg->CB;
+      CB = pipeP->storage1;
+      alu(0,3,2,0,Reg);
+      Reg->CB = CB;
     }
 }
 
