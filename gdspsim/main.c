@@ -87,8 +87,8 @@ static void helpCB( GtkWidget *widget,  gpointer   data )
     }
   else
     {
-      // gnome_error_dialog(_("Counldn't fine the gDSPsim Manual"));
-      printf("Counldn't fine the gDSPsim Manual\n");
+      // gnome_error_dialog(_("Counldn't find the gDSPsim Manual"));
+      printf("Counldn't find the gDSPsim Manual\n");
     }
 }
 
