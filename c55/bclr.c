@@ -16,11 +16,22 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
-      
-#include "chip_core.h"
-#include "smem.h"
+
+#include <chip_core.h>
+#include <chip_help.h>
+#include <smem.h>
+#include <memory.h>
 static gchar *mask[]=
   {
+    "0100011p uuuu0000", // BCLR k4, ST0_55
+    "0100011p uuuu0010", // BCLR k4, ST1_55
+    "0100011p uuuu0100", // BCLR k4, ST2_55
+    "0100011p uuuu0110", // BCLR k4, ST3_55
+    "11100011 ssssssss rrrr1101", // BCLR src, Smem
+
+    "11101100 ssssssss rrrr001v", // BCLR Baddr, src
+
+#if 0
     "0100 0110 1001 0000", // bclr ACOV1
     "0100 0110 1010 0000", // bclr ACOV0
     "0100 0110 1011 0000", // bclr CARRY
@@ -58,10 +69,19 @@ static gchar *mask[]=
     "0100 0110 1101 0110", // bclr CACLR
     "0100 0110 1110 0110", // bclr CAEN
     "0100 0110 1111 0110", // bclr CAFRZ
+#endif
   };
 
 static gchar *opcode[] = 
 { 
+  "'BCLR' u,'ST0_55'",
+  "'BCLR' u,'ST1_55'",
+  "'BCLR' u,'ST2_55'",
+  "'BCLR' u,'ST3_55'",
+  "'BCLR' r,s",
+  "'BCLR' s,r",
+
+#if 0
   "BCLR ACOV1",
   "BCLR ACOV0",
   "BCLR CARRY",
@@ -99,30 +119,102 @@ static gchar *opcode[] =
   "BCLR CACLR",
   "BCLR CAEN",
   "BCLR CAFRZ",
+#endif
 };
 
+static void address_stg(struct _PipeLine *pipeP, struct _Registers *Reg);
+static void read_stg(struct _PipeLine *pipeP, struct _Registers *Reg);
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg);
+static void write_stg(struct _PipeLine *pipeP, struct _Registers *Reg);
 
 Instruction_Class BCLR_Obj =
 {
   "BCLR",
   NULL, // decode
-  NULL, // address_stg
+  address_stg, // address_stg
   NULL, // access_1
   NULL, // access_2
-  NULL, // read_stg
+  read_stg, // read_stg
   execute, // execute
-  NULL, // write 
+  write_stg, // write 
   NULL, // write_plus
-  34,
+  5,
   mask,
   opcode,
 };
 
+static void address_stg(struct _PipeLine *pipeP, struct _Registers *Reg)
+{
+  if ( pipeP->opcode_subType==4 || pipeP->opcode_subType==5 )
+    { 
+      smem_address_stg_b2(pipeP,Reg);
+      pipeP->storage2 = Reg->DAB;
+    } 
+}
 
+static void read_stg(struct _PipeLine *pipeP, struct _Registers *Reg)
+{
+  if ( pipeP->opcode_subType==4 || pipeP->opcode_subType==5 )
+    { 
+      smem_read_stg(pipeP,Reg);
+    } 
+}
 
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
+  Opcode opcode;
+  int bit,r;
+  union _GP_Reg_Union reg_union;
+
+  opcode = pipeP->decode_nfo.mach_code;
+  
+  switch ( pipeP->opcode_subType )
+    {
+    case 0:
+      bit = (opcode.bop[1]>>4)&0xf;
+      MMR->ST0_55 = MMR->ST0_55 | 1<<bit;
+      break;
+    case 1:
+      bit = (opcode.bop[1]>>4)&0xf;
+      MMR->ST0_55 = MMR->ST1_55 | 1<<bit;
+      break;
+    case 2:
+      bit = (opcode.bop[1]>>4)&0xf;
+      MMR->ST0_55 = MMR->ST2_55 | 1<<bit;
+      break;
+    case 3:
+      bit = (opcode.bop[1]>>4)&0xf;
+      if ( bit > 12 )
+	{
+	  // flush pipeline
+	  FIXME();
+	}
+      MMR->ST0_55 = MMR->ST3_55 | 1<<bit;
+      break;
+    case 4:
+      // BCLR src, Smem
+      r = (opcode.bop[2]>>4)&0xf;
+      reg_union = get_register(r,0);
+      bit = reg_union.words.low & 0xf;
+      pipeP->storage1 = Reg->DB | 1<<bit;
+      break;
+    case 5:
+      // BCLR Baddr, src
+      r = (opcode.bop[2]>>4)&0xf;
+      bit = Reg->DB & 0xf;
+      reg_union = get_register(r,0);
+      reg_union.guint64 = reg_union.guint64  | 1<<bit;
+      set_register(reg_union,r);
+      break;
+    }
+}
+
+static void write_stg(struct _PipeLine *pipeP, struct _Registers *Reg)
+{
+  if ( pipeP->opcode_subType==4 )
+    { 
+      write_data_mem_long(pipeP->storage2,pipeP->storage1);
+    } 
 }
 
 
