@@ -150,7 +150,7 @@ void open_file( const gchar *filename )
       {
 	WordA sa;
 
-	sa = (WordA)CHAR_TO_UINT32(opt_hdr->start_address);
+	sa = (WordA)CHAR_TO_UINT32(opt_hdr->start_executable);
 	set_prog_mem_start_end(PROG_MEM_CONV*sa,PROG_MEM_CONV*sa+0x100);
 	set_program_start(PROG_MEM_CONV*sa);
       }
