@@ -17,6 +17,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
+// Audit: Feb 18,2002:1 wkk
+
 #include "c54_core.h"
 #include "hardware.h"
 #include <stdio.h>
@@ -43,7 +45,7 @@ static gchar *mask[]=
     
     "1110100s nnnnnnnn",
     "1111000s 0010uuuu hhhhhhhh hhhhhhhh",
-    "1111000s 01100010 hhhhhhhh hhhhhhhh",
+    "1111000s 01100010 nnnnnnnn nnnnnnnn",
     "111101sd 10000010",
     "111101sd 010nnnnn",
 
@@ -300,7 +302,19 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 	  }
 	case 9:
 	  // LD s,n,d
-	  return;
+	  {
+	    Word input_mux;
+	    Word output_mux;
+	    SWord shift;
+	      
+	    shift = signed_5bit_extract(pipeP->storage1);
+	    
+	    output_mux = pipeP->current_opcode & 0x100 >> 8;
+	    input_mux = pipeP->current_opcode & 0x200 >> 9;
+	    shifter(input_mux,Reg,2,shift,output_mux);
+
+	    return;
+	  }
 	case 10:
 	  // LD a,T
 	  MMR->T = Reg->DB;
