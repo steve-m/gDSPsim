@@ -25,7 +25,6 @@
 #include "c54_core.h"
 #include "find_opcode.h"
 #include "readfile.h"
-#include "process_coff.h"
 #include "register_window.h"
 #include "pipeline.h"
 #include "fileIO.h"
@@ -204,9 +203,6 @@ int main(int argc, char *argv[])
 {
   GtkWidget *window,*vbox;
   GtkWidget *menubar;
-  int error;
-  size_t size;
-  char *buffer,filename[80];
   int k;
 
   /* Setup main window */
@@ -265,39 +261,5 @@ int main(int argc, char *argv[])
 
   gtk_main ();
 
-
-
-  // looks like buffer overflow possibility here. FIXME
-  printf("Decode what file? \n");
-  scanf("%s",filename);
-
-  //  error = readfile("filtercoef.obj",&size,&buffer);
-  error = readfile(filename,&size,&buffer);
-
-#if 0
-  {
-    int k;
-    struct decode_mask *dc;
-
-    for (k=0;k<decode_info->len;k++)
-      {
-	dc = g_ptr_array_index(decode_info,k);
-	printf("\"%s\" \"%s\" \"%s\"\n",dc->mask,dc->opcode,dc->comment);
-
-      }
-    //  scanf("%s",filename);
-
-  }
-  process_coff(buffer,size);
-
-  printf("read in size=%d\n",size);
-
-  {
-    extern long int text_size;
-    extern guint16 *text_data;
-    
-    // decode(0,text_size,text_data,decode_info);
-  }
-#endif
   return 0;
 }
