@@ -19,7 +19,6 @@
 
 #include "c54_core.h"
 #include "hardware.h"
-#include <stdio.h>
 #include "memory.h"
 #include "smem.h"
 
@@ -67,19 +66,14 @@ static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
 	{
 	  union _GP_Reg_Union reg_union;
 	  
-	  // Reg->Stall = 1;
+	  // Reg->Dont_Decode = 2;
 	  reg_union.gp_reg = MMR->A;
-	  Reg->PAR = reg_union.words.low;
+	  Reg->PAR = reg_union.address;
 	}
       else
 	{
-	  if ( Reg->RC )
-	    Reg->PAR++;
+	  Reg->PAR++;
 	}
-      printf("reada setting PAR=0x%x\n",Reg->PAR);
-    }
-  else
-    {
     }
 }
 
@@ -91,7 +85,6 @@ static void read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
     {
       smem_set_EAB(pipeP,Reg);
       Reg->DB=read_data_mem(Reg->PAR,&wait_state);
-      printf("reada set EAB=0x%x going to write 0x%x which was read from 0x%x\n",Reg->EAB,Reg->DB,Reg->PAR);
     }
 }
 
@@ -99,7 +92,6 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   if ( pipeP->word_number == 1 )
     {
-      printf("reada writing 0x%x to location 0x%x\n",Reg->DB,Reg->EAB);
       write_data_mem(Reg->EAB,Reg->DB);
     }
 }
