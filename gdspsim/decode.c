@@ -463,6 +463,7 @@ gchar *c_decode(gchar *mask, char info, Word start_code, WordA *location)
 
   if ( bits == 0x0 )
     {
+      g_strcat(ch,"UNC");
       return ch;
     }
 
@@ -594,6 +595,20 @@ gchar *u_decode(gchar *mask, char info, Word start_code, WordA *location)
   ch = g_new(gchar,8);
 
   g_snprintf(ch,8,"%d",bits);
+
+  return ch;
+}
+
+gchar *p_decode(gchar *mask, char info, Word start_code, WordA *location)
+{
+  unsigned int bits;
+  gchar *ch;
+
+  bits = bit_extract(info,mask,start_code,location);
+
+  ch = g_new(gchar,8);
+
+  g_snprintf(ch,8,"%d",bits+1);
 
   return ch;
 }
