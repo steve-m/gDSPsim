@@ -25,6 +25,7 @@
 #include "entryCB.h"
 #include "gtkbox_add.h"
 #include <string.h>
+#include "memory_window.h"
 
 extern GdkFont *gdsp_Decode_Font;
 GList *all_mem_win_list=NULL;
@@ -171,21 +172,6 @@ static void destroy_window_CB( GtkWidget *W, gpointer data )
   g_free(nfo);
 }
 
-static void data_mem_changeCB( GtkWidget *W, int address )
-{
-  g_return_if_fail(W);
-
-  return;
-}
-
-static void prog_mem_changeCB( GtkWidget *W, int address )
-{
-  g_return_if_fail(W);
-
-  return;
-}
-
-
 static void mem_type_changeCB( GtkWidget *W, struct _mem_window_nfo *mwn )
 {
   g_return_if_fail(mwn);
@@ -257,11 +243,22 @@ static void update_memory_view(struct _mem_window_nfo *mwn, WordA start_mem, Wor
   WordA mem;
   gchar temp_str[7];
 
+  gtk_clist_freeze(mwn->clist);
+
   if ( start_mem > end_mem )
     {
-      end_mem = start_mem;
-      g_snprintf(temp_str,7,"0x%x",end_mem);
-      gtk_entry_set_text (GTK_ENTRY(mwn->end_nfo->entry),temp_str);
+      if ( start_mem == mwn->start )
+	{
+	  start_mem = end_mem;
+	  g_snprintf(temp_str,7,"0x%x",start_mem);
+	  gtk_entry_set_text (GTK_ENTRY(mwn->start_nfo->entry),temp_str);
+	}
+      else
+	{
+	  end_mem = start_mem;
+	  g_snprintf(temp_str,7,"0x%x",end_mem);
+	  gtk_entry_set_text (GTK_ENTRY(mwn->end_nfo->entry),temp_str);
+	}
     }
   else if ( (end_mem - start_mem) > 0x200 )
     {
@@ -281,6 +278,20 @@ static void update_memory_view(struct _mem_window_nfo *mwn, WordA start_mem, Wor
 
   if ( start_mem < mwn->start )
     {
+      if ( end_mem < mwn->start )
+	{
+	  gtk_clist_clear(mwn->clist);
+	  mwn->start = start_mem;
+	  mwn->end = end_mem;
+	  for (mem=mwn->start;mem<=mwn->end;mem++)
+	    {
+	      mem_view_append(mem,mwn->memory_type,mwn->clist);
+	    }
+	  update_all_memory_windows(1);
+	  gtk_clist_thaw(mwn->clist);
+	  return;
+	}
+
       // add new memory location at the beginning
       for (mem=mwn->start-1;mem>=start_mem && mem<mwn->start;mem--)
 	{
@@ -324,6 +335,8 @@ static void update_memory_view(struct _mem_window_nfo *mwn, WordA start_mem, Wor
 	}
     }
   mwn->end = end_mem;
+  gtk_clist_thaw(mwn->clist);
+
 }
 
 static void change_start_address(GtkWidget *entry, guint64 address, 
@@ -559,11 +572,12 @@ void clear_mem_changed(void)
       
       list2 = list;
       list = list->next;
-      g_free(list2);
+      g_list_free(list2);
     }
   head_mem_changed->next=NULL;
 }
 
+  
 // highlight = 1, to highlight changed memory
 // highlight = 0, to unhighlight changed memory
 void update_all_memory_windows(int highlight)
@@ -602,7 +616,7 @@ void update_all_memory_windows(int highlight)
 		    }
 		  else
 		    {
-			      gtk_clist_set_foreground(mem_window->clist,row,
+		      gtk_clist_set_foreground(mem_window->clist,row,
 						       NULL);
 		    }
 		}
