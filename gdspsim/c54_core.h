@@ -87,6 +87,7 @@ struct _Registers
   int Dont_Decode; // Set to non zero to not run any more
   // fetch, decode, or prefetch, PC increment.
   int Dont_Fetch; // Set to non zero to not run any more fetch
+  int fetch_flags; // Used to step breakpoints amoung other things
 };
 
 extern struct _MMR *MMR;
@@ -103,6 +104,8 @@ extern struct _MMR *MMR;
 
 // Convenience macros to set status bits
 #define set_ARP(Reg,data)((Reg)->ST0=((Reg)->ST0 & 0x1fff)|(((data) & 0x7)<<13))
+#define set_TC(Reg,data)((Reg)->ST0=((Reg)->ST0 & 0xefff)|(((data) & 0x1)<<12))
+#define set_C(Reg,data)((Reg)->ST0=((Reg)->ST0 & 0xf7ff)|(((data) & 0x1)<<11))
 #define set_DP(Reg,data)((Reg)->ST0=((Reg)->ST0 & 0xfe00)|((data) & 0x1ff))
 #define set_ASM(Reg,data)((Reg)->ST1=((Reg)->ST1 & 0xffe0)|((data) & 0x1f))
 
@@ -149,6 +152,7 @@ struct _PipeLine
   //Operand_List operands;
   Word storage1; // Just a place to store something that might be needed
   Word storage2; // in processing an opcode
+  int flags; // bit 0 = break point set
 };
 
 /* This defines the class structure for each instruction */
