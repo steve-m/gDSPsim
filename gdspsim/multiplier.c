@@ -176,9 +176,15 @@ void multiplier(int Xmux, int Ymux, int Amux, int Smux, struct _Registers *Reg)
     {
       // Store in B register
       MMR->B = reg_union.gp_reg;
+      // Check for overflow
+      if ( (reg_union.gint64 > max_pos32) || (reg_union.gint64 < max_neg32) )
+	set_OVB(MMR,1);
     }
   else
     {
       MMR->A = reg_union.gp_reg;
+      // Check for overflow
+      if ( (reg_union.gint64 > max_pos32) || (reg_union.gint64 < max_neg32) )
+	set_OVA(MMR,1);
     }
 }

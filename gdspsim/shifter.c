@@ -141,9 +141,15 @@ inline void shifter(Word input_mux, struct _Registers *Reg, Word shift_mux, SWor
     {
     case 0:
       MMR->A = reg.gp_reg;
+      // Check for overflow
+      if ( (reg.gint64 > max_pos32) || (reg.gint64 < max_neg32) )
+	set_OVA(MMR,1);
       break;
     case 1:
       MMR->B = reg.gp_reg;
+      // Check for overflow
+      if ( (reg.gint64 > max_pos32) || (reg.gint64 < max_neg32) )
+	set_OVB(MMR,1);
       break;
     case 2:
       write_data_mem(Reg->EAB,reg.words.low);
