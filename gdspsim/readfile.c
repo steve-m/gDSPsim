@@ -111,6 +111,16 @@ void file_ok_sel2( GtkWidget        *w,
 		  GtkFileSelection *fs )
 {
   const gchar *filename;
+  filename = gtk_file_selection_get_filename (GTK_FILE_SELECTION (fs));
+  open_file(filename);
+
+  gtk_widget_destroy(fileWidget);
+  fileWidget=NULL;
+
+}
+
+void open_file( const gchar *filename )
+{
   size_t size;
   FILE *fp;
   struct _coff_header *header=NULL;
@@ -120,8 +130,6 @@ void file_ok_sel2( GtkWidget        *w,
   WordA relocate=0; // Used to load object files
   unsigned int optional_header_size;
   struct _optional_header *opt_hdr;
-
-  filename = gtk_file_selection_get_filename (GTK_FILE_SELECTION (fs));
 
   // Open file
   fp=fopen(filename,"rb+");
@@ -212,6 +220,7 @@ void file_ok_sel2( GtkWidget        *w,
 		file_error(__LINE__,header,section_header);
 
 	      // Put data into internal representation
+              //printf("start--0x%x\n",section_header[k].s_paddr+relocate);
 	      cp_to_mem( buffer, section_header[k].s_paddr+relocate, size, 
 		     PROGRAM_MEM_TYPE | DATA_MEM_TYPE);
 
@@ -222,6 +231,7 @@ void file_ok_sel2( GtkWidget        *w,
 	    {
 	      // Undefined data
 	      buffer=g_new(Word,size);
+              //printf("start--0x%x\n",section_header[k].s_paddr+relocate);
 	      cp_to_mem( buffer, section_header[k].s_paddr+relocate, size, 
 		     PROGRAM_MEM_TYPE | DATA_MEM_TYPE);
 
@@ -316,10 +326,7 @@ void file_ok_sel2( GtkWidget        *w,
       symbol_label = g_list_first(symbol_label);
     }
   // Debug
-  //  print_mem_list();
-
-  gtk_widget_destroy(fileWidget);
-  fileWidget=NULL;
+    print_mem_list();
 }
 
 

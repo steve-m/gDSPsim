@@ -24,7 +24,7 @@
 #include "process_coff.h"
 
 
-
+void open_file(const gchar *filename );
 int readfile(const gchar *file,size_t *amount, char **buffer);
 void load_file_CB( GtkWidget *widget,  gpointer   data );
 
