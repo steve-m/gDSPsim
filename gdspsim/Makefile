@@ -169,7 +169,7 @@ $(PROGRAM):	$(OBJS)
 		@echo "done"
 
 install:	$(PROGRAM)
-		install --mode=755 $(PROGRAM) $(PREFIX)/bin/$(PROGRAM)
+		install -D --mode=755 $(PROGRAM) $(PREFIX)/bin/$(PROGRAM)
 clean:		
 		/bin/rm -f *.o $(PROGRAM)
 
