@@ -37,7 +37,7 @@
 // We want to deal with the proper bit length words.
 typedef guint16 Word;
 typedef gint16 SWord;
-typedef guint32 WordA; //type of variable used for addressing Words.
+typedef guint32 WordP; //type of variable used for addressing Words.
 
 //typedef struct _Word Word;
 struct _Word
@@ -85,7 +85,7 @@ union _GP_Reg_Union
   struct _GP_Words words;
   struct _GP32 gu32;
   struct _GPi32 gi32;
-  WordA address;
+  WordP address;
 };
 
 union _8_bits

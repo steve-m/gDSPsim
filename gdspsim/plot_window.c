@@ -18,14 +18,14 @@
 */
 #include <gtk/gtk.h>
 #include <gtkextra/gtkextra.h>
-#include "entryCB.h"
-#include "memory.h"
+#include <entryCB.h>
+#include <memory.h>
 
 struct _plot_window_nfo
 {
   GtkWidget *window;
   GtkWidget *canvas;
-  WordA address;
+  WordP address;
   Word length;
   GtkPlot *plotW;
   struct _entryCB_nfo addressN;

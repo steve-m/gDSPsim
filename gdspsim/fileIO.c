@@ -17,11 +17,11 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-#include "fileIO.h"
+#include <fileIO.h>
 #include <stdio.h>
-#include "memory.h"
-#include "string.h"
-#include "entryCB.h"
+#include <memory.h>
+#include <string.h>
+#include <entryCB.h>
 #include <pipeline.h>
 
 static GtkWidget *fileOW=NULL;
@@ -95,7 +95,7 @@ static void address_accessCB( GtkWidget *W, struct _fileIO *io)
 static void applyCB( GtkWidget *W, struct _fileIO *io)
 {
   int mem_type_reached;
-  WordA address_reached; // reached
+  WordP address_reached; // reached
   int reached_how;
   int amount;
   gchar *filename;

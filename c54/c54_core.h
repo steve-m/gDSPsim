@@ -102,15 +102,15 @@ struct _Registers
   Word EAB; // Write Bus Address
   Word P;
   Word PM;  // Program Memory Read for things like READA
-  WordA PAR; // Program Memory Read Address for things like READA
+  WordP PAR; // Program Memory Read Address for things like READA
   Word DAR; // Register to hold address for DAB mvdm,mvkd
   Word EAR; // Register to hold address for EAB mvdk
   Word RC;  // Repeat Counter
   Word RTN; // Return address used for fast return from interrupt
   GP_Reg Shifter;
   char left_over_guard_bits_Shifter;
-  WordA Lmem1;
-  WordA Lmem2;
+  WordP Lmem1;
+  WordP Lmem2;
 
   // admin
   int Special_Flush; // Used to inialize the pipeline
@@ -124,7 +124,7 @@ struct _Registers
   // fetch, decode, or prefetch, PC increment.
   int fetch_flags; // Used to step breakpoints amoung other things
   int Decode_Again; // Decode Again
-  WordA PAB_last;
+  WordP PAB_last;
   Word RSA; // Repeat Start Address (Block Repeats)
   Word REA; // Repeat End Address (Block Repeats)
 };
@@ -201,7 +201,7 @@ struct _decoded_opcode
   int sub_type;
   int length;
   int var_length;
-  WordA address;
+  WordP address;
   Word mach_code[3];
 };
 

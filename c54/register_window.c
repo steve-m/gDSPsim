@@ -114,7 +114,7 @@ void entry_regCB( GtkWidget *widget, struct _entry_nfo *nfo )
 // this allows a symbol to be entered for the word.
 static void entry_reg_PC_CB( GtkWidget *W, struct _entry_nfo *nfo )
 {
-  WordA address;
+  WordP address;
   gchar temp_str[15];
   gchar *entry_text;
   struct _Registers *Registers;
