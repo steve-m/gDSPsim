@@ -1,0 +1,56 @@
+<HTML>
+<HEAD>
+<TITLE>gDSPsim Documentation</TITLE>
+</HEAD>
+
+<p>
+<center><b>gDSPsim Documentation</b></center>
+<br>
+This is a DSP simulator for the TMS320C54x DSP chip from Texas Instruments written to run on Linux.  There is work to extend the simulator to the TMS320C55x DSP chip. The software uses <a href="http://www.gtk.org">gtk</a>, <a href="http://www.gnome.org">gnome</a>, and <a href="http://gtkextra.sourceforge.net/">Gtk+Extra</a>. Note: in the .rpm file, Gtk+Extra has been statically linked for convenience.
+</p>
+
+<p>
+<b>Support Software</b>
+<br>
+Assembler: You can download an assembler for the C54x from <a href="http://sources.redhat.com/binutils/">here</a> When configuring it, be sure to specify the target: ./configure --target=c54x 
+</p>
+
+<p>
+<b>Command line options</b>
+<br>
+-f [filename]
+Read in [filename]
+</p>
+
+<p>
+<b>Running</b>
+<br>
+Setting Break points:  In the decode window click in the left column to set a break point and a stop sign will appear when it is properly set. To remove the break point click on the stop sign and the stop sign will disappear confirming the removal of the break point.
+<br>
+[F5] Runs the simulation
+<br>
+[F6] Stops the simulation
+<br>
+[F7] Animate the simulation (Runs slower, with lots of highlighting)
+<br>
+[F8] Steps through the code 1 opcode at a time.
+</p>
+
+<p>
+<b>File IO</b>
+<br>
+The input file should just be a column of numbers in either decimal or hexidecimal (0x0) format.
+</p>
+
+<p>
+<b>Known Bugs</b>
+<br>
+Plotting: When changing the plot, the axis don't update properly until you grab the plot with the mouse and move it.
+</p>
+
+<p>
+<b>Author</b>
+<br>
+Kerry Keal  kerry@industrialmusic.com
+</p>
+</HTML>
