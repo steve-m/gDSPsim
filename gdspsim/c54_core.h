@@ -93,35 +93,41 @@ struct _Registers
   // part of the pipe again.
   int Dont_Decode; // Set to non zero to not run any more
   // fetch, decode, or prefetch, PC increment.
-  int Dont_Fetch; // Set to non zero to not run any more fetch
   int fetch_flags; // Used to step breakpoints amoung other things
   int Decode_Again; // Decode Again
   WordA PAB_last;
+  Word RSA; // Repeat Start Address (Block Repeats)
+  Word REA; // Repeat End Address (Block Repeats)
 };
 
 extern struct _MMR *MMR;
 
 
 // Convenience macros to read status bits
-#define ARP(Reg)((((Reg)->ST0)&0xe0000)>>13)
-#define TC_bit(Reg)((((Reg)->ST0)&0x1000)>>12)
 #define C_bit(Reg)((((Reg)->ST0)&0x800)>>11)
-#define SXM(Reg)((((Reg)->ST1)&0x100)>>8)
-#define C16(Reg)((((Reg)->ST1)&0x80)>>7)
-#define CMPT(Reg)((((Reg)->ST1)&0x20)>>5)
-#define CPL(Reg)((((Reg)->ST1)&0x4000)>>14)
-#define INTM(Reg)((((Reg)->ST1)&0x800)>>11)
+#define TC_bit(Reg)((((Reg)->ST0)&0x1000)>>12)
+#define ARP(Reg)((((Reg)->ST0)&0xe0000)>>13)
+
 #define ASM(Reg)(signed_5bit_extract((Reg)->ST1))
+#define CMPT(Reg)((((Reg)->ST1)&0x20)>>5)
+#define FRCT(Reg)((((Reg)->ST1)&0x80)>>6)
+#define C16(Reg)((((Reg)->ST1)&0x80)>>7)
+#define SXM(Reg)((((Reg)->ST1)&0x100)>>8)
+#define INTM(Reg)((((Reg)->ST1)&0x800)>>11)
+#define CPL(Reg)((((Reg)->ST1)&0x4000)>>14)
+#define BRAF(Reg)((((Reg)->ST1)&0x8000)>>15)
 
 // Convenience macros to set status bits
-#define set_ARP(Reg,data)((Reg)->ST0=((Reg)->ST0 & 0x1fff)|(((data) & 0x7)<<13))
-#define set_TC(Reg,data)((Reg)->ST0=((Reg)->ST0 & 0xefff)|(((data) & 0x1)<<12))
-#define set_C(Reg,data)((Reg)->ST0=((Reg)->ST0 & 0xf7ff)|(((data) & 0x1)<<11))
-#define set_OVA(Reg,data)((Reg)->ST0=((Reg)->ST0 & 0xfbff)|(((data) & 0x1)<<10))
-#define set_OVB(Reg,data)((Reg)->ST0=((Reg)->ST0 & 0xfdff)|(((data) & 0x1)<<9))
 #define set_DP(Reg,data)((Reg)->ST0=((Reg)->ST0 & 0xfe00)|((data) & 0x1ff))
+#define set_OVB(Reg,data)((Reg)->ST0=((Reg)->ST0 & 0xfdff)|(((data) & 0x1)<<9))
+#define set_OVA(Reg,data)((Reg)->ST0=((Reg)->ST0 & 0xfbff)|(((data) & 0x1)<<10))
+#define set_C(Reg,data)((Reg)->ST0=((Reg)->ST0 & 0xf7ff)|(((data) & 0x1)<<11))
+#define set_TC(Reg,data)((Reg)->ST0=((Reg)->ST0 & 0xefff)|(((data) & 0x1)<<12))
+#define set_ARP(Reg,data)((Reg)->ST0=((Reg)->ST0 & 0x1fff)|(((data) & 0x7)<<13))
+
 #define set_ASM(Reg,data)((Reg)->ST1=((Reg)->ST1 & 0xffe0)|((data) & 0x1f))
 #define set_INTM(Reg,data)((Reg)->ST1=((Reg)->ST1 & 0xf7ff)|((data) & 0x1)<<11)
+#define set_BRAF(Reg,data)((Reg)->ST1=((Reg)->ST1 & 0x7fff)|((data) & 0x1)<<15)
 
 
 // Need the operands to point to registers or be a constant value
@@ -162,7 +168,6 @@ struct _PipeLine
   // int num_words; // number of words this takes up, determined by decoding
   int word_number; // which word number this is for the opcode
   int total_words; // total number of words for this opcode
-  int cycle_number; // cycle number for each word in the opcode
   //Operand_List operands;
   Word storage1; // Just a place to store something that might be needed
   Word storage2; // in processing an opcode
