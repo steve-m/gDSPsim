@@ -53,8 +53,11 @@ Instruction_Class FRAME_Obj =
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   SWord adjustment;
+  union _8_bits b8;
 
-  adjustment = signed_bit_extract('n',mask[0],pipeP->current_opcode,NULL);
+  b8.u8 = pipeP->current_opcode & 0xff;
+  adjustment = b8.s8;
+
   MMR->SP = MMR->SP+adjustment;
 }
 
