@@ -24,9 +24,6 @@
 #include <memory.h>
 #include <chip_help.h>
 
-// is this decode correct?
-// "11011101 ssssssss 00rr1000", // mov dbl(s),r
-
 static gchar *mask[]=
 {
   "0010100p rrrrRRRR", // AND src, dst
@@ -50,7 +47,7 @@ static gchar *opcode[] =
 
   "'AND' u<<#16,r,R", // AND k16 << #16, [ACx,] ACy
   "'AND' h<<#u,r,R", // AND k16 << #SHFT, [ACx,] ACy
-  "'AND' u,s", //AND k16, Smem
+  "'AND' u,s", // AND k16, Smem
 };
 
 static void address_stg(struct _PipeLine *pipeP, struct _Registers *Reg);
