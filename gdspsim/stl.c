@@ -88,25 +88,9 @@ static void read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
       xmem_set_EAB(pipeP,Reg);
       return;
     case 3:
-      FIXME();
       smem_set_EAB(pipeP,Reg);
       return;
 
-    }
-}
-
-int number_words(struct _PipeLine *pipeP)
-{
-  switch ( pipeP->opcode_subType )
-    {
-    case 0:
-    case 1: 
-      return num_words_for_smem(pipeP);
-    case 2:
-    default:
-      return 1;
-    case 3:
-      return num_words_for_smem(pipeP)+1;
     }
 }
 
@@ -140,7 +124,7 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 	    int input_mux;
 	    
 	    input_mux = pipeP->current_opcode & 0x100 >> 8;
-	    shifter( input_mux, Reg, 1, 0, 2, SXM(MMR) );
+	    shifter( input_mux, Reg, 1, 0, 2 );
 	    return;
 	  }
 	case 2:
@@ -151,7 +135,7 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 	    input_mux = pipeP->current_opcode & 0x100 >> 8;
 	    
 	    shift = pipeP->current_opcode & 0xf;
-	    shifter( input_mux, Reg, 2, shift, 2, SXM(MMR) );
+	    shifter( input_mux, Reg, 2, shift, 2 );
 	    return;
 	  }
 	case 3:
@@ -163,12 +147,28 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 	    
 	    shift = signed_5bit_extract(pipeP->storage1);
 	    
-	    shifter( input_mux, Reg, 2, shift, 2, SXM(MMR) );
+	    shifter( input_mux, Reg, 2, shift, 2 );
 	    return;
 	  }
 	}
     }
 }
+
+int number_words(struct _PipeLine *pipeP)
+{
+  switch ( pipeP->opcode_subType )
+    {
+    case 0:
+    case 1: 
+      return num_words_for_smem(pipeP);
+    case 2:
+    default:
+      return 1;
+    case 3:
+      return num_words_for_smem(pipeP)+1;
+    }
+}
+
 
 /* Generates an array of Words that this opcode text generates or NULL
  * if it doesn't. There should not be any comments in the string
