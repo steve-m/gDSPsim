@@ -25,11 +25,7 @@
 #include "shifter.h"
 
 static GPtrArray *machine_code(gchar *opcode_text);
-static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg);
-static void read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg);
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg);
-static int set_cycle_number(Word mach_code, int word_num);
-
 
 
 static gchar *mask[]=    { "0101011d aaaaaaaa"};
@@ -41,15 +37,15 @@ static gchar *comment[]= { "dbl($(s))=dbl($(a))" };
  */
 Instruction_Class DLD_Obj =
 {
-  "LD",
+  "DLD",
   NULL, // prefetch
   NULL, // fetch
   NULL, // decode
-  read_stg1, // read_stg1 (access)
-  read_stg2, // read_stg2 (read)
+  lmem_read_stg1, // read_stg1 (access)
+  lmem_read_stg2, // read_stg2 (read)
   execute, // execute
   num_words_for_smem, // number_words 
-  set_cycle_number, // set_cycle_number
+  NULL, // set_cycle_number
   1,
   mask,
   opcode,
@@ -57,47 +53,32 @@ Instruction_Class DLD_Obj =
   machine_code
 };
 
-static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
-{
-      smem_read_stg1(pipeP,Reg);
-}
-
-
-static void read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
-{
-      smem_read_stg2(pipeP,Reg);
-}
-
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   union _GP_Reg_Union reg_union;
+  int d;
 
   // DLD *ARx,A
 
-  reg_union.guint64 = 0;
-
   if ( pipeP->word_number == 1 )
     {
-      reg_union.words.low = Reg->DB;
+
+      d = (pipeP->current_opcode & 0x100)>>8;
+      
+      reg_union.gint64 = 0;
+      reg_union.gp_reg = Reg->Shifter;
+
+      if ( SXM(MMR) )
+	{
+	  if ( reg_union.gu32.low & 0x80000000 )
+	    reg_union.gp_reg.byte4 = 0xff;
+	}
+      
       if ( pipeP->current_opcode & 0x100 )
 	MMR->B = reg_union.gp_reg;
       else
 	MMR->A = reg_union.gp_reg;
     }
-  else
-    {
-      reg_union.words.high = Reg->DB;
-      if ( pipeP->current_opcode & 0x100 )
-	MMR->B = reg_union.gp_reg;
-      else
-	MMR->A = reg_union.gp_reg;
-    }
-
-}
-
-static int set_cycle_number(Word mach_code, int word_num)
-{
-  return 2;
 }
 
 /* Generates an array of Words that this opcode text generates or NULL
