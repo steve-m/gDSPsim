@@ -23,6 +23,7 @@
 #include "instruct_help.h"
 #include "memory.h"
 
+static void decode(struct _PipeLine *pipeP, struct _Registers *Reg);
 static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg);
 static void read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg);
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg);
@@ -40,7 +41,7 @@ Instruction_Class FCALL_Obj =
   "FCALL",
   NULL, // prefetch
   NULL, // fetch
-  NULL, // decode
+  decode, // decode
   read_stg1, // read_stg1 (access)
   read_stg2, // read_stg2 (read)
   execute, // execute
@@ -53,9 +54,8 @@ Instruction_Class FCALL_Obj =
   machine_code
 };
 
-static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
+static void decode(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-  MMR->SP--;
   if ( pipeP->word_number == 2 )
     {
       if ( (pipeP->current_opcode & 0x200) == 0)
@@ -66,6 +66,14 @@ static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
 	{
 	  pipeP->storage2 = Reg->PC+2;
 	}
+    }
+}
+
+static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
+{
+  MMR->SP--;
+  if ( pipeP->word_number == 2 )
+    {
       Reg->XPC = pipeP->current_opcode & 0x7f;
     }
   else
