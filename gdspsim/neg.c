@@ -57,12 +57,56 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 
   if ( pipeP->current_opcode & 0x200 )
     {
-      reg.gp_reg = MMR->A;
+      reg.guint64 = GP_REG_2_UINT64(MMR->B);
     }
   else
     {
-      reg.gp_reg = MMR->B;
+      reg.guint64 = GP_REG_2_UINT64(MMR->A);
     }
+
+  reg.gint64 = -reg.gint64;
+
+  if ( reg.gint64 > 0 )
+    {
+      // Check for overflow, happens for negative of 0xff80000000
+      // FIXME, not sure what happens for neg of 0xf000000000 or
+      // negative of 0x0100000000
+      if ( (reg.gint64 > max_pos32) )
+	{
+	  if ( pipeP->current_opcode & 0x100 )
+	    {
+	      set_OVB(MMR,1);
+	    }
+	  else
+	    {
+	      set_OVA(MMR,1);
+	    }
+
+	  if ( OVM(MMR) )
+	    {
+	      reg.guint64 = 0x7fffffff;
+	    }
+	}
+    }
+
+  if ( reg.gint64 == 0 )
+    {
+      set_C(MMR,1);
+    }
+  else
+    {
+      set_C(MMR,0);
+    }
+
+  if ( pipeP->current_opcode & 0x100 )
+    {
+      MMR->B = reg.gp_reg;
+    }
+  else
+    {
+      MMR->A = reg.gp_reg;
+    }
+
 }
 
 /* Generates an array of Words that this opcode text generates or NULL
