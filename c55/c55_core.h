@@ -61,6 +61,7 @@ union _GP_Reg
 {
   struct _byte_GP_Reg bgp;
   struct _word_GP_Reg wgp;
+  DWord dword;
 };
 
 typedef union _GP_Reg GP_Reg;

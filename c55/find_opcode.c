@@ -29,23 +29,33 @@ extern Instruction_Class AADD_Obj;
 extern Instruction_Class ADD_Obj;
 extern Instruction_Class BCLR_Obj;
 extern Instruction_Class BSET_Obj;
-extern Instruction_Class MOV_Obj;
+extern Instruction_Class MOV_REG_LOAD_Obj;
+extern Instruction_Class MOV_SPEC_REG_LOAD_Obj;
+extern Instruction_Class MPYK_Obj;
 extern Instruction_Class NEG_Obj;
+extern Instruction_Class PSH_Obj;
 extern Instruction_Class SFTS_Obj;
 extern Instruction_Class SFTSC_Obj;
+extern Instruction_Class SQR_Obj;
+extern Instruction_Class SQRM_Obj;
 extern Instruction_Class SUB_Obj;
 
-#define All_Objects_Len  9
+#define All_Objects_Len  14
 static const Instruction_Class *All_Objects[All_Objects_Len]=
 {
   &AADD_Obj,
   &ADD_Obj,
   &BCLR_Obj,
   &BSET_Obj,
-  &MOV_Obj,
+  &MOV_REG_LOAD_Obj,
+  &MOV_SPEC_REG_LOAD_Obj,
+  &MPYK_Obj,
   &NEG_Obj,
+  &PSH_Obj,
   &SFTS_Obj,
   &SFTSC_Obj,
+  &SQR_Obj,
+  &SQRM_Obj,
   &SUB_Obj,
 };
 

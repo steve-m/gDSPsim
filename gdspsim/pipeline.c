@@ -188,6 +188,7 @@ int pipeline(struct _Registers *Registers)
 		  io = list->data;
 		  if ( io->address_reached == pipe_executeP->decode_nfo.address)
 		    fileIO_process(io);
+		  list=list->next;
 		}
 	    }
 	}
@@ -509,6 +510,8 @@ struct _Registers *pipe_new()
 void set_fileIO_break_on_pipeline(struct _fileIO *io)
 {
   FileIOPipeLine = g_list_append(FileIOPipeLine,io);
+  io->updateF = update_fileIO_break_on_pipeline;
+  io->removeF = remove_fileIO_break_on_pipeline;
 }
 
 void update_fileIO_break_on_pipeline(struct _fileIO *io)

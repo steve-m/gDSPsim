@@ -31,8 +31,7 @@ static gchar *opcode[] =
   "'SQRM'f 3a,r",
 };
 
-static void address_stg(struct _PipeLine *pipeP, struct _Registers *Reg);
-static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
+static void execute(struct _PipeLine *pipeP, struct _Registers *Reg);
 
 Instruction_Class SQRM_Obj =
 {
@@ -53,7 +52,7 @@ Instruction_Class SQRM_Obj =
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   Opcode mach_code;
-  int r,R,rnd;
+  int r,rnd;
 
   mach_code = pipeP->decode_nfo.mach_code;
 

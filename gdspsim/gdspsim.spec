@@ -1,4 +1,4 @@
-%define ver 0.20
+%define ver 0.30
 %define rel 1
 %define prefix /usr
 
@@ -39,6 +39,11 @@ make clean
 %{prefix}/share/gdspsim/stop.xpm
 
 %changelog
+* Mon Jun 24 2002 Kerry Keal <kerry@industrialmusic.com>
+- Lots of simulator bug fixes
+- Added File IO
+- Added Plot capabilities
+
 * Mon Jan 7 2002 Kerry Keal <kerry@industrialmusic.com>
 - Process all opcodes
 

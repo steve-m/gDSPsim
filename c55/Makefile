@@ -26,20 +26,28 @@ SRCS	= \
 	add.c \
 	bclr.c \
 	bset.c \
-	mov.c \
+	mpyk.c \
+	mov_RegLoad.c \
+	mov_RegStore.c \
+	mov_SpecRegLoad.c \
 	neg.c \
+	psh.c \
 	sfts.c \
 	sftsc.c	\
+	sqr.c \
+	sqrm.c \
 	sub.c \
 	decode.c \
 	find_opcode.c \
 	main.c \
 	memory.c \
+	multiplier.c \
 	pipeline.c \
 	readfile.c \
 	register_window.c \
 	shifter.c \
 	smem.c \
+	xymem.c \
 	decode_window.c \
 	entryCB.c \
 	fileIO.c \

@@ -40,6 +40,11 @@ extern "C" {
 // (shift amount control)
 // 0 = Immediate
 
+  // flag
+  // bit 0 = Round
+  // bit 1 = Unsigned. Turns on saturations and saturates to 00ffffffff
+  //                   Unless C54CM=1
+
 // output_mux
 // 0 = AC0
 // 1 = AC1
@@ -53,7 +58,8 @@ extern "C" {
 
 // SXM sign extension bit
 inline void shifter(Word input_mux, Word shift_mux, SWord shift, 
-		    Word output_mux, struct _Registers *Reg );
+		    unsigned int flag, Word output_mux, 
+		    struct _Registers *Reg );
 
 #ifdef __cplusplus
 }

@@ -20,6 +20,12 @@
 #include <chip_core.h>
 #include <smem.h>
 
+
+// good test case for add ac0<<#-16,ac1 is
+// ac0 = 009c8f0000 ac1=ffffff0dd2 then ac1=fffffeaa61
+// the shift of ac0 is sign extended and turns negative
+// m40=0 sxmd=1 sat=0 c54cm=0 in above
+
 static gchar *mask[]=
   {
     "1110 1101 pppp ppp1 qqrr 0000", // ADD DBL(p),ACq,ACr

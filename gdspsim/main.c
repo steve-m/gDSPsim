@@ -29,6 +29,7 @@
 #include <pipeline.h>
 #include <fileIO.h>
 #include <preferences.h>
+#include <gnome.h>
 
 extern struct _file_info *gdsp_file_nfo;
 struct _Registers *Registers;
@@ -68,6 +69,27 @@ static void step_CB( GtkWidget *widget,  gpointer   data )
 static void stop_CB( GtkWidget *widget,  gpointer   data )
 {
   gStopRun=1;
+}
+
+static void helpCB( GtkWidget *widget,  gpointer   data )
+{
+  gchar *helpfile;
+
+  helpfile = gnome_help_file_find_file("gdspsim","gdspsim.html");
+  if (helpfile != NULL)
+    {
+      gchar *url;
+
+      url = g_strconcat("file:",helpfile,NULL);
+      gnome_help_goto(NULL,url);
+      g_free(url);
+      g_free(helpfile);
+    }
+  else
+    {
+      // gnome_error_dialog(_("Counldn't fine the gDSPsim Manual"));
+      printf("Counldn't fine the gDSPsim Manual\n");
+    }
 }
 
 static void run_CB( GtkWidget *widget,  gpointer   data )
@@ -194,7 +216,7 @@ static GtkItemFactoryEntry menu_items[] =
   { "/Simulate/Connect Input File", NULL, (GtkItemFactoryCallback)create_fileIO, 1, NULL },
   { "/Simulate/Connect Output File", NULL, (GtkItemFactoryCallback)create_fileIO, 0, NULL },
   { "/_Help",         NULL,         NULL, 0, "<LastBranch>" },
-  { "/_Help/About",   NULL,         NULL, 0, NULL },
+  { "/_Help/Documentation",   NULL, (GtkItemFactoryCallback)helpCB , 0, NULL },
 };
 
 

@@ -123,13 +123,22 @@ static void entry_reg_PC_CB( GtkWidget *W, struct _entry_nfo *nfo )
 
   if ( text_to_address(entry_text,&address) )
     {
+      //GdkColor c;
+      //GtkStyle *style;
       // valid number
       Registers = nfo->reg;
       Registers->PC = address;
       Registers->Special_Flush = 1;
       // set text style to highlight mode
       gtk_widget_set_style(W, styleH);
+      //c.red = 0xffff;
+      //c.green = 0x0;
+      //c.blue = 0;
+      //gtk_widget_modify_fg(W,GTK_STATE_NORMAL,c);
       gtk_entry_set_text (GTK_ENTRY(W),entry_text);
+      //style=gtk_widget_get_style (W);
+      //style->text[GTK_STATE_NORMAL] = c;
+      //gtk_widget_modify_style (W,GTK_RC_STYLE(style));
     }
   else
     {
@@ -449,10 +458,17 @@ void fill_reg_entries(struct _Registers *Registers)
       // Change font, want something that is fixed width
       gdk_font_unref (styleN->font);
       gdk_font_unref (styleH->font);
+      //styleN->font = gdk_font_load
+      //("-adobe-courier-medium-r-normal-*-*-120-*-*-m-*-*");
+      //styleH->font = gdk_font_load
+      //("-adobe-courier-medium-r-normal-*-*-120-*-*-m-*-*");
       styleN->font = gdk_font_load
-	("-adobe-courier-medium-r-normal-*-*-120-*-*-m-*-*");
+	("-*-courier-medium-r-normal-*-*-120-*-*-m-*-*");
       styleH->font = gdk_font_load
-	("-adobe-courier-medium-r-normal-*-*-120-*-*-m-*-*");
+	("-*-courier-medium-r-normal-*-*-120-*-*-m-*-*");
+
+      //styleN->font = NULL;
+      //printf("font =0x%x\n",styleN->font);
 
       c.red = 0xffff;
       c.green = 0x0;

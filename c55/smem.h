@@ -33,7 +33,10 @@ extern "C" {
   // Sets DB2 (DWord)
   void smem_read_stg_dbl(struct _PipeLine *pipeP, struct _Registers *Reg);
   
-  void smem_set_DAB(int p, int mod, unsigned char b1, 
+  // Sets EAB
+  void smem_set_EAB_b2(struct _PipeLine *pipeP, struct _Registers *Reg);
+  
+  Word smem_decode(int p, int mod, unsigned char b1, 
 		    unsigned char b2, unsigned char b3);
   
   Word bit_reversal(Word start, Word bit_reversed_one, SWord adjustment);
@@ -44,7 +47,16 @@ extern "C" {
   // r register number 0-3
   void set_k32_reg(int r, DWord value, int sign_extend40);
   
-  // p=0-7
+  // r register number 0-15, returns low bits for accumulators
+  Word get_k16_reg(int r);
+
+  // r register number 0-15, returns hi bits for accumulators
+  Word get_k16_regHI(int r, int rnd);
+
+   // r register number 0-3, returns 32bits for accumulators
+  DWord get_k32_reg(int r);
+
+ // p=0-7
   Word *get_pointer_reg(int p);
 
   Word circular_update(Word start, int p, SWord step);

@@ -64,20 +64,20 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
   switch ( pipeP->opcode_subType )
     {
     case 0:
-      shifter(mach_code.bop[1]&0xf,8,-1,mach_code.bop[1]&0xf,Reg);
+      shifter(mach_code.bop[1]&0xf,8,-1,0,mach_code.bop[1]&0xf,Reg);
       break;
     case 1:
-      shifter(mach_code.bop[1]&0xf,8,1,mach_code.bop[1]&0xf,Reg);
+      shifter(mach_code.bop[1]&0xf,8,1,0,mach_code.bop[1]&0xf,Reg);
       break;
     case 2:
-      shifter((mach_code.bop[1]&0xc0)>>6,(mach_code.bop[1]&0xc)>>2,0,(mach_code.bop[1]&0x30)>>4,Reg);
+      shifter((mach_code.bop[1]&0xc0)>>6,(mach_code.bop[1]&0xc)>>2,0,0,(mach_code.bop[1]&0x30)>>4,Reg);
       break;
     case 3:
       {
 	int n;
 
 	n = (int)SIGN6BIT_TO_UINT(mach_code.bop[2]&0x3f);
-	shifter((mach_code.bop[1]&0xc0)>>6,8,n,(mach_code.bop[1]&0x30)>>4,Reg);
+	shifter((mach_code.bop[1]&0xc0)>>6,8,n,0,(mach_code.bop[1]&0x30)>>4,Reg);
 	break;
       }
     }

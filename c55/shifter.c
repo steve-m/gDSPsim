@@ -39,6 +39,14 @@
 // 4-7 = Tx with rounding
 // 8 = Immediate
 
+// flag
+// bit 0 = Round
+// bit 1 = Unsigned. Turns on saturations and saturates to 00ffffffff
+//                   Unless C54CM=1
+// bit 2 = Saturate. Turn on Saturation regardless of SATD
+
+
+//                      
 // output_mux
 // 0 = AC0
 // 1 = AC1
@@ -52,7 +60,8 @@
 
 // 16 bit numbers are automatically sign extended
 inline void shifter(Word input_mux, Word shift_mux, SWord shift, 
-		    Word output_mux, struct _Registers *Reg )
+		    unsigned int flag, Word output_mux, 
+		    struct _Registers *Reg )
 {
   union _GP_Reg_Union reg;
   int overflow_bit,overflow,sat=0;

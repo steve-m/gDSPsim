@@ -21,28 +21,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-struct _bytes
-{
-  unsigned char byte0;
-  unsigned char byte1;
-  unsigned char byte2;
-  unsigned char byte3;
-};
-
-struct _words
-{
-  Word low;
-  Word high;
-};
-
-union _bitconv
-{
-  gint32 i32;
-  guint32 ui32;
-  struct _words words;
-  struct _bytes bytes;
-  
-};
 
 /* Xmux 0-3 ACx[32:16]
  *      4 DB
@@ -59,7 +37,7 @@ union _bitconv
 
 void multiplier(int Xmux, int Ymux, int Amux, int Smux, struct _Registers *Reg)
 {
-  union _bitconv X,Y; // Really need 17-bits
+  gint32 X,Y; // Really need 17-bits
   gint64 Result64;
   union _GP_Reg_Union reg_union;
   int saturated=0;
@@ -67,19 +45,28 @@ void multiplier(int Xmux, int Ymux, int Amux, int Smux, struct _Registers *Reg)
   switch (Xmux)
     {
     case 0:
-      X.ui32 = GP_REG17_TO_UINT32(MMR->AC0);
+      X = GP_REG17_TO_UINT32(MMR->AC0);
       break;
     case 1:
-      X.ui32 = GP_REG17_TO_UINT32(MMR->AC1);
+      X = GP_REG17_TO_UINT32(MMR->AC1);
       break;
     case 2:
-      X.ui32 = GP_REG17_TO_UINT32(MMR->AC2);
+      X = GP_REG17_TO_UINT32(MMR->AC2);
       break;
     case 3:
-      X.ui32 = GP_REG17_TO_UINT32(MMR->AC3);
+      X = GP_REG17_TO_UINT32(MMR->AC3);
+      break;
+    case 4:
+      X = (SWord)Reg->DB;
+      break;
+    case 5:
+      X = (SWord)Reg->CB;
+      break;
+    case 6:
+      X = (SWord)Reg->BB;
       break;
     case 7:
-      X.i32 = (SWord)Reg->P;
+      X = (SWord)Reg->P;
       break;
     default:
       FIXME();
@@ -90,19 +77,28 @@ void multiplier(int Xmux, int Ymux, int Amux, int Smux, struct _Registers *Reg)
   switch (Ymux)
     {
     case 0:
-      X.ui32 = GP_REG17_TO_UINT32(MMR->AC0);
+      Y = GP_REG17_TO_UINT32(MMR->AC0);
       break;
     case 1:
-      X.ui32 = GP_REG17_TO_UINT32(MMR->AC1);
+      Y = GP_REG17_TO_UINT32(MMR->AC1);
       break;
     case 2:
-      X.ui32 = GP_REG17_TO_UINT32(MMR->AC2);
+      Y = GP_REG17_TO_UINT32(MMR->AC2);
       break;
     case 3:
-      X.ui32 = GP_REG17_TO_UINT32(MMR->AC3);
+      Y = GP_REG17_TO_UINT32(MMR->AC3);
+      break;
+    case 4:
+      Y = (SWord)Reg->DB;
+      break;
+    case 5:
+      Y = (SWord)Reg->CB;
+      break;
+    case 6:
+      Y = (SWord)Reg->BB;
       break;
     case 7:
-      X.i32 = (SWord)Reg->P;
+      Y = (SWord)Reg->P;
       break;
     default:
       FIXME();
@@ -110,7 +106,7 @@ void multiplier(int Xmux, int Ymux, int Amux, int Smux, struct _Registers *Reg)
     }
 
   // Now multiply X*Y in 17 bits to get 40 bits
-  Result64 = X.i32*Y.i32;
+  Result64 = X*Y;
 
   if ( FRCT(MMR) )
     Result64 = Result64 << 1;

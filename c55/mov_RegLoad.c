@@ -32,16 +32,19 @@ static gchar *mask[]=
   "01110110 nnnnnnnn nnnnnnnn rrrr10xx", //  MOV K16, dst (verified)
   "1010rrrr ssssssss", // MOV Smem, dst (verified)
   "11011111 ssssssss rrrr000U", // MOV [uns(]high_byte(Smem)[)], dst
+
   "11011111 ssssssss rrrr001U", // MOV [uns(]low_byte(Smem)[)], dst
   "01111010 nnnnnnnn nnnnnnnn vvrr101v", // MOV K16 << #16, ACx (verified, can it move to Tx,ARx?)
   "01110101 nnnnnnnn nnnnnnnn vvrruuuu", // MOV K16 << #SHFT, ACx (verified, can it move to Tx,ARx?)
   "11011101 ssssssss vFrrtt11", //  MOV [rnd(]Smem << Tx[)], ACx
   "11100001 ssssssss rrnnnnnn", // MOV low_byte(Smem) << #SHIFTW, ACx
+
   "11100010 ssssssss rrnnnnnn", // MOV high_byte(Smem) << #SHIFTW, ACx
   "101100rr ssssssss", // MOV Smem << #16, ACx
   "11011111 ssssssss vvrr010U", // MOV [uns(]Smem[)], ACx (verified)
   "11111001 ssssssss Uvnnnnnn vvrr10vv", // MOV [uns(]Smem[)]<<#SHIFTW, ACx
   "11101101 ssssssss vvrr1004", // MOV[40] dbl(Lmem), ACx (verified, for 40)
+
   "10000001 xxxxxxyy yyyy10rr", // MOV Xmem, Ymem, ACx
   "11101101 ssssssss xxrr101v", // MOV dbl(Lmem), pair(HI(ACx)) (verified)
   "11101101 ssssssss xxrr110v", // MOV dbl(Lmem), pair(LO(ACx)) (verified)
@@ -52,22 +55,22 @@ static gchar *opcode[] =
 {
   "'MOV' u,r",
   "'MOV' m,r",
-  "'MOV' m,r",
+  "'MOV' n,r",
   "'MOV' s,r",
-  "'MOV' U'high_byte'(s)V,r",
-  
+  "'MOV' U'high_byte'(s)V,r",  
+
   "'MOV' U'low_byte'(s)V,r",
   "'MOV' n<<#16,r",
   "'MOV' n<<#u,r",
   "'MOV' Fs<<tG,r",
-  "'MOV' 'low_byte'(s)<<#n,r",
-  
+  "'MOV' 'low_byte'(s)<<#n,r",  
+
   "'MOV' 'high_byte'(s)<<#n,r",
   "'MOV' s<<#16,r",
   "'MOV' UsV,r",
   "'MOV' UsV<<#n,r",
-  "'MOV'4 'dbl'(s),r",
-  
+  "'MOV'4 'dbl'(s),r",  
+
   "'MOV' x,y,r",
   "'MOV' 'dbl'(s),'pair(HI'(r))",
   "'MOV' 'dbl'(s),'pair(LO'(r))",
@@ -89,7 +92,7 @@ Instruction_Class MOV_REG_LOAD_Obj =
   execute, // execute
   NULL, // write 
   NULL, // write_plus
-  20,
+  19,
   mask,
   opcode,
 };
@@ -228,7 +231,7 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
       // OK, the only way this can overflow is if M40=0, SXMD=0
       // and we have what would be a negative 16 bit number
       set_k16_reg(r,kword,SXMD(MMR));
-      shifter(r,8,16,r,Reg);
+      shifter(r,8,16,0,r,Reg);
       return;
 
     case 7:
@@ -236,15 +239,15 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
       r = (opcode.bop[3]>>4) & 0x3; // can it move to Tx and ARx ? fixme
       kword = (((Word)opcode.bop[1])<<8) | opcode.bop[2];
       set_k16_reg(r,kword,SXMD(MMR));
-      shifter(r,8,16,r,Reg);
+      shifter(r,8,16,0,r,Reg);
       return;
 
     case 8:
       // MOV [rnd(]Smem << Tx[)], ACx
       r = (opcode.bop[3]>>4) & 0x3;
-      rnd = (opcode.bop[3]&0x40)>>4;
+      rnd = (opcode.bop[3]&0x40)>>6;
       t = (opcode.bop[3]>>2) & 0x3;
-      shifter(16,t+rnd,0,r,Reg);
+      shifter(16,t,0,rnd,r,Reg);
 
     case 9:
       // MOV low_byte(Smem) << #SHIFTW, ACx
@@ -261,7 +264,7 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 	  set_k16_reg(r,kword,0);
 	}
       n = (SWord)SIGN6BIT_TO_UINT(opcode.bop[2] & 0x2f);
-      shifter(r,8,kword,r,Reg);
+      shifter(r,8,kword,0,r,Reg);
       return;
 
     case 10:
@@ -279,13 +282,13 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 	  set_k16_reg(r,kword,0);
 	}
       n = (SWord)SIGN6BIT_TO_UINT(opcode.bop[2] & 0x2f);
-      shifter(r,8,kword,r,Reg);
+      shifter(r,8,kword,0,r,Reg);
       return;
 
     case 11:
       // MOV Smem << #16, ACx
       r = opcode.bop[0]&0x3;
-      shifter(16,8,16,r,Reg);
+      shifter(16,8,16,0,r,Reg);
       return;
 
     case 12:
@@ -307,7 +310,7 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
       else
 	set_k16_reg(r,Reg->DB,SXMD(MMR));
       n = (SWord)SIGN6BIT_TO_UINT(opcode.bop[2] & 0x2f);
-      shifter(r,8,n,r,Reg);
+      shifter(r,8,n,0,r,Reg);
 
     case 14:
       // MOV[40] dbl(Lmem), ACx
