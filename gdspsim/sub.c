@@ -210,7 +210,7 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 	    regNumSrc = (pipeP->current_opcode&0x200)>>9;
 
 	    shifter(2,Reg,2,16,4);
-	    alu(1,regNumSrc,regNumDst,1,Reg);
+	    alu(1,regNumSrc,regNumDst,1|64,Reg);
 	    break;
 	  }
 	case 3: // SUB Smem,shift,src,dst
@@ -287,7 +287,7 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 
 	    shifter(3,Reg,2,16,4);
 	    
-	    alu(1,regNumSrc,regNumDst,1,Reg);
+	    alu(1,regNumSrc,regNumDst,1|64,Reg);
 
 	    break;
 	  }
