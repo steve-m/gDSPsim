@@ -175,6 +175,8 @@ void alu(int Xmux, int Ymux, int Omux, int flag, struct _Registers *Reg)
 	set_OVB(MMR,1);
       else
 	set_OVA(MMR,1);
+      if ( OVM(MMR) )
+	X.gint64 = 0x007fffffff;
     }
   else if ( X.gint64 < -((gint64)1<<31) )
     {
@@ -182,6 +184,8 @@ void alu(int Xmux, int Ymux, int Omux, int flag, struct _Registers *Reg)
 	set_OVB(MMR,1);
       else
 	set_OVA(MMR,1);
+      if ( OVM(MMR) )
+	X.gint64 = 0xff80000000;
     }
 
   if ( Omux )
