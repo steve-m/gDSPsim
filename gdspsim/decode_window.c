@@ -99,6 +99,7 @@ static void change_end_address(GtkWidget *entry, guint64 address,
   struct _decode_window_nfo *dwn;
   WordA mem;
 
+  unhighlight_pipeline();
   dwn = data;
   mem = address;
 
@@ -125,7 +126,7 @@ static void change_end_address(GtkWidget *entry, guint64 address,
 
   insert_text(dwn->start,dwn->end,dwn->word2line);
 
-  highlight_pipeline(0,0);
+  highlight_pipeline();
 }
 
 
@@ -135,6 +136,7 @@ static void change_start_address(GtkWidget *entry, guint64 address,
   struct _decode_window_nfo *dwn;
   WordA mem;
 
+  unhighlight_pipeline();
   dwn = data;
   mem = address;
 
@@ -160,7 +162,7 @@ static void change_start_address(GtkWidget *entry, guint64 address,
     g_array_remove_index_fast(dwn->word2line,0);
 
   insert_text(dwn->start,dwn->end,dwn->word2line);
-  highlight_pipeline(0,0);
+  highlight_pipeline();
 }
 
 
@@ -333,106 +335,87 @@ GtkWidget *create_decode_window()
 
 }
 
-
-void highlight_pipeline(WordA prefetch, int advance)
-{
-  static int pipe[6]={-2, -2, -2, -2, -2, -2};
-  static WordA pipeW[6];
-
+static int pipe[6]={-2, -2, -2, -2, -2, -2};
+static WordA pipeW[6];
   static int cntr=0;
-  int lineNo,k;
+
+void update_pipeline(WordA prefetch)
+{
+  // TODO need to find out if program memory has logged a change
+  // if so, redo window.
+
+  cntr++;
+  if ( cntr > 5 )
+    cntr=0;
+  pipeW[cntr]=prefetch;
+
+}
+
+void unhighlight_pipeline()
+{
+  int k;
+
+  gtk_clist_freeze(GTK_CLIST(clist));
+  for (k=0;k<6;k++)
+    {
+      if ( pipe[cntr]>0 )
+	{
+	  // unhighlight
+	  gtk_clist_set_background(GTK_CLIST(clist),pipe[k],NULL);
+	}
+    }
+  gtk_clist_thaw(GTK_CLIST(clist));
+}
+
+void highlight_pipeline()
+{
+
+  int lineNo,k,tcntr;
   int last_line=-1;
 
   // TODO need to find out if program memory has logged a change
   // if so, redo window.
 
-  if ( dwn==NULL)
+  if ( dwn==NULL )
     {
       // no decode window yet
-      
-      if ( advance )
-	{
-	  cntr++;
-	  if ( cntr > 5 )
-	    cntr=0;
-	  pipeW[cntr]=prefetch;
-	}
       return;
     }
 
-  if ( advance )
+  // Redo the lines
+  for (k=0;k<6;k++)
     {
-      cntr++;
-      if ( cntr > 5 )
-	cntr=0;
-    }
-  else
-    {
-      // Redo the lines
-      for (k=0;k<6;k++)
+      if ( ( pipeW[k] >= dwn->start ) && ( pipeW[k] <= dwn->end ) )
 	{
-	  if (pipe[k]>-2)
-	    {
-	      if ( ( pipeW[k] >= dwn->start ) && ( pipeW[k] <= dwn->end ) )
-		{
-		  lineNo = g_array_index(dwn->word2line,int,pipeW[k]-dwn->start);
-		  pipe[k]=lineNo;
-		}
-	      else
-		{
-		  pipe[k]=-1;
-		}
-	    }
+	  lineNo = g_array_index(dwn->word2line,int,pipeW[k]-dwn->start);
+	  pipe[k]=lineNo;
+	}
+      else
+	{
+	  pipe[k]=-1;
 	}
     }
 
   gtk_clist_freeze(GTK_CLIST(clist));
-
-  if ( advance )
-    pipeW[cntr]=prefetch;
-
-  if ( advance && pipe[cntr]>0 )
-    {
-      // cntr points to the previous execute line, which should
-      // be unhighlited
-      gtk_clist_set_background(GTK_CLIST(clist),pipe[cntr],NULL);
-    }
-
-  if ( advance )
-    {
-      if ( ( prefetch >= dwn->start ) && ( prefetch <= dwn->end ) )
-	{	 
-	  lineNo = g_array_index(dwn->word2line,int,prefetch-dwn->start);
-	  pipe[cntr]=lineNo;
-	  printf("line=%d prefetch=0x%x 0x%x\n",lineNo,prefetch,dwn->start);
-	}
-      else
-	{
-	  pipe[cntr]=-1;
-	}
-    }
-
+  
+  tcntr = cntr;
   for (k=0;k<6;k++)
     {
-      if ( pipe[cntr]>0 && (pipe[cntr] != last_line ) )
+      if ( pipe[tcntr]>0 && (pipe[tcntr] != last_line ) )
 	{
-	  gtk_clist_set_background(GTK_CLIST(clist),pipe[cntr],&pipe_color[k]);
+	  gtk_clist_set_background(GTK_CLIST(clist),pipe[tcntr],
+				   &pipe_color[k]);
 	}
       // Make sure paint the leading color
-      last_line=pipe[cntr];
-
-      cntr--;
-      if ( cntr < 0 )
-	cntr=5;
+      last_line=pipe[tcntr];
+      
+      tcntr--;
+      if ( tcntr < 0 )
+	tcntr=5;
     }
-#if 0
-  cntr++;
-  if ( cntr > 5 )
-    cntr=0;
-#endif
-
+  
   gtk_clist_thaw(GTK_CLIST(clist));
-
+  
 }
 /* 
  * Used to set min and max allowable scrowable range

@@ -102,6 +102,20 @@ int toggle_breakpoint(WordA bp)
   return 1;
 }
 
+void reset_view()
+{
+  update_all_memory_windows(0);
+  unhighlight_pipeline();
+}
+
+void update_view()
+{
+  highlight_pipeline();
+  fill_reg_entries(Registers);
+  update_all_memory_windows(1);
+}
+  
+
 static void pipe_debug(struct _PipeLine *pipeP)
 {
   printf("0x%x %s  word=%d\n",pipeP->current_opcode,pipeP->opcode_object->name,pipeP->word_number);
@@ -109,7 +123,7 @@ static void pipe_debug(struct _PipeLine *pipeP)
 
 // Return 1 if it hits a breakpoint
 // Return 0, otherwise
-int pipeline(struct _Registers *Registers, int clear_old_changes)
+int pipeline(struct _Registers *Registers)
 {
   int wait_state;
   int PC_stall=0;
@@ -124,8 +138,6 @@ int pipeline(struct _Registers *Registers, int clear_old_changes)
   *pipe_read_stg2P = *pipe_read_stg1P;
   *pipe_read_stg1P = *pipe_decodeP;
  
-  if ( clear_old_changes )
-    update_all_memory_windows(0);
 
   if ( Registers->Special_Flush )
     {
@@ -249,18 +261,14 @@ int pipeline(struct _Registers *Registers, int clear_old_changes)
     }
 
   
-  pipe_debug(pipe_executeP);
-  pipe_debug(pipe_read_stg2P);
-  pipe_debug(pipe_read_stg1P);
-  pipe_debug(pipe_decodeP);
-  printf("\n");
+  //pipe_debug(pipe_executeP);
+  //pipe_debug(pipe_read_stg2P);
+  //pipe_debug(pipe_read_stg1P);
+  //pipe_debug(pipe_decodeP);
+  //printf("\n");
 
-  highlight_pipeline(Registers->PAB,1);
-  
-  fill_reg_entries(Registers);
-  update_all_memory_windows(1);
-  
-  
+  update_pipeline(Registers->PAB);
+
   if ( Registers->Dont_Decode == 0 && 
        ( ( Registers->RC == 0 ) || Registers->RC_first_pass ) ) 
     {

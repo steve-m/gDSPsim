@@ -46,7 +46,9 @@ void set_PC(WordA new_pc)
 
 static void step_CB( GtkWidget *widget,  gpointer   data )
 {
-  pipeline(Registers,1);
+  reset_view();
+  pipeline(Registers);
+  update_view();
 }
 
 static void stop_CB( GtkWidget *widget,  gpointer   data )
@@ -56,10 +58,24 @@ static void stop_CB( GtkWidget *widget,  gpointer   data )
 
 static void run_CB( GtkWidget *widget,  gpointer   data )
 {
+  reset_view();
   gStopRun = 0;
-  while ( pipeline(Registers,0) == 0 && !gStopRun)
+  while ( pipeline(Registers) == 0 && !gStopRun)
     while (gtk_events_pending())
       gtk_main_iteration();
+  update_view();
+}
+
+static void animate_CB( GtkWidget *widget,  gpointer   data )
+{
+  gStopRun = 0;
+  while ( pipeline(Registers) == 0 && !gStopRun)
+    {
+      reset_view();
+      update_view();
+      while (gtk_events_pending())
+	gtk_main_iteration();
+    }
 }
 
 void destroy( GtkWidget *widget, gpointer   data )
@@ -163,6 +179,7 @@ static GtkItemFactoryEntry menu_items[] =
   { "/Simulate/Step",  "F8",        (GtkItemFactoryCallback)step_CB, 0, NULL },
   { "/Simulate/Run",  "F5",        (GtkItemFactoryCallback)run_CB, 0, NULL },
   { "/Simulate/Stop",  "F6",        (GtkItemFactoryCallback)stop_CB, 0, NULL },
+  { "/Simulate/Animate",  "F7",        (GtkItemFactoryCallback)animate_CB, 0, NULL },
   { "/Simulate/Connect File", NULL, (GtkItemFactoryCallback)create_fileIO, 0, NULL },
   //{ "/Simulate/Test",  NULL,        (GtkItemFactoryCallback)simulate_CB, 0, NULL },
   { "/_Help",         NULL,         NULL, 0, "<LastBranch>" },
