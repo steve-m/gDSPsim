@@ -49,6 +49,9 @@ static struct _PipeLine *pipe_executeP=NULL;
 static struct _PipeLine *pipe_writeP=NULL;
 static struct _PipeLine *pipe_write_plusP=NULL;
 
+// list of fileIO break points
+static GList *FileIOPipeLine=NULL;
+
 /* Registers->Flush
  * This is used for branching and XC, and is set the number
  * of words in the pipeline to flush. it is usually set in
@@ -531,4 +534,33 @@ unsigned char read_instruction_cache(WordA address)
 }
 void set_pipe_decodeP_to_NOP(void)
 {
+}
+
+/* File IO functions */
+void set_fileIO_break_on_pipeline(struct _fileIO *io)
+{
+  FileIOPipeLine = g_list_append(FileIOPipeLine,io);
+}
+
+void update_fileIO_break_on_pipeline(struct _fileIO *io)
+{
+  // Nothing to do, because only one list and no data is extracted
+}
+
+void remove_fileIO_break_on_pipeline(struct _fileIO *io)
+{
+  GList *list;
+
+  list = FileIOPipeLine;
+
+  while (list)
+    {
+       if ( io == list->data )
+	 {
+	   FileIOPipeLine = g_list_remove_link(FileIOPipeLine,list);
+	   return;
+	 }
+      list=list->next;
+    }
+  printf("Programming Error! Bad Call. %s:%d\n",__FILE__,__LINE__);
 }
