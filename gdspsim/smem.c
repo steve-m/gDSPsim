@@ -393,19 +393,32 @@ void lmem_read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
 	{
 	  L1 = update_smem_2words(pipeP->current_opcode & 0xff , 
 				  Reg->IR , Reg );
-	  L2 = update_smem_2words(pipeP->current_opcode & 0xff , 
-				   Reg->IR , Reg );
 	  Reg->Lmem1 = L1;
-	  Reg->Lmem2 = L2;
+	  Reg->Lmem2 = L1 ^ 1;
 	}
     }
   else
     {
+      int mod,indirect;
+
       // This updates the auxillary registers 
+      // mods 1,2,3,8,10 gets update_smem twice
+      // mod 0 doesnt matter
       L1 = update_smem(pipeP->current_opcode & 0xff , Reg, CPL(MMR));
       Reg->Lmem1 = L1;
-      L2 = update_smem(pipeP->current_opcode & 0xff , Reg, CPL(MMR));
-      Reg->Lmem2 = L1+1;
+      
+      indirect = ( pipeP->current_opcode & 0x80 );
+      mod = ( ( pipeP->current_opcode & 0xff ) & (0x78) ) >> 3;
+
+      if ( (indirect) &&  ( (mod==1) || (mod==2) || (mod==3) ||
+			    (mod==8) || (mod=10) ) )
+	{
+	}
+      else
+	{
+	  L2 = update_smem(pipeP->current_opcode & 0xff , Reg, CPL(MMR));
+	}
+      Reg->Lmem2 = L1 ^ 1;
     }
 }
 
@@ -451,10 +464,26 @@ void lmem_set_EAB(struct _PipeLine *pipeP, struct _Registers *Reg)
     }
   else if ( pipeP->word_number == 1 )
     {
+      int mod,indirect;
+
       // This updates the auxillary registers 
-      if ( pipeP->cycles == 0 )
-	Reg->EAB = update_smem(pipeP->current_opcode & 0xff , Reg, CPL(MMR));
+      // mods 1,2,3,8,10 gets update_smem twice
+      // mod 0 doesnt matter
+      
+      indirect = ( pipeP->current_opcode & 0x80 );
+      mod = ( ( pipeP->current_opcode & 0xff ) & (0x78) ) >> 3;
+
+      if ( (indirect) &&  ( (mod==1) || (mod==2) || (mod==3) ||
+			    (mod==8) || (mod=10) ) )
+	{
+	  Reg->EAB = update_smem(pipeP->current_opcode & 0xff , Reg, CPL(MMR));
+	}
       else
-	Reg->EAB++;
+	{
+	  if ( pipeP->cycles == 0 )
+	    Reg->EAB = update_smem(pipeP->current_opcode & 0xff , Reg, CPL(MMR));
+	  else
+	    Reg->EAB++;
+	}
     }
 }
