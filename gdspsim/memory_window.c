@@ -397,9 +397,9 @@ void create_memory_window()
   gtk_signal_connect(GTK_OBJECT(mem_window->memoryW),"destroy",
 		     (GtkSignalFunc)destroy_window_CB,mem_window);
 
-  gtk_widget_set_name (mem_window->memoryW, "Disassembly");
+  gtk_widget_set_name (mem_window->memoryW, "Memory Window");
   // gtk_widget_set_usize (GTK_WIDGET(memoryW), 300, 200);
-  gtk_window_set_title (GTK_WINDOW (mem_window->memoryW), "Disassebly");
+  gtk_window_set_title (GTK_WINDOW (mem_window->memoryW), "Memory Window");
   gtk_container_set_border_width (GTK_CONTAINER (mem_window->memoryW), 0);
 
   vbox = gtk_vbox_new (FALSE, 0);
@@ -499,11 +499,11 @@ void create_memory_window()
 
 }
 
+#define MEM_CHANGED_BLK 5
 struct _mem_changed
 {
   int valid;
-  WordA changed[5];
-  struct _mem_changed *next;
+  WordA changed[MEM_CHANGED_BLK];
 };
 
 GList *head_mem_changed=NULL;
@@ -520,6 +520,27 @@ static void initialize_changed_mem(void)
     }
 }
 
+int check_if_changed_set(WordA address)
+{
+  GList *list;
+  struct _mem_changed *mc;
+  int k;
+
+  list=head_mem_changed;
+  while (list == NULL)
+    {
+      mc=list->data;
+      for (k=0; k<mc->valid; k++)
+	{
+	  if ( address == mc->changed[k] )
+	    return 1;
+	}
+      list=list->next;
+    }
+  return 0;
+}
+     
+
 void set_mem_changed(WordA address)
 {
   GList *list;
@@ -527,6 +548,9 @@ void set_mem_changed(WordA address)
 
   if ( head_mem_changed == NULL )
     initialize_changed_mem();
+
+  if ( check_if_changed_set(address) )
+    return;
 
   // Get last in list
   list=head_mem_changed;
@@ -555,7 +579,7 @@ void clear_mem_changed(void)
   // Usually only 1 link will every be used. Keeps down on
   // allocatation and deallocation
   struct _mem_changed *mc;
-  GList *list,*list2;
+  GList *list;
 
   if ( head_mem_changed == NULL )
     initialize_changed_mem();
@@ -570,9 +594,10 @@ void clear_mem_changed(void)
       mc = list->data;
       g_free(mc);
       
-      list2 = list;
-      list = list->next;
-      g_list_free(list2);
+      head_mem_changed = g_list_remove_link(head_mem_changed,list);
+      g_list_free(list);
+
+      list = head_mem_changed->next;
     }
   head_mem_changed->next=NULL;
 }
