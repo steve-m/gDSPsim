@@ -28,6 +28,7 @@
 static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg);
 static void read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg);
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg);
+static int number_words(struct _PipeLine *pipeP);
 static GPtrArray *machine_code(gchar *opcode_text);
 
 static gchar *mask[]=
@@ -64,7 +65,7 @@ Instruction_Class OR_Obj =
   read_stg1, // read_stg1 (access)
   read_stg2, // read_stg2 (read)
   execute, // execute
-  num_words_for_smem_plus1, // number_words 
+  number_words, // number_words 
   NULL, // set_cycle_number
   4,
   mask,
@@ -172,6 +173,21 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 	    }
 	  
 	}
+    }
+}
+
+int number_words(struct _PipeLine *pipeP)
+{
+  switch (pipeP->opcode_subType)
+    {
+    case 0:
+      return num_words_for_smem(pipeP);
+    case 1:
+    case 2:
+      return 2;
+    case 3:
+    default:
+      return 1;
     }
 }
 
