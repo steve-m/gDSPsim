@@ -184,7 +184,7 @@ SRCS	= $(OBJS:%.o=%.c)
 all:	$(PROGRAM)
 
 $(PROGRAM):	$(OBJS)
-		$(CC) -rdynamic `pkg-config gnome gtk+ --libs` -lgtkextra -o $(PROGRAM) $(OBJS)
+		$(CC) `pkg-config gnome gtk+ --libs` -o $(PROGRAM) $(OBJS) -lgtkextra
 		@echo "done"
 #		$(CC) -rdynamic `pkg-config gtk+  --libs`  -lgtkextra -o $(PROGRAM) $(OBJS)
 
