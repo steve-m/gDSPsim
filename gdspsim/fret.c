@@ -64,18 +64,20 @@ static void read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   int wait_state;
 
+  // read 16 bit PC
+  pipeP->storage1 = read_data_mem(Reg->EAB,&wait_state);
+
+  // set next address for XPC
   Reg->EAB = MMR->SP;
   MMR->SP++;
-
-  pipeP->storage1 = read_data_mem(Reg->EAB,&wait_state);
 }
 
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   int wait_state;
 
-  Reg->PC = read_data_mem(Reg->EAB,&wait_state);
-  MMR->XPC = pipeP->storage1;
+  MMR->XPC = read_data_mem(Reg->EAB,&wait_state);
+  Reg->PC = pipeP->storage1;
 
   if ( (pipeP->current_opcode & 0x200) == 0 )
     {
