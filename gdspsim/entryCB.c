@@ -18,8 +18,17 @@
 */
 
 #include <stdio.h>
-#include "c54_core.h"
+#include "chip_core.h"
 #include "entryCB.h"
+#include <ctype.h>
+#include "symbols.h"
+
+// Gets address in hex,num,or text form. If text gets numerical address
+void entry_addressCB( GtkWidget *widget, struct _entryCB_nfo *entryCB_nfo )
+{
+  // FIXME
+  entry_hexCB(widget,entryCB_nfo);
+}
 
 // routine to process an entry callback
 void entry_hexCB( GtkWidget *widget, struct _entryCB_nfo *entryCB_nfo )
@@ -159,4 +168,191 @@ void entry_gpreg_maskCB( GtkWidget *widget, GP_Reg *reg, guint64 mask )
 
   g_free(entry_text);
 }
+
+gboolean text_to_address(const gchar *ch, WordA *address)
+{
+  gchar const *textP;
+  int num;
+
+  textP = ch;
+
+  // remove blank space in front
+  while ( *textP && isspace(*textP) )
+    textP++;
+
+  if ( *textP == '\0' )
+    return FALSE;
+
+  if ( isdigit(textP[0]) )
+    {
+      // It's a number
+      if ( (textP[0] == '0') && 
+	   ( (textP[1] == 'x') || (textP[1] == 'X')) )
+	{
+	  num = sscanf(textP,"0x%x",address);
+	  if (num == 1)
+	    return TRUE;
+	  else
+	    {
+	      printf("bad data %s:%d\n",__FILE__,__LINE__);
+	      return FALSE;
+	    }
+	}
+      else
+	{
+	  num = sscanf(textP,"%d",address);
+	  if (num>0)
+	    return TRUE;
+	  else
+	    {
+	      printf("bad data %s:%d\n",__FILE__,__LINE__);
+	      return FALSE;
+	    }
+	}
+    }
+  else
+    {
+      // It's a string
+      return get_address_from_symbol(address,textP);
+    }
+  //return FALSE;
+}
+
+gboolean text_to_int(const gchar *ch, int *address)
+{
+  gchar const *textP;
+  int num;
+
+  textP = ch;
+
+  // remove blank space in front
+  while ( *textP && isspace(*textP) )
+    textP++;
+
+  if ( *textP == '\0' )
+    return FALSE;
+
+  if ( isdigit(textP[0]) )
+    {
+      // It's a number
+      if ( (textP[0] == '0') && 
+	   ( (textP[1] == 'x') || (textP[1] == 'X')) )
+	{
+	  num = sscanf(textP,"0x%x",address);
+	  if (num == 1)
+	    return TRUE;
+	  else
+	    {
+	      printf("bad data %s:%d\n",__FILE__,__LINE__);
+	      return FALSE;
+	    }
+	}
+      else
+	{
+	  num = sscanf(textP,"%d",address);
+	  if (num>0)
+	    return TRUE;
+	  else
+	    {
+	      printf("bad data %s:%d\n",__FILE__,__LINE__);
+	      return FALSE;
+	    }
+	}
+    }
+  else
+    {
+      return FALSE;
+    }
+}
+
+gboolean word_from_file(FILE *file, Word *value)
+{
+  int c;
+  int type=0; // 0=int 1=0x0 2=0h
+  int len=0;
+  unsigned char ch;
+  unsigned char str[16];
+  unsigned char *strP;
+  int start_hex,num;
+
+  while ( len < 15 )
+    {
+      c=fgetc(file);
+      if ( c == EOF )
+	{
+	  return FALSE;
+	}
+      else
+	{
+	  ch = (unsigned char)c;
+	  if ( isdigit(ch) )
+	    {
+	      *strP++=ch;
+	      len++;
+	      if ( start_hex==1 )
+		start_hex=0;
+	    }
+	  else if ( ( (ch >= 'a') && (ch <= 'f') ) ||
+		    ( (ch >= 'A') && (ch <= 'F') ) )
+	    {
+	      // posible hexidecimal number
+	      if ( type != 1 )
+		type=2;
+	      *strP++=ch;
+	      len++;
+	      if ( start_hex==1 )
+		start_hex=0;
+	    }
+	  else if ( (len > 0) && (start_hex==0) )
+	    {
+	      if ( (isspace(ch)) || (ch==',') || (ch=='\n') )
+		{
+		  *strP='\0';
+		  if ( type == 1 )
+		    num = sscanf(str,"0x%x",value);
+		  else
+		num = sscanf(str,"%d",value);
+		  if (num>0)
+		    return TRUE;
+		  else
+		    return FALSE;
+		}
+	      else if ( (ch=='x') || (ch=='X') )
+		{
+		  if ( (*strP == '0' ) && (len==1) )
+		    {
+		      start_hex=1;
+		      *strP++ = ch;
+		      len=2;
+		      type=1;
+		    }
+		  else
+		    {
+		      return FALSE;
+		    }
+		}
+	      else if ( (ch=='h') || (ch=='H') )
+		{
+		  if ( type == 1 )
+		    return FALSE;
+		  num = sscanf(str,"%x",value);
+		  if (num>0)
+		    return TRUE;
+		  else
+		    return FALSE;
+		}
+	    }
+	  else
+	    {
+	      if ( (!isspace(ch)) && (ch!=',') )
+		{
+		  return FALSE;
+		}
+	    }
+	}
+    }
+  return FALSE;
+}
+
+
 
