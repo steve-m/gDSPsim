@@ -87,10 +87,11 @@ extern Instruction_Class STL_Obj;
 extern Instruction_Class STLM_Obj;
 extern Instruction_Class STM_Obj;
 extern Instruction_Class STRCD_Obj;
+extern Instruction_Class XC_Obj;
 extern Instruction_Class XOR_Obj;
 extern Instruction_Class XORM_Obj;
 
-#define All_Objects_Len  64
+#define All_Objects_Len  65
 static const Instruction_Class *All_Objects[All_Objects_Len]=
 {
   &ABDST_Obj,
@@ -155,13 +156,14 @@ static const Instruction_Class *All_Objects[All_Objects_Len]=
   &STLM_Obj,
   &STM_Obj,
   &STRCD_Obj,
+  &XC_Obj,
   &XOR_Obj,
   &XORM_Obj,
 };
 
 typedef gchar *(*Decode_Func)(gchar *mask, gchar info, Word start_code, WordA *location);
 
-#define NUM_MASK_CODE 15
+#define NUM_MASK_CODE 16
 static Decode_Func mask_function[NUM_MASK_CODE]=
 {
   b_decode,
@@ -170,6 +172,7 @@ static Decode_Func mask_function[NUM_MASK_CODE]=
   h_decode,
   m_decode,
   n_decode,
+  p_decode,
   r_decode,
   sd_decode,
   t_decode,
@@ -181,7 +184,7 @@ static Decode_Func mask_function[NUM_MASK_CODE]=
   z_decode,
 
 };
-static gchar mask_code[NUM_MASK_CODE]={"bcdhmnrstuvwxyz"};
+static gchar mask_code[NUM_MASK_CODE]={"bcdhmnprstuvwxyz"};
 
 
 // Returns pointer to object type given opcode and sets subtype
