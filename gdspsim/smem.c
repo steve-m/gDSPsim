@@ -1,0 +1,308 @@
+/*
+ * gDSPsim - GNU Digital Signal Processor Simulator
+ *
+ * Copyright (C) 2001, Kerry Keal, kerry@industrialmusic.com
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2, as published by the Free Software Foundation.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+*/
+
+#include "smem.h"
+#include "hardware.h"
+#include <stdio.h>
+#include "memory.h"
+
+// The basic read_stg1 for a smem. Handles 1 or 2 word smem. Places
+// the read address onto DAB.
+void smem_read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
+{
+  Word DAB;
+  
+  if ( pipeP->total_words > 1 )
+    {
+      // word_number counts down from total_words
+      if ( pipeP->word_number == 1 )
+	{
+	  DAB = update_smem_2words(pipeP->current_opcode & 0xff , 
+				   Reg->IR , Reg);
+	  Reg->DAB = DAB;
+	}
+    }
+  else
+    {
+      // This updates the auxillary registers 
+      DAB = update_smem(pipeP->current_opcode & 0xff , Reg);
+      Reg->DAB = DAB;
+    }
+}
+
+// The basic read_stg1 for a smem. Handles 1 or 2 word smem. Places
+// the read address onto DAB.
+void smem_read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
+{
+  int wait_state;
+
+  if ( pipeP->word_number == 1 )
+    {
+      Reg->DB = read_data_mem(Reg->DAB,&wait_state);
+    }
+}
+
+void mmem_read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
+{
+  Word DAB;
+  
+  if ( pipeP->total_words > 1 )
+    {
+      // word_number counts down from total_words
+      if ( pipeP->word_number == 1 )
+	{
+	  DAB = update_smem_2words(pipeP->current_opcode & 0xff , 
+				   Reg->IR , Reg);
+	  Reg->DAB = DAB;
+	}
+    }
+  else
+    {
+      // This updates the auxillary registers 
+      DAB = update_smem(pipeP->current_opcode & 0xff , Reg);
+      Reg->DAB = DAB;
+    }
+}
+
+// The basic read_stg1 for a smem. Handles 1 or 2 word smem. Places
+// the read address onto DAB.
+void mmem_read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
+{
+  int wait_state;
+
+  if ( pipeP->word_number == 1 )
+    {
+      Reg->DB = read_data_mem(Reg->DAB,&wait_state);
+    }
+}
+
+// This updates the auxillary registers and returns the read address
+Word update_smem( int Smem, struct _Registers *Reg)
+{
+  int mod;
+  Word *arfP;
+  Word ReadAddress;
+
+  if ( (Smem & 0x80)==0 )
+    {
+      // Indirect or Memory Mapped
+    }
+  else
+    {
+  g_return_val_if_fail( Smem & 0x80, (Word)0); // Must be an indirect operation
+
+  mod = (Smem & (8+16+32+64) ) >> 3;
+  
+  g_return_val_if_fail( mod < 12 , (Word)0 ); // Must be a 1 word smem operation
+  
+  // Get the particular pointer register
+  arfP=get_pointer_reg(Smem & 7,Reg, CMPT(MMR));
+  
+  switch (mod & 0xf)
+    {
+    case 0:
+      return *arfP;
+    case 1:
+      ReadAddress = *arfP;
+      *arfP = *arfP - 1;
+      return ReadAddress;
+    case 2:
+      ReadAddress = *arfP;
+      *arfP = *arfP + 1;
+      return ReadAddress;
+    case 3:
+      *arfP = *arfP + 1;
+      return *arfP;
+    case 4:
+      ReadAddress = *arfP;
+      *arfP = bit_reversal(*arfP,(SWord)-1,MMR->ar0);
+      return ReadAddress;
+    case 5:
+      ReadAddress = *arfP;
+      *arfP = *arfP - MMR->ar0;
+      return ReadAddress;
+    case 6:
+      ReadAddress = *arfP;
+      *arfP = *arfP + MMR->ar0;
+      return ReadAddress;
+    case 7:
+      ReadAddress = *arfP;
+      *arfP = bit_reversal(*arfP,1,MMR->ar0);
+      return ReadAddress;
+    case 8:
+      ReadAddress = *arfP;
+      *arfP = circular_update(*arfP,(SWord)-1,MMR->BK);
+      return ReadAddress;
+    case 9:
+      ReadAddress = *arfP;
+      *arfP = circular_update(*arfP,-((SWord)MMR->ar0),MMR->BK);
+      return ReadAddress;
+    case 10:
+      ReadAddress = *arfP;
+      *arfP = circular_update(*arfP,(SWord)1,MMR->BK);
+      return ReadAddress;
+    case 11:
+      ReadAddress = *arfP;
+      *arfP = circular_update(*arfP,(SWord)MMR->ar0,MMR->BK);
+      return ReadAddress;
+
+      
+    }
+    }
+
+  return -1;
+  
+}
+
+Word update_smem_2words( int Smem, Word next_word, struct _Registers *Reg)
+{
+  Word *arfP;
+   int mod;
+  Word ReadAddress;
+
+  printf("0x%x\n",Smem);
+
+  // Get the particular pointer register
+  arfP=get_pointer_reg(Smem & 7,Reg, CMPT(MMR));
+
+  g_return_val_if_fail( Smem & 0x80, (Word)0 ); // Must be an indirect operation
+
+  mod = (Smem & (8+16+32+64) ) >> 3;
+
+  g_return_val_if_fail( mod >= 12, (Word)0 ); // Must be a 2 word smem operation
+
+  arfP=get_pointer_reg(Smem & 7,Reg, CMPT(MMR));
+
+  switch ( mod )
+    {
+    case 12:
+      ReadAddress = *arfP + next_word;
+      break;
+    case 13:
+      *arfP = circular_update(*arfP,next_word,MMR->BK);
+      ReadAddress = *arfP;
+      break;
+    case 14:
+      *arfP = *arfP +  next_word; // circular
+      ReadAddress = *arfP;
+      break;
+    case 15:
+      ReadAddress = next_word;
+    }
+  return ReadAddress;
+}
+
+Word circular_update(Word start, SWord step, Word BK)
+{
+  SWord index;
+  Word N;
+
+  // Determine the N LSBs of BK
+  N=1;
+  while (BK)
+    {
+      N = N << 1;
+      BK = BK >> 1;
+    }
+
+  index = start & (N-1);
+
+  if ( (index + step) < 0 )
+    index = index + step + BK;
+  else if ( (index + step) <= BK )
+    index = index + step;
+  else
+    index = index + step - BK;
+
+  start = (start & ~(N-1)) + index;
+
+  return start;
+}
+
+int num_words_for_smem_plus1(struct _PipeLine *pipeP)
+{
+  return num_words_for_smem(pipeP)+1;
+}
+
+int num_words_for_smem(struct _PipeLine *pipeP)
+{
+  Word Smem;
+
+  Smem = pipeP->current_opcode;
+  if ( Smem & 128 )
+    {
+      // indirect mode
+      int mod;
+      mod = (Smem & (8+16+32+64) ) >> 3;
+
+      if ( mod >= 12 )
+	return 2;
+      else
+	return 1;
+    }
+  return 1;
+}
+
+Word bit_reversal(Word start, Word bit_reversed_one, SWord adjustment)
+{
+  Word base;
+  SWord index,br_index,add;
+
+  bit_reversed_one = bit_reversed_one<<1;
+
+  index = start & (bit_reversed_one-1);
+
+  add=1;
+  br_index = 0;
+  while (index)
+    {
+      index=index<<1;
+      if ( index & bit_reversed_one )
+	{
+	  br_index = br_index + add;
+	}
+      add = add << 1;
+    }
+
+  // now we can make the adjustment
+  br_index = br_index + adjustment;
+
+  // looped around
+  if ( br_index == bit_reversed_one )
+    br_index=0;
+  if ( br_index < 0 )
+    br_index=bit_reversed_one-1;
+
+  // reverse again
+  add=1;
+  index = 0;
+  while (br_index)
+    {
+      br_index=br_index<<1;
+      if ( br_index & bit_reversed_one )
+	{
+	  index = index + add;
+	}
+      add = add << 1;
+    }
+
+  base = start & ~(bit_reversed_one-1);
+
+  return base+index;
+}
