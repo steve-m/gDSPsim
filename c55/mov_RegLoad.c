@@ -28,7 +28,7 @@
 static gchar *mask[]=
 {
   "0011110p uuuurrrr", // MOV  u,r
-  "0011110p mmmmrrrr", // MOV -m,r
+  "0011111p mmmmrrrr", // MOV -m,r  (decode error?)
   "01110110 nnnnnnnn nnnnnnnn rrrr10xx", //  MOV K16, dst (verified)
   "1010rrrr ssssssss", // MOV Smem, dst (verified)
   "11011111 ssssssss rrrr000U", // MOV [uns(]high_byte(Smem)[)], dst
