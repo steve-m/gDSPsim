@@ -111,6 +111,38 @@ void entry_regCB( GtkWidget *widget, struct _entry_nfo *nfo )
 
 }
 
+// this allows a symbol to be entered for the word.
+static void entry_reg_PC_CB( GtkWidget *W, struct _entry_nfo *nfo )
+{
+  WordA address;
+  gchar temp_str[15];
+  gchar *entry_text;
+  struct _Registers *Registers;
+
+  entry_text = gtk_editable_get_chars(GTK_EDITABLE(W),0,-1);
+
+  if ( text_to_address(entry_text,&address) )
+    {
+      // valid number
+      Registers = nfo->reg;
+      Registers->PC = address;
+      Registers->Special_Flush = 1;
+      // set text style to highlight mode
+      gtk_widget_set_style(W, styleH);
+      gtk_entry_set_text (GTK_ENTRY(W),entry_text);
+    }
+  else
+    {
+      // invalid answer, set text color to normal
+      gtk_widget_set_style(W, styleN);
+      Registers = nfo->reg;
+      g_snprintf(temp_str,15,"0x%x",Registers->PC);
+      gtk_entry_set_text (GTK_ENTRY(W),temp_str);
+    }
+
+  g_free(entry_text);
+}
+
 static void destroy_window_CB( GtkWidget *W, gpointer data )
 {
   registerW=NULL;
@@ -161,6 +193,45 @@ static void set_reg_table(struct _entry_nfo *entry, const gchar *label_name,
 }
 
 
+
+static void set_reg_tablePC(struct _entry_nfo *entry, const gchar *label_name,
+			    int x, int y, GtkTable *table, 
+			    struct _Registers *Registers, 
+			    Reg_Type type, guint64 mask)
+{
+  GtkWidget *label;
+
+  label = gtk_label_new(label_name);
+  gtk_table_attach (table, label, x, x+1, y, y+1,
+		    0,0,3,0);
+  gtk_widget_show(label);
+
+  entry->W = gtk_entry_new();
+		     
+#ifdef GTK2
+  gtk_entry_set_width_chars(GTK_ENTRY(entry->W),13);
+#else
+  gtk_widget_set_usize(GTK_WIDGET(entry->W),100,24);
+#endif
+
+  gtk_entry_set_max_length(GTK_ENTRY(entry->W),25);
+  gtk_table_attach (table, entry->W, x+1, x+2, y, y+1,
+		    0,0,0,0);
+  gtk_widget_show (entry->W);
+
+  gtk_signal_connect(GTK_OBJECT(entry->W), "activate",
+		     GTK_SIGNAL_FUNC(entry_reg_PC_CB),
+		     entry);
+
+  entry->type = type;
+  entry->mask = mask;
+  entry->reg = Registers;
+
+  return;
+
+}
+
+
 void create_register_window(struct _Registers *Registers)
 {
   GtkWidget *table;
@@ -187,8 +258,8 @@ void create_register_window(struct _Registers *Registers)
   gtk_container_add (GTK_CONTAINER (registerW), table);
   
 
-  set_reg_table(&reg_entries.PC, "PC", 0, 0, GTK_TABLE(table), 
-				  &Registers->PC, WORD_TYPE, 0xffff);
+  set_reg_tablePC(&reg_entries.PC, "PC", 0, 0, GTK_TABLE(table), 
+				  Registers, WORD_TYPE, 0xffff);
   set_reg_table(&reg_entries.A, "A", 0, 1, GTK_TABLE(table), 
 				  &MMR->A, GP_REG_TYPE, 0xffffffffff);
   set_reg_table(&reg_entries.B, "B", 0, 2, GTK_TABLE(table), 
