@@ -63,24 +63,21 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   union _GP_Reg_Union reg_union;
   
-  if ( pipeP->cycles )
+  if ( pipeP->current_opcode & 0x100 )
     {
-      if ( pipeP->current_opcode & 0x100 )
-	{
-	  reg_union.gp_reg = MMR->B;
-	}
-      else
-	{
-	  reg_union.gp_reg = MMR->A;
-	}
+      reg_union.gp_reg = MMR->B;
     }
-
-  if ( pipeP->cycles == 1 )
+  else
+    {
+      reg_union.gp_reg = MMR->A;
+    }
+   
+  if ( pipeP->cycles == 0 )
     {
       // Write high word first
       write_data_mem(Reg->EAB,reg_union.words.high);
     }
-  else if ( pipeP->cycles == 2 )
+  else if ( pipeP->cycles == 1 )
     {
       // write low word last
       write_data_mem(Reg->EAB,reg_union.words.low);
