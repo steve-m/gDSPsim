@@ -115,6 +115,7 @@ int pipeline(struct _Registers *Registers)
   int PC_stall=0;
   extern Word NOP_opcode;
   int return_val=0;
+  int RC_set;
 
   /* Propagate pipeline pointers */
   // fixme, need to just switch pointer not all values, have to 
@@ -148,6 +149,8 @@ int pipeline(struct _Registers *Registers)
 	  return_val = 1;
 	}
       
+      RC_set = Registers->RC;
+
       if ( pipe_executeP->opcode_object->execute )
 	pipe_executeP->opcode_object->execute(pipe_executeP,Registers);
      
@@ -170,6 +173,12 @@ int pipeline(struct _Registers *Registers)
 	  Registers->IR = NOP_opcode;
           Registers->Flush--;
         }
+
+      if ( (Registers->RC != 0) && (RC_set==0) )
+	{
+	  // RC was set
+	  Registers->RC_first_pass = 1;
+	}
 
       if ( Registers->Dont_Decode == 0 && 
 	   ( ( Registers->RC == 0 ) || Registers->RC_first_pass ) ) 
