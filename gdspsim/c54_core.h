@@ -1,3 +1,22 @@
+/*
+ * gDSPsim - GNU Digital Signal Processor Simulator
+ *
+ * Copyright (C) 2001, Kerry Keal, kerry@industrialmusic.com
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2, as published by the Free Software Foundation.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+*/
+
 #include "core_def.h"
 
 #ifndef __C54_CORE_H__
@@ -103,6 +122,8 @@ extern struct _MMR *MMR;
 
 // Convenience macros to read status bits
 #define DP(Reg)(((Reg)->ST0&0x1ff))
+#define OVB(Reg)((((Reg)->ST0)&0x200)>>9)
+#define OVA(Reg)((((Reg)->ST0)&0x400)>>10)
 #define C_bit(Reg)((((Reg)->ST0)&0x800)>>11)
 #define TC_bit(Reg)((((Reg)->ST0)&0x1000)>>12)
 #define ARP(Reg)((((Reg)->ST0)&0xe0000)>>13)
@@ -114,6 +135,8 @@ extern struct _MMR *MMR;
 #define SXM(Reg)((((Reg)->ST1)&0x100)>>8)
 #define OVM(Reg)((((Reg)->ST1)&0x200)>>9)
 #define INTM(Reg)((((Reg)->ST1)&0x800)>>11)
+#define HM(Reg)((((Reg)->ST1)&0x1000)>>12)
+#define XF(Reg)((((Reg)->ST1)&0x2000)>>13)
 #define CPL(Reg)((((Reg)->ST1)&0x4000)>>14)
 #define BRAF(Reg)((((Reg)->ST1)&0x8000)>>15)
 
