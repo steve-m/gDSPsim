@@ -1074,7 +1074,8 @@ Word bit_extract(char info, char *mask, Word mach_code, WordA *location)
   ans = 0;
   smallest = 0;
   bit = BITS_PER_WORD;
-  current_location = *location;
+  if ( location )
+    current_location = *location;
   while ( *mask )
     {
       if ( *mask !=' ' )
@@ -1088,7 +1089,13 @@ Word bit_extract(char info, char *mask, Word mach_code, WordA *location)
 			 __FILE__,__LINE__);
 		}
 	      bit = BITS_PER_WORD-1;
-	      current_location = current_location + 1;
+	      if ( location )
+		current_location = current_location + 1;
+	      else
+		{
+		  printf("Error! %s:%d\n",__FILE__,__LINE__);
+		  return 0;
+		}
 	      mach_code = read_program_mem(current_location,&wait_state);
 	      
 	    }
@@ -1100,7 +1107,8 @@ Word bit_extract(char info, char *mask, Word mach_code, WordA *location)
 	  // Only want to increment location if actually used bits
 	  // from that location, otherwise location might get incremented
 	  // too often
-	  *location = current_location;
+	  if ( location )
+	    *location = current_location;
 	}
       mask++;
     }
