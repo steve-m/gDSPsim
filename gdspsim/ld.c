@@ -67,7 +67,7 @@ static gchar *opcode[] =
     "LD x,u,s",
 
     "LD #n,s",
-    "LD #n,u,s",
+    "LD #h,u,s",
     "LD #n,16,s",
     "LD s,ASM,d",
     "LD s,n,d",
@@ -89,7 +89,7 @@ static gchar *comment[]=
   "$(s)=$(x)<<$(u)",
   
   "$(s)=$(n)",
-  "$(s)=$(n)<<$(u)",
+  "$(s)=$(h)<<$(u)",
   "$(s)=$(n)<<16",
   "$(d)=$(s)<<ASM",
   "$(d)=$(s)<<$(n)",
