@@ -18,20 +18,19 @@
 */
 
 #include "c54_core.h"
-#include "hardware.h"
+#include "instruct_help.h"
 #include <stdio.h>
-#include "smem.h"
 #include "decode.h"
 
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg);
+static void decode(struct _PipeLine *pipeP, struct _Registers *Reg);
 static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg);
 static void read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg);
 static GPtrArray *machine_code(gchar *opcode_text);
-static int number_words(struct _PipeLine *pipeP);
 
-static gchar *mask[]= { "111100z0 01110010 nnnnnnnn nnnnnnnn" };
-static gchar *opcode[] = { "RPTBz n" };
-static gchar *comment[]= { "RPTB$(z) $(n)" };
+static gchar *mask[]= { "111100z0 01110010 hhhhhhhh hhhhhhhh" };
+static gchar *opcode[] = { "RPTBz h" };
+static gchar *comment[]= { "RPTB$(z) $(h)" };
 
 
 /* This definition is global because another routine will make have
@@ -42,11 +41,11 @@ Instruction_Class RPTB_Obj =
   "RPTB",
   NULL, // prefetch
   NULL, // fetch
-  NULL, // decode
+  decode, // decode
   read_stg1, // read_stg1 (access)
   read_stg2, // read_stg2 (read)
   execute, // execute
-  number_words, // number_words 
+  return_2, // number_words 
   NULL, // set_cycle_number
   1,
   mask,
@@ -55,60 +54,49 @@ Instruction_Class RPTB_Obj =
   machine_code
 };
 
+static void decode(struct _PipeLine *pipeP, struct _Registers *Reg)
+{
+  // Determine start address
+  if ( pipeP->word_number == 2 )
+    {
+      if ( (pipeP->current_opcode & 0x200) == 0)
+	{
+	  pipeP->storage2 = Reg->PC;
+    	}
+      else
+	{
+	  pipeP->storage2 = Reg->PC+2;
+	}
+    }
+}
+
 static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-  {
-    pipeP->storage1 = Reg->IR;
-  }
+  // Determine End address
+  if ( pipeP->word_number == 1 )
+    {
+      if ( (pipeP->current_opcode & 0x200) == 0)
+	{
+          Reg->Dont_Decode=2;
+        }
+      pipeP->storage1 = Reg->IR;
+    }
 };
 
 static void read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-  if ( pipeP->opcode_subType == 0 )
-    {
-      smem_read_stg2(pipeP,Reg);
-    }
-};
+}
 
 
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-  switch ( pipeP->opcode_subType )
+  
+  if ( pipeP->word_number == 1 )
     {
-    case 0:
-      if ( pipeP->word_number == 1 )
-	{
-	  Reg->RC=Reg->DB;
-	}
-      return;
-    case 1:
-      {
-	Word adjustment;
-
-	adjustment = bit_extract('u',mask[1],pipeP->current_opcode,NULL);
-	Reg->RC=adjustment;
-      }
-      return;
-    case 2:
-      if ( pipeP->word_number == 1 )
-	{
-	  Reg->RC=pipeP->storage1;
-	}
-      return;
-    }
-}
-
-int number_words(struct _PipeLine *pipeP)
-{
-  switch ( pipeP->opcode_subType )
-    {
-    case 0:
-      return num_words_for_smem(pipeP);
-    default:
-    case 1:
-      return 1;
-    case 2:
-      return 2;
+      set_BRAF(MMR,1);
+      Reg->RSA = pipeP->storage2;
+      Reg->REA = pipeP->storage1;
+      printf("RSA=0x%x REA=0x%x\n",Reg->RSA,Reg->REA);
     }
 }
 
