@@ -27,6 +27,7 @@ static gchar *mask[]=
   "0010001p rrrrRRRR", // MOV src, dst
   "0100010p 00rrRRRR", // MOV HI(ACx), TAx
   "0101001p rrrr00RR", // MOV TAx, HI(ACx)
+  "10010000 XXXXYYYY", // MOV xsrc,xdst
 };
 
 static gchar *opcode[] = 
@@ -34,6 +35,7 @@ static gchar *opcode[] =
   "'MOV' r,R",
   "'MOV' r,R",
   "'MOV' r,R",
+  "'MOV' X,Y",
 };
 
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg);
@@ -49,7 +51,7 @@ Instruction_Class MOV_REG_MOVE_Obj =
   execute, // execute
   NULL, // write_stg 
   NULL, // write_plus
-  3,
+  4,
   mask,
   opcode,
 };
@@ -136,6 +138,22 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 	    }
 	}
       set_register(reg_union,R);
+      return;
 
+    case 3:
+      {
+	WordA xra;
+	r = (opcode.bop[1]>>4) & 0xf;
+	R = opcode.bop[1] & 0xf;
+	if ( (r<4) && (R<4) )
+	  {
+	    union _GP_Reg_Union reg_union;
+	    reg_union = get_register(r,0);
+	    set_register(reg_union,R);
+	  }
+	xra = get_extended_reg(r,Reg);
+	set_extended_reg(xra,R,Reg);
+	break;
+      }
     }
 }
