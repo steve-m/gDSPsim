@@ -260,10 +260,17 @@ int pipeline(struct _Registers *Registers)
   if ( (Registers->Dont_Decode == 0) && (Registers->Decode_Again == 0) &&
        ( ( Registers->RC == 0 ) || Registers->RC_first_pass ) ) 
     {
-      if ( BRAF(MMR) && (Registers->PC == Registers->REA) && MMR->BRC)
+      if ( BRAF(MMR) && (Registers->PC == Registers->REA) )
         {
           // Repeat block mode and at the end of the block
-          MMR->BRC--;
+	  if ( MMR->BRC == 0 )
+	    {
+	      set_BRAF(MMR,0);
+	    }
+	  else
+	    {
+	      MMR->BRC--;
+	    }
           Registers->PC = Registers->RSA;
         }
       else
