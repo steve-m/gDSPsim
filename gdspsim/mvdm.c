@@ -46,7 +46,7 @@ Instruction_Class MVDM_Obj =
   read_stg1, // read_stg1 (access)
   read_stg2, // read_stg2 (read)
   execute, // execute
-  return_2, //num_words_for_smem_plus1, // number_words 
+  num_words_for_smem_plus1, //num_words_for_smem_plus1, // number_words 
   NULL, // set_cycle_number
   1,
   mask,
@@ -57,19 +57,27 @@ Instruction_Class MVDM_Obj =
 
 static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-  // needs work
-  smem_read_stg1(pipeP,Reg);
-  FIXME();
-  if ( Reg->RC_first_pass && pipeP->word_number == 1 )
+  if ( pipeP->word_number == 1 )
     {
-      Reg->EAB =  Reg->IR;
+      if ( Reg->RC_first_pass ||Reg->RC == 0)
+	{
+	  Reg->DAR = Reg->IR;
+	}
+      Reg->DAB = Reg->DAR;
     }
 }
 
 static void read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-  smem_read_stg2(pipeP,Reg);
-  smem_set_EAB(pipeP, Reg);
+  int wait_state;
+
+  mmem_set_EAB(pipeP, Reg);
+  if ( pipeP->word_number == 1 )
+    {
+      Reg->DB = read_data_mem(Reg->DAB,&wait_state);
+      if ( Reg->RC )
+	Reg->DAR++;
+    }
 }
 
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
@@ -77,8 +85,6 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
   if ( pipeP->word_number == 1 )
     {
       write_data_mem(Reg->EAB,Reg->DB);
-      if ( Reg->RC )
-	Reg->EAB = Reg->EAB + 1;
     }
 }
 
