@@ -57,9 +57,9 @@ struct _MMR
   Word BRC; // 1A - Block Repeat Counter
   Word RSA; // 1B - Block Repeat Start Address
   Word REA; // 1C - Block Repeat End Address
-  Word XPC; // 1D - Program counter extension;
-  Word reserved5; // 1E
-  Word reserved6; // 1F
+  Word PMST; // 1D - Processor Mode Status Register
+  Word XPC; // 1E - Program counter extension;
+  Word reserved5; // 1F
 };
 
 struct _Registers
@@ -76,7 +76,8 @@ struct _Registers
   Word EAB; // Write Bus Address
   Word P;
   Word PM;  // Program Memory Read for things like READA
-  Word PAR; // Program Memory Read Address for things like READA
+  WordA PAR; // Program Memory Read Address for things like READA
+  Word DAR; // Register to hold address for DAB mvdm,mvkd
   Word RC;  // Repeat Counter
   Word RTN; // Return address used for fast return from interrupt
   GP_Reg Shifter;
@@ -94,6 +95,7 @@ struct _Registers
   // fetch, decode, or prefetch, PC increment.
   int Dont_Fetch; // Set to non zero to not run any more fetch
   int fetch_flags; // Used to step breakpoints amoung other things
+  int Decode_Again; // Decode Again
 };
 
 extern struct _MMR *MMR;
