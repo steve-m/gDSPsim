@@ -20,18 +20,15 @@
 #include <stdio.h>
 #include <glib.h>
 #include <gtk/gtk.h>
-#include "decode_window.h"
-#include "memory_window.h"
-#include "c54_core.h"
-#include "find_opcode.h"
-#include "readfile.h"
-#include "register_window.h"
-#include "pipeline.h"
-#include "fileIO.h"
-#include "preferences.h"
-
-char **decode(unsigned int start, unsigned int end, char *buffer, GPtrArray *opcodes_info);
-
+#include <decode_window.h>
+#include <memory_window.h>
+#include <chip_core.h>
+#include <find_opcode.h>
+#include <readfile.h>
+#include <register_window.h>
+#include <pipeline.h>
+#include <fileIO.h>
+#include <preferences.h>
 
 extern struct _file_info *gdsp_file_nfo;
 struct _Registers *Registers;
@@ -107,6 +104,13 @@ static void register_view_CB( GtkWidget *widget,  gpointer   data )
   return;
 }
 
+void create_plot_window();
+static void plot_CB( GtkWidget *widget,  gpointer   data )
+{
+  create_plot_window();
+  return;
+}
+
 /*------------------------------------------------------------------------*/
 /* Font Selection */
 /*------------------------------------------------------------------------*/
@@ -166,7 +170,7 @@ static void decode_CB( GtkWidget *widget,  gpointer   data )
 {
   create_decode_window();
 }
-// #include "opcode_def.h"
+
 static GtkItemFactoryEntry menu_items[] = 
 {
   { "/_File",         NULL,         NULL, 0, "<Branch>" },
@@ -180,6 +184,7 @@ static GtkItemFactoryEntry menu_items[] =
   { "/View/_Memory",    "<control>M", (GtkItemFactoryCallback)memory_CB, 0, NULL },
   { "/View/_Decode",    "<control>D", (GtkItemFactoryCallback)decode_CB, 0, NULL },
   { "/View/_Registers",    "<control>R", (GtkItemFactoryCallback)register_view_CB, 0, NULL },
+  { "/View/Plot", NULL, (GtkItemFactoryCallback)plot_CB, 0, NULL },
   { "/_Simulate",      NULL,        NULL, 0, "<Branch>" },
   { "/Simulate/Step",  "F8",        (GtkItemFactoryCallback)step_CB, 0, NULL },
   { "/Simulate/Run",  "F5",        (GtkItemFactoryCallback)run_CB, 0, NULL },
@@ -192,8 +197,7 @@ static GtkItemFactoryEntry menu_items[] =
 };
 
 
-void get_main_menu( GtkWidget  *window,
-		    GtkWidget **menubar )
+static void get_main_menu( GtkWidget  *window, GtkWidget **menubar )
 {
   GtkItemFactory *item_factory;
   gint nmenu_items = sizeof (menu_items) / sizeof (menu_items[0]);
