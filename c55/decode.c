@@ -263,6 +263,21 @@ void t_decode(gchar *ch, gchar *mask, char info,
   return;
 }
 
+// TC0,TC1 flag 1 bit
+void C_decode(gchar *ch, gchar *mask, char info, 
+              struct _decoded_opcode *decode_nfo)
+{
+  unsigned int bits;
+  int num_mask;
+  int length;
+
+  bits = bit_extract(info,mask,decode_nfo,NULL,&num_mask,&length);
+
+  g_snprintf(ch,MAX_SUB_OP,"TC%d",bits+1);
+
+  return;
+}
+
 
 // decodes Smem, usually pppp ppp1
 // automatically adds 16 bits of unsigned if

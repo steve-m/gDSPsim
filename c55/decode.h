@@ -53,6 +53,10 @@ extern "C" {
   void t_decode(gchar *ch, gchar *mask, char info, 
 		struct _decoded_opcode *decode_nfo );
 
+  // TC0,TC1 flag 1 bit
+  void C_decode(gchar *ch, gchar *mask, char info, 
+		struct _decoded_opcode *decode_nfo );
+
   // T TRN register 1 bit
   void T_decode(gchar *ch, gchar *mask, char info, 
 		struct _decoded_opcode *decode_nfo );
