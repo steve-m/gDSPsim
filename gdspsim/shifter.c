@@ -156,6 +156,7 @@ inline void shifter(Word input_mux, struct _Registers *Reg, Word shift_mux, SWor
       break;
     case 3:
       write_data_mem(Reg->EAB,reg.words.high);
+      break;
     case 4:
       Reg->Shifter = reg.gp_reg;
     }
