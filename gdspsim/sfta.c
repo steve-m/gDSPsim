@@ -18,9 +18,10 @@
 */
 
 #include "c54_core.h"
-#include "hardware.h"
-#include <stdio.h>
+#include "shifter.h"
+#include "decode.h"
 
+static void execute(struct _PipeLine *pipeP, struct _Registers *Reg);
 static GPtrArray *machine_code(gchar *opcode_text);
 
 static gchar *mask[]=    { "111101sd 011nnnnn" };
@@ -38,7 +39,7 @@ Instruction_Class SFTA_Obj =
   NULL, // decode
   NULL, // read_stg1 (access)
   NULL, // read_stg2 (read)
-  NULL, // execute
+  execute, // execute
   NULL, // number_words 
   NULL, // set_cycle_number
   1,
@@ -48,6 +49,17 @@ Instruction_Class SFTA_Obj =
   machine_code
 };
 
+static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
+{
+  int regNumDst,regNumSrc,shift;
+
+  shift = signed_5bit_extract(pipeP->current_opcode);                 
+  
+  regNumDst = (pipeP->current_opcode&0x100)>>8;
+  regNumSrc = (pipeP->current_opcode&0x200)>>9;
+
+  shifter(regNumSrc,Reg,2,shift,regNumDst);
+}
 
 /* Generates an array of Words that this opcode text generates or NULL
  * if it doesn't. There should not be any comments in the string
