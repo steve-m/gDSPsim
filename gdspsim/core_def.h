@@ -86,6 +86,13 @@ union _GP_Reg_Union
   WordA address;
 };
 
+union _8_bits
+{
+  char s8;
+  unsigned char u8;
+};
+
+
 // Used to tell if the opcode tag is used in the notation. 
 #define INCLUDE_OPCODE_IN_DECODE 1
 // Used to tell if commas are inserted between operands
