@@ -18,6 +18,7 @@
 
 CC = gcc
 PROGRAM	= gdspsim
+PREFIX = /usr
 
 #	c54_func/nop.o \
 #	c54_func/add.o \
@@ -167,6 +168,8 @@ $(PROGRAM):	$(OBJS)
 		$(CC) -rdynamic `pkg-config gtk+  --libs` -o $(PROGRAM) $(OBJS)
 		@echo "done"
 
+install:	$(PROGRAM)
+		install --mode=755 $(PROGRAM) $(PREFIX)/bin/$(PROGRAM)
 clean:		
 		/bin/rm -f *.o $(PROGRAM)
 
