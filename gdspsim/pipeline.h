@@ -25,7 +25,9 @@ struct _Registers *pipe_new();
 
 // Return 1 if it hits a breakpoint
 // Return 0, otherwise
-int pipeline(struct _Registers *Registers);
+// clear_old_changes = 1, unhighlight old changes
+// clear_old_changes = 0, don't unhighlight changes from last call
+int pipeline(struct _Registers *Registers, int clear_old_changes);
 
 // Return 1 if breakpoint set, 0 if breakpoint removed
 int toggle_breakpoint(WordA bp);

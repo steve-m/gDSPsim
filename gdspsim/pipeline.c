@@ -109,7 +109,7 @@ static void pipe_debug(struct _PipeLine *pipeP)
 
 // Return 1 if it hits a breakpoint
 // Return 0, otherwise
-int pipeline(struct _Registers *Registers)
+int pipeline(struct _Registers *Registers, int clear_old_changes)
 {
   int wait_state;
   int PC_stall=0;
@@ -124,6 +124,9 @@ int pipeline(struct _Registers *Registers)
   *pipe_read_stg2P = *pipe_read_stg1P;
   *pipe_read_stg1P = *pipe_decodeP;
  
+  if ( clear_old_changes )
+    update_all_memory_windows(0);
+
   if ( Registers->Special_Flush )
     {
       // This is used to start the pipeline and if
@@ -255,7 +258,7 @@ int pipeline(struct _Registers *Registers)
   highlight_pipeline(Registers->PAB,1);
   
   fill_reg_entries(Registers);
-  update_all_memory_windows();
+  update_all_memory_windows(1);
   
   
   if ( Registers->Dont_Decode == 0 && 

@@ -46,7 +46,7 @@ void set_PC(WordA new_pc)
 
 static void step_CB( GtkWidget *widget,  gpointer   data )
 {
-  pipeline(Registers);
+  pipeline(Registers,1);
 }
 
 static void stop_CB( GtkWidget *widget,  gpointer   data )
@@ -57,7 +57,7 @@ static void stop_CB( GtkWidget *widget,  gpointer   data )
 static void run_CB( GtkWidget *widget,  gpointer   data )
 {
   gStopRun = 0;
-  while ( pipeline(Registers) == 0 && !gStopRun)
+  while ( pipeline(Registers,0) == 0 && !gStopRun)
     while (gtk_events_pending())
       gtk_main_iteration();
 }
