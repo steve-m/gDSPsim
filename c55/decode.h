@@ -112,6 +112,10 @@ extern "C" {
   void t3_decode(gchar *ch, gchar *mask, char info, 
 		 struct _decoded_opcode *decode_nfo );
   
+  // 1=TC2 0=CARRY (used for rol,ror)
+  void zZ_decode(gchar *ch, gchar *mask, char info, 
+		 struct _decoded_opcode *decode_nfo );
+  
   // v reserved
   void v_decode(gchar *ch, gchar *mask, char info, 
 		struct _decoded_opcode *decode_nfo );

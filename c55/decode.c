@@ -539,7 +539,24 @@ void t3_decode(gchar *ch, gchar *mask, char info,
 
   return;
 }
-  // A unsigned flag, think Abs
+
+// 1=TC2 0=CARRY (used for rol,ror)
+void zZ_decode(gchar *ch, gchar *mask, char info, 
+              struct _decoded_opcode *decode_nfo)
+{
+  gboolean bit;
+
+  bit = one_bit_extract(info,mask,decode_nfo);
+
+  if ( bit )
+    g_snprintf(ch,MAX_SUB_OP,"TC2");
+  else
+    g_snprintf(ch,MAX_SUB_OP,"CARRY");
+
+  return;
+}
+
+// A unsigned flag, think Abs
 void A_decode(gchar *ch, gchar *mask, char info, 
               struct _decoded_opcode *decode_nfo)
 {
