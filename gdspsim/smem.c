@@ -480,15 +480,20 @@ void lmem_set_EAB(struct _PipeLine *pipeP, struct _Registers *Reg)
       // mod 0 doesnt matter
       
       indirect = ( pipeP->current_opcode & 0x80 );
-      mod = ( ( pipeP->current_opcode & 0xff ) & (0x78) ) >> 3;
+      mod = (pipeP->current_opcode & (8+16+32+64) ) >> 3;
 
       if ( (indirect) &&  ( (mod==1) || (mod==2) || (mod==3) ||
-			    (mod==8) || (mod=10) ) )
+			    (mod==8) || (mod==10) ) )
 	{
+	  // mod==1 *ARx-  mod==2 *ARx+  mod==3 *+ARx
+	  // mod==8 *ARx-% mod==10 *ARx+%
+
+	  // Not sure if this should call update each time
+	  // or just xor EAB. 
 	  if ( pipeP->cycles == 0 )
 	    Reg->EAB = update_smem(pipeP->current_opcode & 0xff , Reg, CPL(MMR));
 	  else if ( pipeP->cycles == 1 )
-	    Reg->EAB = Reg->EAB ^ 1;
+	    Reg->EAB = update_smem(pipeP->current_opcode & 0xff , Reg, CPL(MMR));
 	}
       else
 	{
