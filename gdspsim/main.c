@@ -17,11 +17,6 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-// Milhouse: We've got to spread this stuff around. Let's put it on the internet!
-// Bart: No we've got to reach people whose opinion actually matters
-
-
-
 #include <stdio.h>
 #include <glib.h>
 #include <gtk/gtk.h>
@@ -33,6 +28,7 @@
 #include "process_coff.h"
 #include "register_window.h"
 #include "pipeline.h"
+#include "fileIO.h"
 
 char **decode(unsigned int start, unsigned int end, char *buffer, GPtrArray *opcodes_info);
 
@@ -42,6 +38,7 @@ extern struct _file_info *gdsp_file_nfo;
 struct _Registers *Registers;
 // Used so other windows can have same keyboard accelerations
 GtkAccelGroup *gDSP_keyboard_accel;
+int gStopRun;
  
 void set_PC(WordA new_pc)
 {
@@ -53,9 +50,17 @@ static void step_CB( GtkWidget *widget,  gpointer   data )
   pipeline(Registers);
 }
 
+static void stop_CB( GtkWidget *widget,  gpointer   data )
+{
+  gStopRun=1;
+}
+
 static void run_CB( GtkWidget *widget,  gpointer   data )
 {
-  while ( pipeline(Registers) == 0);
+  gStopRun = 0;
+  while ( pipeline(Registers) == 0 && !gStopRun)
+    while (gtk_events_pending())
+      gtk_main_iteration();
 }
 
 void destroy( GtkWidget *widget, gpointer   data )
@@ -158,6 +163,8 @@ static GtkItemFactoryEntry menu_items[] =
   { "/_Simulate",      NULL,        NULL, 0, "<Branch>" },
   { "/Simulate/Step",  "F8",        (GtkItemFactoryCallback)step_CB, 0, NULL },
   { "/Simulate/Run",  "F5",        (GtkItemFactoryCallback)run_CB, 0, NULL },
+  { "/Simulate/Stop",  "F6",        (GtkItemFactoryCallback)stop_CB, 0, NULL },
+  { "/Simulate/Connect File", NULL, (GtkItemFactoryCallback)create_fileIO, 0, NULL },
   //{ "/Simulate/Test",  NULL,        (GtkItemFactoryCallback)simulate_CB, 0, NULL },
   { "/_Help",         NULL,         NULL, 0, "<LastBranch>" },
   { "/_Help/About",   NULL,         NULL, 0, NULL },
@@ -200,11 +207,35 @@ int main(int argc, char *argv[])
   int error;
   size_t size;
   char *buffer,filename[80];
-
+  int k;
 
   /* Setup main window */
   gtk_init (&argc, &argv);
 
+  // Setup default registers
+  Registers = pipe_new();
+
+  /* Process flags */
+  for (k=0;k<argc;k++)
+    {
+      char *group;
+
+      group = argv[k];
+      if (*group == '-')
+	{
+	  group++;
+	  switch ( *group )
+	    {
+	    case 'f':
+	      // File
+	      printf("file = %s\n",argv[k+1]);
+	      open_file(argv[k+1]);
+	      break;
+	    }
+	}
+    }
+
+		    
   window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
 
   gtk_widget_set_name (window, "gDSPsim");
@@ -231,9 +262,6 @@ int main(int argc, char *argv[])
   gtk_widget_show (menubar);
 
   gtk_widget_show (window);
-
-  // Setup default registers
-  Registers = pipe_new();
 
   gtk_main ();
 
