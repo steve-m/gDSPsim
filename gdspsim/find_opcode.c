@@ -44,6 +44,7 @@ extern Instruction_Class CALA_Obj;
 extern Instruction_Class CALL_Obj;
 extern Instruction_Class CMPL_Obj;
 extern Instruction_Class CMPM_Obj;
+extern Instruction_Class CMPR_Obj;
 extern Instruction_Class CMPS_Obj;
 extern Instruction_Class DADD_Obj;
 extern Instruction_Class DADST_Obj;
@@ -152,7 +153,7 @@ extern Instruction_Class XC_Obj;
 extern Instruction_Class XOR_Obj;
 extern Instruction_Class XORM_Obj;
 
-#define All_Objects_Len  126
+#define All_Objects_Len  127
 static const Instruction_Class *All_Objects[All_Objects_Len]=
 {
   &ABDST_Obj,
@@ -174,6 +175,7 @@ static const Instruction_Class *All_Objects[All_Objects_Len]=
   &CALL_Obj,
   &CMPL_Obj,
   &CMPM_Obj,
+  &CMPR_Obj,
   &CMPS_Obj,
   &DADD_Obj,
   &DADST_Obj,
@@ -285,12 +287,13 @@ static const Instruction_Class *All_Objects[All_Objects_Len]=
 
 typedef gchar *(*Decode_Func)(gchar *mask, gchar info, Word start_code, WordA *location);
 
-#define NUM_MASK_CODE 16
+#define NUM_MASK_CODE 17
 static Decode_Func mask_function[NUM_MASK_CODE]=
 {
   b_decode,
   c_decode,
   sd_decode,
+  e_decode,
   h_decode,
   m_decode,
   n_decode,
@@ -306,7 +309,7 @@ static Decode_Func mask_function[NUM_MASK_CODE]=
   z_decode,
 
 };
-static gchar mask_code[NUM_MASK_CODE]={"bcdhmnprstuvwxyz"};
+static gchar mask_code[NUM_MASK_CODE]={"bcdehmnprstuvwxyz"};
 
 
 // Returns pointer to object type given opcode and sets subtype and number
