@@ -20,15 +20,21 @@
 #include "c54_core.h"
 #include "hardware.h"
 #include <stdio.h>
+#include "smem.h"
+#include "xymem.h"
+#include "decode.h"
 
+static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg);
+static void read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg);
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg);
+static int number_words(struct _PipeLine *pipeP);
 
 static GPtrArray *machine_code(gchar *opcode_text);
 
 static gchar *mask[]= 
 {
   "0000000s aaaaaaaa",
-  "0000000s aaaaaaaa",
+  "0000010s aaaaaaaa",
   "001111sd aaaaaaaa",
   "01101111 aaaaaaaa 000011sd 000nnnnn",
   "1001000s xxxxuuuu",
@@ -76,10 +82,10 @@ Instruction_Class ADD_Obj =
   NULL, // prefetch
   NULL, // fetch
   NULL, // decode
-  NULL, // read_stg1 (access)
-  NULL, // read_stg2 (read)
+  read_stg1, // read_stg1 (access)
+  read_stg2, // read_stg2 (read)
   execute, // execute
-  NULL, // number_words 
+  number_words, // number_words 
   NULL, // set_cycle_number
   10,
   mask,
@@ -88,6 +94,80 @@ Instruction_Class ADD_Obj =
   machine_code
 };
 
+static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
+{
+  switch ( pipeP->opcode_subType )
+    {
+    case 0: // ADD Smem,src
+    case 1: // ADD Smem,TS,src
+    case 2: // ADD Smem,16,src,dst
+      {
+	smem_read_stg1(pipeP,Reg);
+	break;
+      }
+    case 3: // ADD Smem,shift,src,dst
+      {
+	smem_read_stg1(pipeP,Reg);
+	if ( pipeP->word_number == 1 )
+	  {
+	    pipeP->storage1 = Reg->IR;
+	  }
+	break;
+      }
+    case 4: // ADD Xmem,shift,src
+      {
+	xmem_read_stg1(pipeP,Reg);
+	break;
+      }
+    case 5: // ADD Xmem,Ymem,dst
+      {
+	xymem_read_stg1(pipeP,Reg);
+	break;
+      }
+    case 6: // ADD  #lk [, SHFT], src [, dst ]
+    case 7: // ADD  #lk, 16, src [, dst ]
+      {
+	if ( pipeP->word_number == 1 )
+	  {
+	    pipeP->storage1 = Reg->IR;
+	  }
+	break;
+      }
+    }
+  
+  // ADD  src [, SHIFT], [, dst ]
+  // ADD  src, ASM, [, dst ]
+}
+
+static void read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
+{
+  switch ( pipeP->opcode_subType )
+    {
+    case 0: // ADD Smem,src
+    case 1: // ADD Smem,TS,src
+    case 2: // ADD Smem,16,src,dst
+    case 3: // ADD Smem,shift,src,dst
+      {
+	smem_read_stg2(pipeP,Reg);
+	break;
+      }
+    case 4: // ADD Xmem,shift,src
+      {
+	xmem_read_stg2(pipeP,Reg);
+	break;
+      }
+    case 5: // ADD Xmem,Ymem,dst
+      {
+	xymem_read_stg2(pipeP,Reg);
+	break;
+      }
+    }
+  
+  // ADD  #lk [, SHFT], src [, dst ]
+  // ADD  #lk, 16, src [, dst ]
+  // ADD  src [, SHIFT], [, dst ]
+  // ADD  src, ASM, [, dst ]
+}
 
 /* Executes the instruction. The operands are passed as pointers to
  * Registers. These pointers point to Registers in the Reg variable.
@@ -98,150 +178,232 @@ Instruction_Class ADD_Obj =
 
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-  int SubType;
-  Operand_List *operands;
+  union _GP_Reg_Union reg_union;
+  union _GP_Reg_Union reg_union2;
 
-  SubType = pipeP->opcode_subType;
-  operands = &pipeP->operands;
-
-  // operands are pointers to register values.
-  // type tells which type instance this is.
-  
-  switch ( SubType )
+  if ( pipeP->word_number == 1 )
     {
-    case 1: // ADD Smem,src
+
+      switch ( pipeP->opcode_subType )
+	{
+	case 0: // ADD Smem,src
+	  {
+	    if ( pipeP->current_opcode & 0x100 )
+	      reg_union.gp_reg = MMR->B;
+	    else
+	      reg_union.gp_reg = MMR->A;
+	    
+	    reg_union2.gp_reg = alu_add(reg_union.gp_reg,Reg->DB,0,SXM(MMR) );
+	    
+	    if ( pipeP->current_opcode & 0x100 )
+	      MMR->B = reg_union2.gp_reg;
+	    else
+	      MMR->A = reg_union2.gp_reg;
+	    break;
+	  }
+	case 1: // ADD Smem,TS,src
+	  {
+	    if ( pipeP->current_opcode & 0x100 )
+	      reg_union.gp_reg = MMR->B;
+	    else
+	      reg_union.gp_reg = MMR->A;
+	    
+	    reg_union2.gp_reg = alu_add(reg_union.gp_reg,Reg->DB,MMR->T,SXM(MMR) );
+	    
+	    if ( pipeP->current_opcode & 0x100 )
+	      MMR->B = reg_union2.gp_reg;
+	    else
+	      MMR->A = reg_union2.gp_reg;
+	    break;
+	  }
+	case 2: // ADD Smem,16,src,dst
+	  {
+	    if ( pipeP->current_opcode & 0x200 )
+	      reg_union.gp_reg = MMR->B;
+	    else
+	      reg_union.gp_reg = MMR->A;
+	    
+	    reg_union2.gp_reg = alu_add(reg_union.gp_reg,Reg->DB,16,SXM(MMR) );
+	    
+	    if ( pipeP->current_opcode & 0x100 )
+	      MMR->B = reg_union2.gp_reg;
+	    else
+	      MMR->A = reg_union2.gp_reg;
+	    break;
+	  }
+	case 3: // ADD Smem,shift,src,dst
+	  {
+	    int shift;
+	    
+	    if ( pipeP->storage1 & 0x200 )
+	      reg_union.gp_reg = MMR->B;
+	    else
+	      reg_union.gp_reg = MMR->A;
+
+	    shift = signed_5bit_extract(pipeP->storage1);
+	    
+	    reg_union2.gp_reg = alu_add(reg_union.gp_reg,Reg->DB,shift,SXM(MMR) );
+
+	    if ( pipeP->storage1 & 0x100 )
+	      MMR->B = reg_union2.gp_reg;
+	    else
+	      MMR->A = reg_union2.gp_reg;
+	    break;
+	  }
+	case 4: // ADD Xmem,shift,src
+	  {
+	    int shift;
+	    
+	    if ( pipeP->current_opcode & 0x100 )
+	      reg_union.gp_reg = MMR->B;
+	    else
+	      reg_union.gp_reg = MMR->A;
+	    
+	    shift = pipeP->current_opcode & 0xf;
+	    
+	    reg_union2.gp_reg = alu_add(reg_union.gp_reg,Reg->DB,shift,SXM(MMR) );
+	    
+	    if ( pipeP->current_opcode & 0x100 )
+	      MMR->B = reg_union2.gp_reg;
+	    else
+	      MMR->A = reg_union2.gp_reg;
+	    break;
+	  }
+	case 5: // ADD Xmem,Ymem,dst
+	  {
+	    if ( pipeP->current_opcode & 0x100 )
+	      reg_union.gp_reg = MMR->B;
+	    else
+	      reg_union.gp_reg = MMR->A;
+	    
+	    reg_union2.gp_reg = alu_add(reg_union.gp_reg,Reg->DB,0,SXM(MMR) );
+	    
+	    // shift result by 16
+	    reg_union2.guint64 = reg_union2.guint64 << 16;
+	    
+	    if ( pipeP->current_opcode & 0x100 )
+	      MMR->B = reg_union2.gp_reg;
+	    else
+	      MMR->A = reg_union2.gp_reg;
+	    break;
+	  }
+	case 6: // ADD  #lk [, SHFT], src [, dst ]
+	  {
+	    SWord shift;
+	    
+	    if ( (pipeP->current_opcode & 0x200) != 0 )
+	      reg_union.gp_reg = MMR->B;
+	    else
+	      reg_union.gp_reg = MMR->A;
+	    
+	    shift = pipeP->current_opcode & 0xf;
+	    
+	    reg_union2.gp_reg = alu_add(reg_union.gp_reg,pipeP->storage1,shift,SXM(MMR) );
+	    
+	    if ( pipeP->current_opcode & 0x100 )
+	      MMR->B = reg_union2.gp_reg;
+	    else
+	      MMR->A = reg_union2.gp_reg;
+	    break;
+	  }
+	case 7: // ADD  #lk, 16, src [, dst ]
+	  {
+	    if ( pipeP->current_opcode & 0x200 )
+	      reg_union.gp_reg = MMR->B;
+	    else
+	      reg_union.gp_reg = MMR->A;
+	    
+	    reg_union2.gp_reg = alu_add(reg_union.gp_reg,pipeP->storage1,16,SXM(MMR) );
+	    
+	    if ( pipeP->current_opcode & 0x100 )
+	      MMR->B = reg_union2.gp_reg;
+	    else
+	      MMR->A = reg_union2.gp_reg;
+	    break;
+	  }
+	case 8: // ADD  src [, SHIFT], [, dst ]
+	  {
+	    int shift;
+	    
+	    if ( pipeP->current_opcode & 0x200 )
+	      reg_union.gp_reg = MMR->B;
+	    else
+	      reg_union.gp_reg = MMR->A;
+	    
+	    if ( pipeP->current_opcode & 0x100 )
+	      reg_union2.gp_reg = MMR->B;
+	    else
+	      reg_union2.gp_reg = MMR->A;
+	    
+	    shift = signed_5bit_extract(pipeP->current_opcode);
+	    
+	    reg_union2.gp_reg = alu_add40(reg_union.gp_reg,reg_union2.gp_reg,shift,Reg );
+	    
+	    if ( pipeP->current_opcode & 0x100 )
+	      MMR->B = reg_union2.gp_reg;
+	    else
+	      MMR->A = reg_union2.gp_reg;
+	    break;
+	    
+	  }
+	case 9: // ADD  src, ASM, [, dst ]
+	  {
+	    int shift;
+	    
+	    if ( pipeP->current_opcode & 0x200 )
+	      reg_union.gp_reg = MMR->B;
+	    else
+	      reg_union.gp_reg = MMR->A;
+	    
+	    if ( pipeP->current_opcode & 0x100 )
+	      reg_union2.gp_reg = MMR->B;
+	    else
+	      reg_union2.gp_reg = MMR->A;
+	    
+	    shift = ASM(MMR);
+	    
+	    reg_union2.gp_reg = alu_add40(reg_union.gp_reg,reg_union2.gp_reg,shift,Reg);
+	    
+	    if ( pipeP->current_opcode & 0x100 )
+	      MMR->B = reg_union2.gp_reg;
+	    else
+	      MMR->A = reg_union2.gp_reg;
+	    break;
+	  }
+	  
+	}
+    }
+}
+
+int number_words(struct _PipeLine *pipeP)
+{
+  switch ( pipeP->opcode_subType )
+    {
+    case 0: // ADD Smem,src
+    case 1: // ADD Smem,TS,src
+    case 2: // ADD Smem,16,src,dst
       {
-	GP_Reg *src;
-	SWord *Smem;
+	return num_words_for_smem(pipeP);
+      }
+    case 3: // ADD Smem,shift,src,dst
+      {
+	return num_words_for_smem_plus1(pipeP);
+      }
+    case 4: // ADD Xmem,shift,src
+    case 5: // ADD Xmem,Ymem,dst
+    case 8: // ADD  src [, SHIFT], [, dst ]
+    case 9: // ADD  src, ASM, [, dst ]
+    default:
+      {
+	return 1;
 	
-	Smem = operands->op0.arP;
-	src = operands->op1.regP;
-
-	*src = alu_add(*src,0,*Smem,Reg);
-
-	break;
       }
-    case 2: // ADD Smem,TS,src
+    case 6: // ADD  #lk [, SHFT], src [, dst ]
+    case 7: // ADD  #lk, 16, src [, dst ]
       {
-	GP_Reg *src;
-	SWord *Smem;
-	SWord *TS;
-
-	Smem = operands->op0.arP;
-	TS = operands->op1.arP;
-	src = operands->op2.regP;
-
-	*src = alu_add(*src,*TS,*Smem,Reg);
-
-	break;
-      }
-    case 3: // ADD Smem,16,src,dst
-      {
-	GP_Reg *src,*dst;
-	SWord *Smem;
+	return 2;
 	
-	Smem = operands->op0.arP;
-	src = operands->op1.regP;
-	dst = operands->op2.regP;
-
-	*dst = alu_add(*src,16,*Smem,Reg);
-	
-	break;
       }
-    case 4: // ADD Smem,shift,src,dst
-      {
-	GP_Reg *src,*dst;
-	SWord *Smem;
-	SWord shift;
-	
-	Smem = operands->op0.arP;
-	shift = operands->op1.constant;
-	src = operands->op2.regP;
-	dst = operands->op3.regP;
-
-	*dst = alu_add(*src,shift,*Smem,Reg);
-	break;
-      }
-    case 5: // ADD Xmem,shift,src
-      {
-	GP_Reg *src;
-	Word shift;
-	SWord *Xmem;
-	
-	Xmem = operands->op0.arP;
-	shift = operands->op1.u_constant;
-	src = operands->op2.regP;
-
-	*src = alu_add(*src,*Xmem,shift,Reg);
-	break;
-      }
-    case 6: // ADD Xmem,Ymem,dst
-      {
-	SWord *Xmem,*Ymem;
-	GP_Reg *dst,*temp_Reg;
-
-	Xmem = operands->op0.arP;
-	Ymem = operands->op1.arP;
-	dst = operands->op2.regP;
-	
-	*temp_Reg = word_to_GP_Reg(*Xmem,16);
-
-	*dst = alu_add(*temp_Reg,16,*Ymem,Reg);	
-	break;
-      }
-    case 7: // ADD  #lk [, SHFT], src [, dst ]
-      {
- 	SWord lk;
-	Word shift;
-	GP_Reg *src,*dst;
-
-	lk = operands->op0.constant;
-	shift = operands->op1.u_constant;
-	src = operands->op2.regP;
-	dst = operands->op3.regP;
-
-	*dst = alu_add(*src,shift,lk,Reg);	
-	break;
-      }
-    case 8: // ADD  #lk, 16, src [, dst ]
-      {
- 	SWord lk;
-	GP_Reg *src,*dst;
-
-	lk = operands->op0.constant;
-	src = operands->op1.regP;
-	dst = operands->op2.regP;
-
-	*dst = alu_add(*src,16,lk,Reg);	
-      }
-    case 9: // ADD  src [, SHIFT], [, dst ]
-      {
- 	SWord shift,temp_word;
-	GP_Reg *src,*dst;
-
-	src = operands->op0.regP;
-	shift = operands->op1.u_constant;
-	dst = operands->op2.regP;
-
-	printf("Double check ADD case 9 is executed correctly\n");
-	temp_word = GP_Reg_Low_to_Word(*src,shift);
-	*dst = alu_add(*src,temp_word,0,Reg);	
-	break;
-      }
-    case 10: // ADD  src, ASM, [, dst ]
-      {
- 	SWord *ASM,temp_word;
-	GP_Reg *src,*dst;
-
-	src = operands->op0.regP;
-	ASM = operands->op1.arP;
-	dst = operands->op2.regP;
-
-	printf("Double check ADD case 10 is executed correctly\n");
-	temp_word = GP_Reg_Low_to_Word(*src,*ASM);
-	*dst = alu_add(*src,temp_word,0,Reg);	
-      }
-
     }
 }
 
@@ -252,24 +414,3 @@ static GPtrArray *machine_code(gchar *opcode_text)
 {
   return NULL;
 }
-
-
-#if 0  
-1: (Smem) + (src) ³ src
-2: (Smem) << (TS) + (src) ³ src
-3: (Smem) << 16 + (src) ³ dst
-4: (Smem) [<< SHIFT] + (src) ³ dst
-5: (Xmem) << SHFT + (src) ³ src
-6:    ADD  Xmem, Ymem, dst
-7:    ADD  #lk [, SHFT], src [, dst ]
-8:    ADD  #lk, 16, src [, dst ]
-9:    ADD  src [, SHIFT], [, dst ]
-10: ADD  src, ASM [, dst ]
-Syntaxes 1, 2, 3, and 5: Class 3A (see page 3-5
-Syntaxes 1, 2, and 3: Class 3B (see page 3-6)
-Syntax 4: Class 4A (see page 3-7)
-Syntax 4: Class 4B (see page 3-8)
-Syntax 6: Class 7 (see page 3-12)
-Syntaxes 7 and 8: Class 2 (see page 3-4)
-Syntaxes 9 and 10: Class 1 (see page 3-3)
-#endif
