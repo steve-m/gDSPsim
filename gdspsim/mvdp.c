@@ -57,29 +57,32 @@ Instruction_Class MVDP_Obj =
 
 static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-  // needs work
   smem_read_stg1(pipeP,Reg);
-  FIXME();
-  if ( Reg->RC_first_pass && pipeP->word_number == 1)
+  if ( (pipeP->total_words - pipeP->word_number) == 1 )
     {
-      Reg->EAB =  Reg->IR;
+      if ( Reg->RC_first_pass || ( Reg->RC == 0 ) )
+	{
+	  Reg->PAR = Reg->IR;
+	}
     }
 }
 
 static void read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   smem_read_stg2(pipeP,Reg);
-  smem_set_EAB(pipeP, Reg);
+
+  if ( pipeP->word_number == 1 )
+    {
+      Reg->EAB = Reg->PAR;
+      if ( Reg->RC )
+	Reg->PAR++;
+    }
 }
 
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   if ( pipeP->word_number == 1 )
-    {
-      write_program_mem(Reg->EAB,Reg->DB);
-      if ( Reg->RC )
-	Reg->EAB = Reg->EAB + 1;
-    }
+    write_program_mem(Reg->EAB,Reg->DB);
 }
 
 /* Generates an array of Words that this opcode text generates or NULL

@@ -57,15 +57,12 @@ Instruction_Class MVPD_Obj =
 
 static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-  if ( pipeP->word_number == 1 )
+  if ( (pipeP->total_words - pipeP->word_number) == 1 )
     {
-      if ( Reg->RC_first_pass ||Reg->RC == 0)
+      if ( Reg->RC_first_pass || (Reg->RC == 0) )
 	{
 	  Reg->PAR = Reg->IR;
 	}
-      // Probably not suppose to use D bus?
-
-      Reg->DAB = Reg->PAR;
     }
 }
 
@@ -76,9 +73,9 @@ static void read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
   smem_set_EAB(pipeP, Reg);
   if ( pipeP->word_number == 1 )
     {
-      // Probably not suppose to use D bus?
+      // Not sure how to do the bus
 
-      Reg->DB = read_program_mem(Reg->DAB,&wait_state);
+      pipeP->storage1 = read_program_mem(Reg->PAR,&wait_state);
       if ( Reg->RC )
 	Reg->PAR++;
     }
@@ -88,9 +85,9 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   if ( pipeP->word_number == 1 )
     {
-      // Probably not suppose to use D bus?
+      // Not sure how to do the bus
 
-      write_data_mem(Reg->EAB,Reg->DB);
+      write_data_mem(Reg->EAB,pipeP->storage1);
     }
 }
 

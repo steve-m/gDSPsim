@@ -57,7 +57,7 @@ Instruction_Class MVDM_Obj =
 
 static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-  if ( pipeP->word_number == 1 )
+  if ( (pipeP->total_words - pipeP->word_number) == 1 )
     {
       if ( Reg->RC_first_pass ||Reg->RC == 0)
 	{
