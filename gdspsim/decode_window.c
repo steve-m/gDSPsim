@@ -21,11 +21,11 @@
 // assembly
 
 #include <stdio.h>
-#include "decode_window.h"
-#include "find_opcode.h"
-#include "memory.h"
-#include "entryCB.h"
-#include "pipeline.h"
+#include <decode_window.h>
+#include <find_opcode.h>
+#include <memory.h>
+#include <entryCB.h>
+#include <pipeline.h>
 
 static GdkColor pipe_color[6]=
 {
@@ -85,9 +85,9 @@ static void change_end_address(GtkWidget *entry, guint64 address,
     {
       dwn->start=mem;
     }
-  if ( mem > (dwn->start + 0x400) )
+  if ( mem > (dwn->start + 0x800) )
     {
-      dwn->start=mem-0x400;
+      dwn->start=mem-0x800;
     }
   dwn->end = address;
 
@@ -122,9 +122,9 @@ static void change_start_address(GtkWidget *entry, guint64 address,
     {
       dwn->end=mem;
     }
-  if ( mem < (dwn->end - 0x400) )
+  if ( mem < (dwn->end - 0x800) )
     {
-      dwn->end=mem+0x400;
+      dwn->end=mem+0x800;
     }
   dwn->start = address;
 
