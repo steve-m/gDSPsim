@@ -64,12 +64,14 @@ extern Instruction_Class FRAME_Obj;
 extern Instruction_Class FRET_Obj;
 extern Instruction_Class FRETE_Obj;
 extern Instruction_Class IDLE_Obj;
+extern Instruction_Class INTR_Obj;
 extern Instruction_Class LD_Obj;
 extern Instruction_Class LD_MAC_Obj;
 extern Instruction_Class LD_MAS_Obj;
 extern Instruction_Class LDR_Obj;
 extern Instruction_Class LDU_Obj;
 extern Instruction_Class LDM_Obj;
+extern Instruction_Class LMS_Obj;
 extern Instruction_Class LTD_Obj;
 extern Instruction_Class MAC_Obj;
 extern Instruction_Class MACA_Obj;
@@ -87,21 +89,27 @@ extern Instruction_Class MPYU_Obj;
 extern Instruction_Class MVDD_Obj;
 extern Instruction_Class MVDK_Obj;
 extern Instruction_Class MVDM_Obj;
+extern Instruction_Class MVKD_Obj;
 extern Instruction_Class MVDP_Obj;
 extern Instruction_Class MVMD_Obj;
 extern Instruction_Class MVMM_Obj;
+extern Instruction_Class MVPD_Obj;
 extern Instruction_Class NEG_Obj;
 extern Instruction_Class NOP_Obj;
 extern Instruction_Class NORM_Obj;
 extern Instruction_Class OR_Obj;
 extern Instruction_Class ORM_Obj;
+extern Instruction_Class POLY_Obj;
 extern Instruction_Class POPD_Obj;
 extern Instruction_Class POPM_Obj;
+extern Instruction_Class PORTR_Obj;
+extern Instruction_Class PORTW_Obj;
 extern Instruction_Class PSHD_Obj;
 extern Instruction_Class PSHM_Obj;
 extern Instruction_Class READA_Obj;
 extern Instruction_Class RET_Obj;
 extern Instruction_Class RC_Obj; // decodes same as RET with c=0
+extern Instruction_Class RESET_Obj;
 extern Instruction_Class RETE_Obj;
 extern Instruction_Class RETF_Obj;
 extern Instruction_Class RND_Obj;
@@ -109,15 +117,18 @@ extern Instruction_Class ROL_Obj;
 extern Instruction_Class ROLTC_Obj;
 extern Instruction_Class ROR_Obj;
 extern Instruction_Class RPT_Obj;
+extern Instruction_Class RPTZ_Obj;
 extern Instruction_Class RPTB_Obj;
 extern Instruction_Class RSBX_Obj;
 extern Instruction_Class SAT_Obj;
 extern Instruction_Class SFTA_Obj;
 extern Instruction_Class SFTC_Obj;
 extern Instruction_Class SFTL_Obj;
+extern Instruction_Class SQDST_Obj;
 extern Instruction_Class SQUR_Obj;
 extern Instruction_Class SQURA_Obj;
 extern Instruction_Class SQURS_Obj;
+extern Instruction_Class SRCCD_Obj;
 extern Instruction_Class SSBX_Obj;
 extern Instruction_Class ST_Obj;
 extern Instruction_Class ST_ADD_Obj;
@@ -135,11 +146,13 @@ extern Instruction_Class SUB_Obj;
 extern Instruction_Class SUBB_Obj;
 extern Instruction_Class SUBC_Obj;
 extern Instruction_Class SUBS_Obj;
+extern Instruction_Class TRAP_Obj;
+extern Instruction_Class WRITA_Obj;
 extern Instruction_Class XC_Obj;
 extern Instruction_Class XOR_Obj;
 extern Instruction_Class XORM_Obj;
 
-#define All_Objects_Len  113
+#define All_Objects_Len  126
 static const Instruction_Class *All_Objects[All_Objects_Len]=
 {
   &ABDST_Obj,
@@ -181,12 +194,14 @@ static const Instruction_Class *All_Objects[All_Objects_Len]=
   &FRET_Obj,
   &FRETE_Obj,
   &IDLE_Obj,
+  &INTR_Obj,
   &LD_Obj,
   &LD_MAC_Obj,
   &LD_MAS_Obj,
   &LDR_Obj,
   &LDU_Obj,
   &LDM_Obj,
+  &LMS_Obj,
   &LTD_Obj,
   &MAC_Obj,
   &MACA_Obj,
@@ -205,19 +220,25 @@ static const Instruction_Class *All_Objects[All_Objects_Len]=
   &MVDK_Obj,
   &MVDM_Obj,
   &MVDP_Obj,
+  &MVKD_Obj,
   &MVMD_Obj,
   &MVMM_Obj,
+  &MVPD_Obj,
   &NEG_Obj,
   &NOP_Obj,
   &NORM_Obj,
   &OR_Obj,
   &ORM_Obj,
+  &POLY_Obj,
   &POPD_Obj,
   &POPM_Obj,
+  &PORTR_Obj,
+  &PORTW_Obj,
   &PSHD_Obj,
   &PSHM_Obj,
   &RC_Obj,
   &READA_Obj,
+  &RESET_Obj,
   &RET_Obj,
   &RETE_Obj,
   &RETF_Obj,
@@ -227,14 +248,17 @@ static const Instruction_Class *All_Objects[All_Objects_Len]=
   &ROR_Obj,
   &RPT_Obj,
   &RPTB_Obj,
+  &RPTZ_Obj,
   &RSBX_Obj,
   &SAT_Obj,
   &SFTA_Obj,
   &SFTC_Obj,
   &SFTL_Obj,
+  &SQDST_Obj,
   &SQUR_Obj,
   &SQURA_Obj,
   &SQURS_Obj,
+  &SRCCD_Obj,
   &SSBX_Obj,
   &ST_Obj,
   &ST_ADD_Obj,
@@ -252,6 +276,8 @@ static const Instruction_Class *All_Objects[All_Objects_Len]=
   &SUBB_Obj,
   &SUBC_Obj,
   &SUBS_Obj,
+  &TRAP_Obj,
+  &WRITA_Obj,
   &XC_Obj,
   &XOR_Obj,
   &XORM_Obj,
