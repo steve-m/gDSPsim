@@ -33,7 +33,14 @@ Word circular_update(Word start, int p, SWord step)
     }
   else
     {
-      BK = MMR->BK47;
+      if ( C54CM(MMR) )
+	{
+	  BK = MMR->BK03;
+	}
+      else
+	{
+	  BK = MMR->BK47;
+	}
     }
 
   // Determine the N LSBs of BK
@@ -60,19 +67,22 @@ Word circular_update(Word start, int p, SWord step)
 // p is 0-7, pointer register number
 // mod is type of modification 0-15, excluding  6 and 7
 // b1,b2,b3 are bytes that follow
-Word smem_decode(int p, int mod, unsigned char b1, 
-		 unsigned char b2, unsigned char b3)
+WordA smem_decode(int p, int mod, Opcode mach_code, int len )
 {
   Word *arfP;
   int circ=0;
   int c54cm;
-  Word AB;
+  WordA AB;
 
   // Does it use circular addressing?
-  if ( b1==0x9d )
-    circ=1;
+  if ( mach_code.bop[len-1]==0x9d )
+    {
+      circ=1;
+      len--;
+    }
 
-  arfP=get_pointer_reg(p);
+  if ( mod != 8 )
+    arfP=get_pointer_reg(p);
 
   c54cm = C54CM(MMR);
 
@@ -133,19 +143,19 @@ Word smem_decode(int p, int mod, unsigned char b1,
       return AB;
     case 6:
       // *ARn(#K16)
-      AB = *arfP + (SWord)((((Word)(b1))<<8) + (Word)b2);
+      AB = *arfP + (SWord)((((Word)(mach_code.bop[len-2]))<<8) + (Word)mach_code.bop[len-1]);
       return AB;
     case 7:
       // *+ARn(#K16)
       if ( ARLC(MMR,p) )
 	{
 	  AB = *arfP;
-	  *arfP = circular_update(*arfP,p,(((Word)b1)<<8) + b2);
+	  *arfP = circular_update(*arfP,p,(((Word)mach_code.bop[len-2])<<8) + mach_code.bop[len-1]);
 	  return AB;
 	}
       else
 	{
-	  *arfP = *arfP + (SWord)((((Word)(b1))<<8) + (Word)b2);
+	  *arfP = *arfP + (SWord)((((Word)(mach_code.bop[len-2]))<<8) + (Word)mach_code.bop[len-1]);
 	  AB = *arfP;
 	  return AB;
 	}
@@ -153,20 +163,17 @@ Word smem_decode(int p, int mod, unsigned char b1,
       switch (p)
 	{
 	case 0:
-	  AB = (((Word)b1)<<8) + b2;
+	  AB = (((Word)mach_code.bop[len-2])<<8) + mach_code.bop[len-1];
 	  return AB;
 	case 1:
 	  {
-	    int wait_state;
-	    AB = read_data_mem_long((((WordA)b1)<<16) + 
-						(((WordA)b2)<<8) + b3,
-						&wait_state);
+	    AB = (((WordA)mach_code.bop[len-3])<<16) | (((WordA)mach_code.bop[len-2])<<8) | mach_code.bop[len-1];
 	    return AB;
 	  }
 	case 2:
 	  {
 	    int wait_state;
-	    AB = read_port_mem((((WordA)b1)<<8) + b2,
+	    AB = read_port_mem((((WordA)mach_code.bop[len-2])<<8) + mach_code.bop[len-1],
 					    &wait_state);
 	    return AB;
 	  }
@@ -182,7 +189,7 @@ Word smem_decode(int p, int mod, unsigned char b1,
 	  MMR->CDP = MMR->CDP - 1;
 	  return AB;
 	case 6:
-	  AB = MMR->CDP + (((Word)b1)<<8) + b2;
+	  AB = MMR->CDP + (((Word)mach_code.bop[len-2])<<8) + mach_code.bop[len-1];
 	  return AB;
 	case 7:
 	  MMR->CDP = MMR->CDP + 1;
@@ -572,7 +579,7 @@ void smem_address_stg_b2(struct _PipeLine *pipeP, struct _Registers *Reg)
     {
       p = b2>>5;
       mod = (b2>>1) & 0xf;
-      Reg->DAB = smem_decode(p,mod,mach_code.bop[2],mach_code.bop[3],mach_code.bop[4]);
+      Reg->DAB = smem_decode(p,mod,mach_code,pipeP->decode_nfo.length);
     }
   else
     {
@@ -595,7 +602,9 @@ void lmem_address_stg_b2(struct _PipeLine *pipeP, struct _Registers *Reg)
     {
       p = b2>>5;
       mod = (b2>>1) & 0xf;
-      Reg->DAB = smem_decode(p,mod,mach_code.bop[2],mach_code.bop[3],mach_code.bop[4]);
+      Reg->DAB = smem_decode(p,mod,mach_code,pipeP->decode_nfo.length);
+      if ( (mod==1) || (mod==2) )
+	smem_decode(p,mod,mach_code,pipeP->decode_nfo.length);
       Reg->CAB = Reg->DAB ^ 1;
     }
   else
@@ -635,7 +644,31 @@ void smem_set_EAB_b2(struct _PipeLine *pipeP, struct _Registers *Reg)
     {
       p = b2>>5;
       mod = (b2>>1) & 0xf;
-      Reg->EAB = smem_decode(p,mod,mach_code.bop[2],mach_code.bop[3],mach_code.bop[4]);
+      Reg->EAB = smem_decode(p,mod,mach_code,pipeP->decode_nfo.length);
+    }
+  else
+    {
+      // SP offset
+      Reg->EAB = MMR->SP + (b2>>1);
+    }
+}
+
+void lmem_set_EAB_b2(struct _PipeLine *pipeP, struct _Registers *Reg)
+{
+  Opcode mach_code;
+  unsigned char b2;
+  int p,mod;
+
+  mach_code = pipeP->decode_nfo.mach_code;
+  b2 = mach_code.bop[1];
+
+  if ( b2 & 1 )
+    {
+      p = b2>>5;
+      mod = (b2>>1) & 0xf;
+      Reg->EAB = smem_decode(p,mod,mach_code,pipeP->decode_nfo.length);
+      if ( (mod==1) || (mod==2) )
+	smem_decode(p,mod,mach_code,pipeP->decode_nfo.length);
     }
   else
     {
