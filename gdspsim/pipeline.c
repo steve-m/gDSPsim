@@ -32,8 +32,8 @@ extern Word *PM;
 
 void default_registers(struct _Registers *Registers);
 int find_opcode(Word *start_code, Word **next_code, GPtrArray *decode_info);
-int set_pipe_decodeP(Word start_code, WordA address, 
-                     struct _Registers *Registers, int flags);
+void set_pipe_decodeP(Word start_code, WordA address, 
+                      struct _Registers *Registers, int flags);
 void flush_pipeline(struct _Registers *Registers);
 
 static GArray *breakpoints=NULL;
@@ -122,7 +122,6 @@ void update_view()
 int pipeline(struct _Registers *Registers)
 {
   int wait_state;
-  int PC_stall=0;
   extern Word NOP_opcode;
   int return_val=0;
   int RC_set;
@@ -145,12 +144,9 @@ int pipeline(struct _Registers *Registers)
       Registers->Special_Flush = 0;
 
       // Prefetch
-      if ( PC_stall == 0 )
-	{
-	  // PAB is loaded with PC
-	  Registers->PAB = Registers->PC;
+      // PAB is loaded with PC
+      Registers->PAB = Registers->PC;
 	  
-	}
     }
   else
     {
@@ -178,22 +174,35 @@ int pipeline(struct _Registers *Registers)
 	  pipe_read_stg1P->opcode_object->read_stg1(pipe_read_stg1P,Registers);
 	}
 
-      if ( Registers->Flush )
-	{
-	  Registers->PB = NOP_opcode;
-	  Registers->IR = NOP_opcode;
-          Registers->Flush--;
-        }
-
       if ( (Registers->RC != 0) && (RC_set==0) )
 	{
 	  // RC was set
 	  Registers->RC_first_pass = 1;
 	}
 
-      if ( Registers->Dont_Decode == 0 && 
-	   ( ( Registers->RC == 0 ) || Registers->RC_first_pass ) ) 
+
+      // By convention Dont_Decode takes precedence over Decode_Again
+      // both of which take precedence over Flush
+      if ( Registers->Dont_Decode != 0 )
 	{
+	  set_pipe_decodeP(NOP_opcode,Registers->PAB,Registers,0);
+	}	  
+      else if ( Registers->Decode_Again != 0 )
+        {
+          pipe_decodeP->cycles++;
+          
+	  if ( pipe_decodeP->opcode_object->decode )
+	    pipe_decodeP->opcode_object->decode(pipe_decodeP,Registers);
+        }	  
+      else if ( ( Registers->RC == 0) || (Registers->RC_first_pass) ) 
+	{
+          if ( Registers->Flush )
+            {
+              Registers->PB = NOP_opcode;
+              Registers->IR = NOP_opcode;
+              Registers->Flush--;
+            }
+
 	  // Decode
 
 	  // IR is loaded with contents of PB and IR is decoded
@@ -204,17 +213,10 @@ int pipeline(struct _Registers *Registers)
 	      Registers->fetch_flags |= 0x2;
 	    }
 
-	  if ( Registers->Decode_Again )
-	    {
-	      Registers->Decode_Again--;
-	      pipe_decodeP->cycles++;
-	    }
-	  else
-	    {
-	      // get new pipe_decodeP
-	      PC_stall = set_pipe_decodeP(Registers->IR,Registers->PAB_last,
-                                          Registers,Registers->fetch_flags);
-	    }
+          // get new pipe_decodeP
+          set_pipe_decodeP(Registers->IR,Registers->PAB_last,
+                           Registers,Registers->fetch_flags);
+          
 
 	  if ( pipe_decodeP->opcode_object->decode )
 	    pipe_decodeP->opcode_object->decode(pipe_decodeP,Registers);
@@ -223,64 +225,66 @@ int pipeline(struct _Registers *Registers)
 	  // Fetch
 
 	  // PB is loaded from PAB address
-	  if ( Registers->Flush || Registers->Dont_Fetch )
+	  if ( Registers->Flush )
 	    {
 	      Registers->PB = NOP_opcode;
-	      if ( Registers->Dont_Fetch )
-		Registers->Dont_Fetch--;
 	    }
 	  else
 	    {
-	      if ( PC_stall == 0 )
-		{
-		  int k;
-		  Registers->PB = read_program_mem(Registers->PAB,&wait_state);
-	
-		  // Look for breakpoint
-		  Registers->fetch_flags = 0;
-		  for (k=0;k<breakpoints->len;k++)
-		    {
-		      if ( g_array_index(breakpoints,WordA,k) == Registers->PAB )
-			{
-		     
-			  Registers->fetch_flags |= 1;
-			}
-		    }
-		}
-		  
+              int k;
+              Registers->PB = read_program_mem(Registers->PAB,&wait_state);
+              
+              // Look for breakpoint
+              Registers->fetch_flags = 0;
+              for (k=0;k<breakpoints->len;k++)
+                {
+                  if ( g_array_index(breakpoints,WordA,k) == Registers->PAB )
+                    {
+                      
+                      Registers->fetch_flags |= 1;
+                    }
+                }
+              
 	    }
       
     
 	  // Prefetch
-	  if ( PC_stall == 0 )
-	    {
-	      // PAB is loaded with PC
-              Registers->PAB_last = Registers->PAB;
-	      Registers->PAB = Registers->PC;
-	      
-	    }
-	}
-      else if ( Registers->Dont_Decode != 0 )
-	{
-	  PC_stall = set_pipe_decodeP(NOP_opcode,Registers->PAB,Registers,0);
-	}	  
+          // PAB is loaded with PC
+          Registers->PAB_last = Registers->PAB;
+          Registers->PAB = Registers->PC;
+        }
     }
 
   update_pipeline(Registers->PAB);
 
-  if ( Registers->Dont_Decode == 0 && 
+  if ( (Registers->Dont_Decode == 0) && (Registers->Decode_Again == 0) &&
        ( ( Registers->RC == 0 ) || Registers->RC_first_pass ) ) 
     {
-      Registers->PC = Registers->PC + 1;
+      if ( BRAF(MMR) && (Registers->PC == Registers->REA) && MMR->BRC)
+        {
+          // Repeat block mode and at the end of the block
+          MMR->BRC--;
+          Registers->PC = Registers->RSA;
+        }
+      else
+        {
+          Registers->PC = Registers->PC + 1;
+        }
 
       if ( Registers->RC_first_pass )
 	Registers->RC_first_pass = 0;
     }
   else
     {
+      // By convention Dont_Decode takes precedence over Decode_Again
+      // both of which take precedence over Flush
       if ( Registers->Dont_Decode )
 	{
 	  Registers->Dont_Decode--;
+	}
+      else if ( Registers->Decode_Again )
+	{
+	  Registers->Decode_Again--;
 	}
       if ( Registers->RC )
 	{
@@ -326,7 +330,6 @@ void default_registers(struct _Registers *Registers)
   Registers->PAR = 0;
   Registers->RC = 0;
   Registers->Flush = 0;
-  Registers->Dont_Fetch = 0;
   Registers->Special_Flush = 0;
   Registers->RC_first_pass = 0;
   Registers->Dont_Decode = 0;
@@ -336,7 +339,7 @@ void default_registers(struct _Registers *Registers)
 // Returns a PC read stall. Normally zero unless the last
 // instruction was something like a 1 word opcode that takes
 // 2 cycles such as a DST
-int set_pipe_decodeP(Word start_code, WordA address, struct _Registers *Registers, int flags)
+void set_pipe_decodeP(Word start_code, WordA address, struct _Registers *Registers, int flags)
 {
   int length;
 
@@ -348,13 +351,7 @@ int set_pipe_decodeP(Word start_code, WordA address, struct _Registers *Register
     {
       *pipe_decodeP = *pipe_decodeP;
       pipe_decodeP->word_number--;
-      return 0;
-    }
-  else if ( pipe_decodeP->cycle_number > 1 )
-    {
-      *pipe_decodeP = *pipe_decodeP;
-      pipe_decodeP->cycle_number--;
-      return 1;
+      return;
     }
 
   else
@@ -374,7 +371,6 @@ int set_pipe_decodeP(Word start_code, WordA address, struct _Registers *Register
 	  pipe_decodeP->opcode_object = &NOP_Obj;
 	  pipe_decodeP->opcode_subType=0;
 	  pipe_decodeP->cycles=1;
-	  pipe_decodeP->cycle_number = 1;
 	  pipe_decodeP->word_number = 1;
 	  pipe_decodeP->total_words = 1;
 	}
@@ -395,22 +391,8 @@ int set_pipe_decodeP(Word start_code, WordA address, struct _Registers *Register
                 }
             }
 	  
-	  // Determine the number of pipeline cycles this word of the opcode
-	  // takes up. Used for things like DST where 1 word takes 2 cycles
-	  // to store the 32-bits.
-	  if ( pipe_decodeP->opcode_object->set_cycle_number )
-	    {
-	      pipe_decodeP->cycle_number =
-		pipe_decodeP->opcode_object->
-		set_cycle_number(start_code,
-				 pipe_decodeP->word_number);
-	    }
-	  else
-	    {
-	      pipe_decodeP->cycle_number = 1;
-	    }
 	}
-      return 0;
+      return;
     }
   printf("Warning couldn't decode prefetched statement\n");
 }
@@ -424,28 +406,24 @@ void flush_pipeline(struct _Registers *Registers)
   pipe_decodeP->opcode_object = &NOP_Obj;
   pipe_decodeP->opcode_subType=0;
   pipe_decodeP->cycles=1;
-  pipe_decodeP->cycle_number = 1;
   pipe_decodeP->word_number = 1;
 
   pipe_read_stg1P->current_opcode = NOP_opcode;
   pipe_read_stg1P->opcode_object = &NOP_Obj;
   pipe_read_stg1P->opcode_subType=0;
   pipe_read_stg1P->cycles=1;
-  pipe_read_stg1P->cycle_number = 1;
   pipe_read_stg1P->word_number = 1;
 
   pipe_read_stg2P->current_opcode = NOP_opcode;
   pipe_read_stg2P->opcode_object = &NOP_Obj;
   pipe_read_stg2P->opcode_subType=0;
   pipe_read_stg2P->cycles=1;
-  pipe_read_stg2P->cycle_number = 1;
   pipe_read_stg2P->word_number = 1;
 
   pipe_executeP->current_opcode = NOP_opcode;
   pipe_executeP->opcode_object = &NOP_Obj;
   pipe_executeP->opcode_subType=0;
   pipe_executeP->cycles=1;
-  pipe_executeP->cycle_number = 1;
   pipe_executeP->word_number = 1;
 
   Registers->PB = NOP_opcode;
