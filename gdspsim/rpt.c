@@ -82,7 +82,7 @@ static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
       return;
     case 1:
       {
-	Reg->RC = bit_extract('u',mask[1],pipeP->current_opcode,NULL);
+	Reg->RC = pipeP->current_opcode & 0xff;
 	return;
       }
     case 2:
