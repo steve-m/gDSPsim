@@ -26,15 +26,15 @@
 
 static gchar *mask[]=
 {
-     "0010110p rrrrRRRR", // XOR src, dst
-      "0001110p uuuuuuuu RRRRrrrr", // XOR k8, src, dst
-      "01111111 uuuuuuuu uuuuuuuu RRRRrrrr", // XOR k16, src, dst
-      "11011011 ssssssss RRRRrrrr", // XOR Smem, src, dst
-      "0001000p RRrr0010 vvnnnnnn", // XOR ACx << #SHIFTW[, ACy]
-
-      "01111010 uuuuuuuu uuuuuuuu rrRR100v", // XOR k16 << #16, [ACx,] ACy
-      "01110100 hhhhhhhh hhhhhhhh rrRRuuuu", // XOR k16 << #SHFT, [ACx,] ACy
-      "11110110 AAAAAAAI kkkkkkkk kkkkkkkk", // XOR k16, Smem
+  "0010110p rrrrRRRR", // XOR src, dst
+  "0001110p uuuuuuuu RRRRrrrr", // XOR k8, src, dst
+  "01111111 uuuuuuuu uuuuuuuu RRRRrrrr", // XOR k16, src, dst
+  "11011011 ssssssss RRRRrrrr", // XOR Smem, src, dst
+  "0001000p RRrr0010 vvnnnnnn", // XOR ACx << #SHIFTW[, ACy]
+  
+  "01111010 uuuuuuuu uuuuuuuu rrRR100v", // XOR k16 << #16, [ACx,] ACy
+  "01110100 hhhhhhhh hhhhhhhh rrRRuuuu", // XOR k16 << #SHFT, [ACx,] ACy
+  "11110110 AAAAAAAI kkkkkkkk kkkkkkkk", // XOR k16, Smem
 };
 
 static gchar *opcode[] = 
@@ -88,7 +88,7 @@ static void read_stg(struct _PipeLine *pipeP, struct _Registers *Reg)
 
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-  int r,R,shift;
+  int r,R,shift,flag;
   Opcode opcode;
   SWord n;
   union _GP_Reg_Union reg_union1;
@@ -96,7 +96,6 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
   Word kword;
 
   opcode = pipeP->decode_nfo.mach_code;
-
   
   switch ( pipeP->opcode_subType )
     {
@@ -159,12 +158,15 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
     case 4:
       // XOR ACx << #SHIFTW[, ACy]
 
-      // affected by C54CM,M40,RDM,SATD,SXMD
       R = (opcode.bop[1]>>6)&0x3;
       r = (opcode.bop[1]>>4)&0x3;
       n = (int)SIGN6BIT_TO_UINT(opcode.bop[2]&0x3f);
       reg_union2 = get_register(R,0); // ACy
-      shifter(r,8,n,0,R,Reg);
+      flag = C54CM(MMR) ? (SHFT_M40_IS_1 | SHFT_DONT_SATURATE | SHFT_UNSIGNED |
+			   SHFT_NO_OVERFLOW_DETECTION | SHFT_DONT_SET_CARRY) : 
+			  (SHFT_USE_M40 | SHFT_DONT_SATURATE | SHFT_UNSIGNED |
+			   SHFT_NO_OVERFLOW_DETECTION | SHFT_DONT_SET_CARRY);
+      shifter(r,SHFT_CONSTANT,n,flag,R,Reg);
       reg_union1 = get_register(R,0); // ACx << #n
       reg_union2.guint64 = reg_union1.guint64 ^ reg_union2.guint64;
       set_register(reg_union2,R);
@@ -175,8 +177,9 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
       R = (opcode.bop[3]>>6)&0x3;
       r = (opcode.bop[3]>>4)&0x3;
       kword = ((Word)opcode.bop[1])<<8 | opcode.bop[2];
+      reg_union2.gint64 = SXMD(MMR) ? (SWord)kword : kword;
       reg_union1 = get_register(r,0);
-      reg_union2.guint64 = ((guint64)kword)<<16 ^ reg_union1.guint64;
+      reg_union2.guint64 = reg_union2.guint64<<16 ^ reg_union1.guint64;
       set_register(reg_union2,R);
       return;
 
@@ -186,8 +189,9 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
       r = (opcode.bop[3]>>4)&0x3;
       shift = opcode.bop[3] & 0xf;
       kword = ((Word)opcode.bop[1])<<8 | opcode.bop[2];
+      reg_union2.guint64 = SXMD(MMR) ? (SWord)kword : kword;
       reg_union1 = get_register(r,0);
-      reg_union2.guint64 = ((guint64)kword)<<shift ^ reg_union1.guint64;
+      reg_union2.guint64 = reg_union2.guint64<<shift ^ reg_union1.guint64;
       set_register(reg_union2,R);
       return;
       
