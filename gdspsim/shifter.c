@@ -58,10 +58,16 @@ inline void shifter(Word input_mux, struct _Registers *Reg, Word shift_mux, SWor
       reg.gp_reg = MMR->B;
       break;
     case 2:
-      reg.words.low = Reg->DB;
+      if ( SXM(MMR) )
+	reg.gint64 = (SWord)Reg->DB;
+      else
+	reg.words.low = Reg->DB;
       break;
     case 3:
-      reg.words.low = Reg->CB;
+      if ( SXM(MMR) )
+	reg.gint64 = (SWord)Reg->CB;
+      else
+	reg.words.low = Reg->CB;
       break;
     }
 
