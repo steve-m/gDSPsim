@@ -1,4 +1,4 @@
-%define ver 20020115
+%define ver 0.20
 %define rel 1
 %define prefix /usr
 
@@ -36,7 +36,9 @@ make clean
 
 %files
 %{prefix}/bin/gdspsim
+%{prefix}/share/gdspsim/stop.xpm
 
 %changelog
 * Mon Jan 7 2002 Kerry Keal <kerry@industrialmusic.com>
-- Initial RPM release
+- Process all opcodes
+
