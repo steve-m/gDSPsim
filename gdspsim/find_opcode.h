@@ -30,7 +30,7 @@ gchar *mach_code_to_text(Word mach_code, const Instruction_Class *classP, int su
 const Instruction_Class *find_object(Word mach_code, int *subtype);
 
 /* Returns an array of strings of decoded opcodes */
-void decoded_opcodes(GPtrArray *textA,Word start,Word end, GArray *word2line);
+void decoded_opcodes(GPtrArray *textA, WordA start, WordA end, GArray *word2line);
 
 
 #endif // __FIND_OPCODE_H__
