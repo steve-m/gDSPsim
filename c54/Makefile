@@ -19,7 +19,7 @@
 CC = gcc
 PROGRAM	= gdspsim
 PREFIX = /usr
-VPATH = .:../gdspsim:../gtkextra/
+VPATH = .:../gdspsim
 
 OBJS	= \
 	abdst.o \
@@ -174,16 +174,6 @@ OBJS	= \
 	string_func.o \
 	symbols.o \
 	xymem.o \
-	gtkplotdata.o \
-	gtkplotpc.o \
-	gtkplot.o \
-	gtkpsfont.o \
-	gtkplotcanvas.o \
-	gtkplotpolar.o \
-	gtkplotgdk.o \
-	gtkplotsurface.o \
-	gtkplotdt.o \
-	gtkplot3d.o 
 
 SRCS	= $(OBJS:%.o=%.c)
 
@@ -194,7 +184,7 @@ SRCS	= $(OBJS:%.o=%.c)
 all:	$(PROGRAM)
 
 $(PROGRAM):	$(OBJS)
-		$(CC) -rdynamic `pkg-config gnome gtk+ --libs`  -o $(PROGRAM) $(OBJS)
+		$(CC) -rdynamic `pkg-config gnome gtk+ --libs` -lgtkextra -o $(PROGRAM) $(OBJS)
 		@echo "done"
 #		$(CC) -rdynamic `pkg-config gtk+  --libs`  -lgtkextra -o $(PROGRAM) $(OBJS)
 
