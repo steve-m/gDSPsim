@@ -150,17 +150,17 @@ void open_file( const gchar *filename )
       {
 	WordA sa;
 
-	sa = (WordA)CHAR_TO_UINT32(opt_hdr->start_executable);
-	set_prog_mem_start_end(PROG_MEM_CONV*sa,PROG_MEM_CONV*sa+0x100);
-	set_program_start(PROG_MEM_CONV*sa);
+	sa = (WordA)CHAR_TO_UINT32(opt_hdr->start_address);
+	set_prog_mem_start_end(sa,sa+0x100);
+	set_program_start(sa);
       }
     }
   else
     {
       opt_hdr=NULL;
       relocate=0x80; // To put .obj files in a reasonable location
-      set_prog_mem_start_end(2*relocate,2*relocate+0x500 );
-      set_program_start(2*relocate);
+      set_prog_mem_start_end(relocate,relocate+0x500 );
+      set_program_start(relocate);
     }
 
   
@@ -312,12 +312,18 @@ void open_file( const gchar *filename )
 	      
 	      // Extract labels
 	      if ( (symL->numaux==0x0 && symL->class==0x6 && symL->type==0x0004 && symL->section_num > 0 ) ||
+		   (symL->numaux==0x0 && symL->class==0x6 && symL->type==0x0000 && symL->section_num > 0 ) ||
 		   (symL->numaux==0x0 && symL->class==0x2 && symL->type==0x0004 && symL->section_num > 0 ) ||
+		   (symL->numaux==0x0 && symL->class==0x2 && symL->type==0x0000 && symL->section_num > 0 ) ||
 		   (symL->numaux==0x1 && symL->class==0x2 && symL->type==0x0020 && symL->section_num > 0 ) ||
 		   (symL->numaux==0x1 && symL->class==0x2 && symL->type==0x002e && symL->section_num > 0 ) ||
 		   (symL->numaux==0x1 && symL->class==0x2 && symL->type==0x0024 && symL->section_num > 0 ) )
 		{
-		  symbol_label = g_list_append(symbol_label,symL);
+		  if ( strcmp(symL->name,"_c_int00")==0 )
+		    // put in front of list
+		    symbol_label = g_list_prepend(symbol_label,symL);
+		  else
+		    symbol_label = g_list_append(symbol_label,symL);
 		}
 	    }
 	}
