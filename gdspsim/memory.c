@@ -499,3 +499,13 @@ void set_MMR_ptr()
 
   MMR = (struct _MMR *)mem;
 }
+
+Word read_port_mem(WordA offset, int *wait_state)
+{
+  return read_program_mem(offset,wait_state);
+}
+
+int write_port_mem(WordA offset, Word value)
+{
+  return write_program_mem(offset,value);
+}

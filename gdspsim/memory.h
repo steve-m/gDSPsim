@@ -41,6 +41,10 @@ int write_program_mem(WordA offset, Word value);
 
 int write_data_mem(WordA offset, Word value);
 
+Word read_port_mem(WordA offset, int *wait_state);
+int write_port_mem(WordA offset, Word value);
+
+
 void cp_to_mem(Word *data, WordA start, long int size, MemType type);
 void fill_to_mem(Word fill,  WordA start, long int size, MemType type);
 
