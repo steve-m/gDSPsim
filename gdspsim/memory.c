@@ -630,6 +630,9 @@ void set_fileIO_break_on_memory(struct _fileIO *io)
   fIObrk->type = io->mem_type_reached;
   fIObrk->io = io;
 
+  io->updateF = update_fileIO_break_on_memory;
+  io->removeF = remove_fileIO_break_on_memory;
+
   if ( io->reached_how == MEMORY_WRITE )
     {
       listS = &FileWriteBreak;
