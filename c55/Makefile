@@ -26,6 +26,7 @@ SRCS	= \
 	add.c \
 	and.c \
 	bclr.c \
+	bcnt.c \
 	bset.c \
 	implied_parallel_instr.c \
 	mpyk.c \
@@ -38,11 +39,13 @@ SRCS	= \
 	mov_SpecRegSave.c \
 	neg.c \
 	psh.c \
+	or.c \
 	sfts.c \
 	sftsc.c	\
 	sqr.c \
 	sqrm.c \
 	sub.c \
+	xor.c \
 	chip_help.c \
 	cmem.c \
 	decode.c \
