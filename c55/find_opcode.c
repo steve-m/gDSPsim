@@ -17,13 +17,13 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-#include "chip_core.h"
-#include "decode.h"
+#include <chip_core.h>
+#include <decode.h>
 #include <stdio.h>
-#include "string.h"
-#include "memory.h"
-#include "find_opcode.h"
-#include "symbols.h"
+#include <string.h>
+#include <memory.h>
+#include <find_opcode.h>
+#include <symbols.h>
 
 extern Instruction_Class AADD_Obj;
 extern Instruction_Class ADD_Obj;

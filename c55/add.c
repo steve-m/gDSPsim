@@ -17,8 +17,9 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
       
-#include "c55_core.h"
-#include "smem.h"
+#include <chip_core.h>
+#include <smem.h>
+
 static gchar *mask[]=
   {
     "1110 1101 pppp ppp1 qqrr 0000", // ADD DBL(p),ACq,ACr
