@@ -156,8 +156,20 @@ struct _Operand_List
 typedef struct _Operand_List Operand_List;
 #endif
 
+
+struct _decoded_opcode
+{
+  const struct _Instruction_Class *class;
+  int sub_type;
+  int length;
+  int var_length;
+  WordA address;
+  Word mach_code[3];
+};
+
 struct _PipeLine
 {
+  struct _decoded_opcode decode_nfo;
   Word current_opcode;
   const struct _Instruction_Class *opcode_object;
   int opcode_subType;

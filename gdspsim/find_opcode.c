@@ -285,15 +285,13 @@ static const Instruction_Class *All_Objects[All_Objects_Len]=
   &XORM_Obj,
 };
 
-typedef gchar *(*Decode_Func)(gchar *mask, gchar info, Word start_code, WordA *location);
-
 #define NUM_MASK_CODE 17
 static Decode_Func mask_function[NUM_MASK_CODE]=
 {
+  a_decode,
   b_decode,
   c_decode,
   sd_decode,
-  e_decode,
   h_decode,
   m_decode,
   n_decode,
@@ -309,36 +307,136 @@ static Decode_Func mask_function[NUM_MASK_CODE]=
   z_decode,
 
 };
-static gchar mask_code[NUM_MASK_CODE]={"bcdehmnprstuvwxyz"};
+static gchar mask_code[NUM_MASK_CODE]={"abcdhmnprstuvwxyz"};
 
 
-// Returns pointer to object type given opcode and sets subtype and number
-// of words it takes up.
-const Instruction_Class *find_object(Word mach_code, WordA address,
-                                     int *subtype, int *length)
+// Sets class,sub_type,length,mach_code1,mach_code2 of decode_nfo. 
+// Returns 0 for OK, 1 for Error. Assumes mach_code0 and address have
+// been set.
+int find_object( struct _decoded_opcode *decode_nfo)
 {
-  const Instruction_Class *object;
   int k,n;
 
   for (k=0;k<All_Objects_Len;k++)
     {
       for (n=0;n<All_Objects[k]->size;n++)
 	{
-          *length = check_mask(All_Objects[k]->mask[n],mach_code,address);
-	  if ( *length )
-	    {
-      	      object = All_Objects[k];
-	      *subtype=n;
-	      return object;
-	    }
+          if ( check_mask(All_Objects[k]->mask[n],decode_nfo) )
+            {
+              decode_nfo->sub_type=n;
+              decode_nfo->class = All_Objects[k];
+              return 0;
+            }
 	}
     }
-  printf("Error! couldn't decode object 0x%x\n",mach_code);
+  printf("Error! couldn't decode object 0x%x\n",decode_nfo->mach_code[0]);
 
-  return NULL;
+  return 1;
 }
 
+void mach_code_to_text( struct _decoded_opcode *decode_nfo, 
+                        struct _decode_opcode *op )
+{
+#define MAX_OP_LEN 80
+  gchar *opcode,*chP,ans[MAX_OP_LEN],*ansP,*mask;
+  gchar ch[MAX_SUB_OP];
+  int len,k,found_code;
+  gchar info;
 
+  op->address = g_strdup_printf("0x%.4x",decode_nfo->address);
+
+  if ( decode_nfo->class == NULL )
+    {
+      op->opcode_text = g_strdup("Undefined");
+      op->machine_code = g_strdup_printf("0x%.4x",decode_nfo->mach_code[0]);
+      return;
+    }
+  else
+    {
+      ansP = ans;
+      len = 1; // length of ans with \0
+
+      opcode = decode_nfo->class->opcode[decode_nfo->sub_type];
+      mask = decode_nfo->class->mask[decode_nfo->sub_type];
+      while ( *opcode )
+        {
+          if ( *opcode == '(' )
+            {
+              // Check to see if it's (opt*), and if so ignored it.
+              size_t sub_len;
+              sub_len = strlen(opcode);
+              if ( sub_len >= 4 )
+                {
+                  if ( strncmp(opcode,"(opt",4) == 0 )
+                    {
+                      opcode = opcode + 4;
+                      while ( *opcode && *opcode != ')' )
+                        opcode++;
+                      if ( *opcode )
+                        opcode++;
+                    }
+                }
+            }
+          found_code=0;
+	  for (k=0;k<NUM_MASK_CODE;k++)
+	    {
+	      if ( mask_code[k] == *opcode )
+		{
+		  info = *opcode;
+		  mask_function[k](ch,mask,info,decode_nfo);
+	  
+		  // Copy ch to ansP
+		  chP = ch;
+		  while ( *chP && (len < MAX_OP_LEN) )
+		    {
+		      len++;
+		      *ansP++ = *chP++;
+		    }
+		  
+		  // done with this masking marker
+		  while ( *opcode == info )
+		    {
+		      opcode++;
+		    }
+		  found_code=1;
+		  break; // Break out of for loop
+		}
+	    }
+	  
+	  if ( !found_code )
+	    {
+	      // OK, it's not a marker and should just be copied
+	      if ( len < MAX_OP_LEN )
+		{
+		  *ansP++ = *opcode++;
+		  len++;
+		}
+	    }
+	}
+      *ansP = '\0';
+      
+      if ( decode_nfo->length == 1 )
+        {
+          op->machine_code = g_strdup_printf("0x%.4x",decode_nfo->mach_code[0]);
+        }
+      else if ( decode_nfo->length == 2 )
+        {
+          op->machine_code = g_strdup_printf("0x%.4x 0x%.4x",
+                                             decode_nfo->mach_code[0],
+                                             decode_nfo->mach_code[1]);
+        }
+      else
+        {
+          op->machine_code = g_strdup_printf("0x%.4x 0x%.4x 0x%.4x",
+                                             decode_nfo->mach_code[0],
+                                             decode_nfo->mach_code[1],
+                                             decode_nfo->mach_code[2]);
+        }
+      op->opcode_text = g_strdup(ans);
+    }
+}
+
+#if 0
 // This function can be cleaned up using length info.
 struct _decode_opcode *mach_code_to_text(Word mach_code, 
                                          const Instruction_Class *classP, 
@@ -513,36 +611,39 @@ struct _decode_opcode *mach_code_to_text(Word mach_code,
   return op;
 
 }
+#endif
 
 /* Returns an array of strings of decoded opcodes */
 void decoded_opcodes(GPtrArray *textA,WordA start,WordA end, GArray *word2line)
 {
-  const Instruction_Class *instructO;
-  int subtype;
+  //const Instruction_Class *instructO;
+  //int subtype;
   int wait_state;
   Word mach_code;
   int line_no=0;
-  WordA pre_start,k;
+  WordA k;
   struct _decode_opcode *op;
-  int length;
+  //int length;
+  struct _decoded_opcode decode_nfo;
 
   while (start < end)
     {
+      op = g_new(struct _decode_opcode,1);
       mach_code = read_program_mem(start,&wait_state);
 
-      instructO = find_object(mach_code,start,&subtype,&length);
+      if ( mach_code == 0x7ef8 )
+        mach_code = 0x7ef8;
 
-      // have length now. FIXME better?
+      decode_nfo.mach_code[0] = mach_code;
+      decode_nfo.address = start;
 
-      if ( instructO )
+      if ( find_object(&decode_nfo)==0 )
 	{
-	  pre_start=start;
-
 	  // op freed in insert_text
-	  op = mach_code_to_text(mach_code,instructO,subtype,&start,length);
+	  mach_code_to_text(&decode_nfo,op);
 	  
 	  // Used to match word location to line number
-	  for(k=pre_start;k<start+1;k++)
+	  for(k=start;k<start+decode_nfo.length;k++)
 	    {
 	      gchar *sym_name;
 
@@ -573,7 +674,7 @@ void decoded_opcodes(GPtrArray *textA,WordA start,WordA end, GArray *word2line)
 	}
       g_ptr_array_add(textA,op);
 	  
-      start = start + 1;
+      start = start + decode_nfo.length;
       line_no++;
     }
 }

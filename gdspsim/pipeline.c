@@ -332,6 +332,7 @@ void default_registers(struct _Registers *Registers)
   Registers->RC_first_pass = 0;
   Registers->Dont_Decode = 0;
   Registers->Decode_Again = 0;
+  Registers->fetch_flags = 0;
 }
 
 // Returns a PC read stall. Normally zero unless the last
@@ -339,7 +340,7 @@ void default_registers(struct _Registers *Registers)
 // 2 cycles such as a DST
 void set_pipe_decodeP(Word start_code, WordA address, struct _Registers *Registers, int flags)
 {
-  int length;
+  //int length;
 
   pipe_decodeP->flags = flags;
   if ( pipe_decodeP->flags )
@@ -355,40 +356,25 @@ void set_pipe_decodeP(Word start_code, WordA address, struct _Registers *Registe
 
   else
     {
-      extern Instruction_Class NOP_Obj;
-      
-      pipe_decodeP->opcode_object = find_object(start_code, address,
-						&pipe_decodeP->opcode_subType,
-                                                &length);
-      
-      if ( pipe_decodeP->opcode_object == NULL )
+      pipe_decodeP->decode_nfo.mach_code[0] = start_code;
+      pipe_decodeP->decode_nfo.address = address;
+
+      if ( find_object(&pipe_decodeP->decode_nfo) )
 	{
+          extern Word NOP_opcode;
 	  
-	  printf("Can't process 0x%x\n",start_code);
+	  printf("Can't process 0x%x Setting it to NOP\n",start_code);
 	  
-	  pipe_decodeP->current_opcode = start_code;
-	  pipe_decodeP->opcode_object = &NOP_Obj;
-	  pipe_decodeP->opcode_subType=0;
-	  pipe_decodeP->cycles=0;
-	  pipe_decodeP->word_number = 1;
-	  pipe_decodeP->total_words = 1;
+          return set_pipe_decodeP(NOP_opcode,address,Registers,flags);
 	}
       else
 	{
 	  pipe_decodeP->current_opcode = start_code;
 	  pipe_decodeP->cycles=0;
-          pipe_decodeP->word_number = length;
-          pipe_decodeP->total_words = length;
-
-          // Don't need this method any more. 
-	  if ( pipe_decodeP->opcode_object->number_words )
-	    {
-              if ( length != 
-                   pipe_decodeP->opcode_object->number_words(pipe_decodeP) )
-                {
-                  printf("Error in number of words\n");
-                }
-            }
+	  pipe_decodeP->opcode_subType = pipe_decodeP->decode_nfo.sub_type;
+          pipe_decodeP->word_number = pipe_decodeP->decode_nfo.length;
+          pipe_decodeP->total_words = pipe_decodeP->decode_nfo.length;
+          pipe_decodeP->opcode_object = pipe_decodeP->decode_nfo.class;
 	  
 	}
       return;
@@ -403,27 +389,39 @@ void flush_pipeline(struct _Registers *Registers)
 
   pipe_decodeP->current_opcode = NOP_opcode;
   pipe_decodeP->opcode_object = &NOP_Obj;
-  pipe_decodeP->opcode_subType=0;
   pipe_decodeP->cycles=0;
   pipe_decodeP->word_number = 1;
+  pipe_decodeP->flags = 0;
+  pipe_decodeP->decode_nfo.mach_code[0] = NOP_opcode;
+  pipe_decodeP->decode_nfo.address = 0x0;
+  find_object(&pipe_decodeP->decode_nfo);
 
   pipe_read_stg1P->current_opcode = NOP_opcode;
   pipe_read_stg1P->opcode_object = &NOP_Obj;
-  pipe_read_stg1P->opcode_subType=0;
   pipe_read_stg1P->cycles=0;
   pipe_read_stg1P->word_number = 1;
+  pipe_read_stg1P->flags = 0;
+  pipe_read_stg1P->decode_nfo.mach_code[0] = NOP_opcode;
+  pipe_read_stg1P->decode_nfo.address = 0x0;
+  find_object(&pipe_read_stg1P->decode_nfo);
 
   pipe_read_stg2P->current_opcode = NOP_opcode;
   pipe_read_stg2P->opcode_object = &NOP_Obj;
-  pipe_read_stg2P->opcode_subType=0;
   pipe_read_stg2P->cycles=0;
   pipe_read_stg2P->word_number = 1;
+  pipe_read_stg2P->flags = 0;
+  pipe_read_stg2P->decode_nfo.mach_code[0] = NOP_opcode;
+  pipe_read_stg2P->decode_nfo.address = 0x0;
+  find_object(&pipe_read_stg2P->decode_nfo);
 
   pipe_executeP->current_opcode = NOP_opcode;
   pipe_executeP->opcode_object = &NOP_Obj;
-  pipe_executeP->opcode_subType=0;
   pipe_executeP->cycles=0;
   pipe_executeP->word_number = 1;
+  pipe_executeP->flags = 0;
+  pipe_executeP->decode_nfo.mach_code[0] = NOP_opcode;
+  pipe_executeP->decode_nfo.address = 0x0;
+  find_object(&pipe_executeP->decode_nfo);
 
   Registers->PB = NOP_opcode;
   Registers->IR = NOP_opcode;

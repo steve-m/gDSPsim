@@ -21,22 +21,7 @@
 #define __FIND_OPCODE_H__
 
 #include "c54_core.h"
-
-// Converts the machine code to it's text representation. Reads extra words
-// if needed
-struct _decode_opcode *mach_code_to_text(Word mach_code, 
-                                         const Instruction_Class *classP, 
-                                         int subtype, WordA *location, 
-                                         int length);
-
-
-// Returns pointer to object type given opcode and sets subtype and number
-// of words it takes up.
-const Instruction_Class *find_object(Word mach_code, WordA address,
-                                     int *subtype, int *length);
-
-/* Returns an array of strings of decoded opcodes */
-void decoded_opcodes(GPtrArray *textA,WordA start,WordA end, GArray *word2line);
+#include "decode.h"
 
 
 struct _decode_opcode
@@ -45,6 +30,20 @@ struct _decode_opcode
   gchar *machine_code; // if NULL then opcode_text is a symbol
   gchar *opcode_text;
 };
+
+// Converts the machine code to it's text representation. Called after
+// find_object()
+void mach_code_to_text( struct _decoded_opcode *decode_nfo, 
+                        struct _decode_opcode *op );
+
+
+// Sets class,sub_type,length,mach_code1,mach_code2 of decode_nfo. 
+// Returns 0 for OK, 1 for Error. Assumes mach_code0 and address have
+// been set.
+int find_object( struct _decoded_opcode *decode_nfo);
+
+/* Returns an array of strings of decoded opcodes */
+void decoded_opcodes(GPtrArray *textA,WordA start,WordA end, GArray *word2line);
 
 
 #endif // __FIND_OPCODE_H__

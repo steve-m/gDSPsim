@@ -22,46 +22,75 @@
 #ifndef __DECODE_H__
 #define __DECODE_H__
 
+
 extern struct _Registers *Registers;
 
 union u_operands read_op(char info, struct _Registers *Registers, Word bits, Word lk, int *wait_state);
 
-// Returns the number of words 1,2,3 that match the mask
-// 0, if it doesn't match. Will read program memory address+1 
-// and address+2 only if needed
-int check_mask(const char *mask, Word mach_code, WordA address );
+// returns 1, if this mask matches the mach_code and sets the
+// length and other mach_codes if needed in decode_nfo. returns
+// 0, if mask doesn't match and doesnt set anything in decode_nfo.
+int check_mask(const char *mask, struct _decoded_opcode *decode_nfo );
+
+#define MAX_SUB_OP 20
+
+typedef void (*Decode_Func)(gchar *ch, gchar *mask, gchar info, 
+                              struct _decoded_opcode *decode_nfo );
 
 // This is used to decode pointer registers and the modifiers on them
-gchar *a_decode(gchar *mask, char info, Word start_code, WordA *location);
-// This is used to decode memory mapped registers.
-gchar *b_decode(gchar *mask, char info, Word start_code, WordA *location);
-gchar *c_decode(gchar *mask, char info, Word start_code, WordA *location);
-// Converts 0-7 to ARx, see cmpr.c
-gchar *e_decode(gchar *mask, char info, Word start_code, WordA *location);
+void a_decode(gchar *ch, gchar *mask, char info, 
+              struct _decoded_opcode *decode_nfo );
+// This is used to decode memory mapped bits.
+void b_decode(gchar *ch, gchar *mask, char info, 
+              struct _decoded_opcode *decode_nfo );
+// decodes condition codes
+void c_decode(gchar *ch, gchar *mask, char info, 
+              struct _decoded_opcode *decode_nfo );
 // Decode memory mapped registers, STM #0,AR0 or STM #0,0x60
-gchar *m_decode(gchar *mask, char info, Word start_code, WordA *location);
+void m_decode(gchar *ch, gchar *mask, char info, 
+              struct _decoded_opcode *decode_nfo );
 // Decodes 9 memory mapped registers MMRx (ARx,SP) MVMM AR2,SP
-gchar *vw_decode(gchar *mask, char info, Word start_code, WordA *location);
-gchar *r_decode(gchar *mask, char info, Word start_code, WordA *location);
-gchar *z_decode(gchar *mask, char info, Word start_code, WordA *location);
-gchar *sd_decode(gchar *mask, char info, Word start_code, WordA *location);
-gchar *xy_decode(gchar *mask, char info, Word start_code, WordA *location);
+void vw_decode(gchar *ch, gchar *mask, char info, 
+              struct _decoded_opcode *decode_nfo );
+// decodes a round
+void r_decode(gchar *ch, gchar *mask, char info, 
+              struct _decoded_opcode *decode_nfo );
+// decodes a delay
+void z_decode(gchar *ch, gchar *mask, char info, 
+              struct _decoded_opcode *decode_nfo );
+void sd_decode(gchar *ch, gchar *mask, char info, 
+              struct _decoded_opcode *decode_nfo );
+// dual pointer decodes
+void xy_decode(gchar *ch, gchar *mask, char info, 
+              struct _decoded_opcode *decode_nfo );
 // extract unsigned decimal number
-gchar *u_decode(gchar *mask, char info, Word start_code, WordA *location);
+void u_decode(gchar *ch, gchar *mask, char info, 
+              struct _decoded_opcode *decode_nfo);
+
 // same as u_decode but adds plus 1 to the number
-gchar *p_decode(gchar *mask, char info, Word start_code, WordA *location);
+void p_decode(gchar *ch, gchar *mask, char info, 
+              struct _decoded_opcode *decode_nfo );
 // Unsigned hex number
-gchar *h_decode(gchar *mask, char info, Word start_code, WordA *location);
-gchar *n_decode(gchar *mask, char info, Word start_code, WordA *location);
-gchar *t_decode(gchar *mask, char info, Word start_code, WordA *location);
+void h_decode(gchar *ch, gchar *mask, char info, 
+              struct _decoded_opcode *decode_nfo );
+// Signed number
+void n_decode(gchar *ch, gchar *mask, char info, 
+              struct _decoded_opcode *decode_nfo );
+// decodes status bits
+void t_decode(gchar *ch, gchar *mask, char info, 
+              struct _decoded_opcode *decode_nfo );
+
 // Extracts the signed number from data by matching info to the mask.
 // It will read more program memory if needed.
-SWord signed_bit_extract(char info, char *mask, Word mach_code, WordA *location);
+SWord signed_bit_extract(char info, char *mask,
+                         struct _decoded_opcode *decode_nfo );
+SWord decode_signed_bit_extract(char info, char *mask, struct _decoded_opcode *decode_nfo);
 // Extracts the 5 least signifigants bits, with the 5th bit being the sign. 
 SWord signed_5bit_extract(Word mach_code);
 // Extracts the unsigned number from data by matching info to the mask.
-// It will read more program memory if needed.
-Word bit_extract(char info, char *mask, Word mach_code, WordA *location);
+// It will read more program memory if needed. Also returns the word number
+// that the first match occured
+Word bit_extract(char info, char *mask, struct _decoded_opcode *decode_nfo, int *worn_num);
 
 
 // Returns 1 if condition is true

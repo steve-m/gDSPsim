@@ -32,7 +32,6 @@ int find_opcode(Word *start_code, Word **next_code, GPtrArray *decode_info);
 gchar *process_s_operand(char *mask, char info, Word *start_code);
 gchar *accumulator_decode(char *mask, char info, Word *start_code);
 gchar *ptr4_decode(gchar *mask, char info, Word *start_code);
-Word bit_extract(char info, char *mask, Word mach_code, WordA *location);
 int get_bits(gchar *info, int *word);
 
 Word dm[55];
@@ -400,18 +399,24 @@ union u_operands read_op(char info, struct _Registers *Registers, Word bits, Wor
 }
 
 
-// Returns the number of words 1,2,3 that match the mask
-// 0, if it doesn't match. Will read program memory address+1 
-// and address+2 only if needed
-int check_mask(const char *mask, Word mach_code, WordA address )
+// returns 1, if this mask matches the mach_code and sets the
+// length and other mach_codes if needed in decode_nfo. returns
+// 0, if mask doesn't match and doesnt set anything in decode_nfo.
+int check_mask(const char *mask, struct _decoded_opcode *decode_nfo )
 {
   int bit,wait_state,length,smem;
+  Word mach_code;
+  WordA address;
 
   g_return_val_if_fail(*mask,-1);
 
   bit=BITS_PER_WORD-1;
   length=1;
   smem=0;
+  mach_code = decode_nfo->mach_code[0];
+  address = decode_nfo->address;
+  decode_nfo->var_length = 0;
+
   while ( (*mask != '\0') )
     {
       if ( *mask=='1')
@@ -435,45 +440,40 @@ int check_mask(const char *mask, Word mach_code, WordA address )
 	  bit--;
           if ( bit == -1 )
             {
-              while ( (*mask != '\0') && (*mask == ' ') )
-                mask++;
-              if ( *mask == '\0' )
-                {
-                  if ( smem )
-                    {
-                      // may need to ignore this next word
-                      if ( mach_code & 0x80 )
-                        {
-                          int mod;
-                          mod = (mach_code & (8+16+32+64) ) >> 3;
-                          if ( mod >= 12 )
-                            {
-                              length++;
-                            }
-                        }
-                    } 
-                  return length; // found a match
-                }
-              // must read another word
               if ( smem )
                 {
-                  // may need to ignore this next word
+                  // take care of variable length word
                   if ( mach_code & 0x80 )
                     {
                       int mod;
                       mod = (mach_code & (8+16+32+64) ) >> 3;
                       if ( mod >= 12 )
                         {
-                          address++;
-                          mach_code = read_program_mem(address,&wait_state);
+                          mach_code = 
+                            read_program_mem(address+length,&wait_state);
+                          decode_nfo->mach_code[length] = mach_code;
                           length++;
+                          decode_nfo->var_length = 1;
                         }
                     }
                   smem=0;
                 }
-              address++;
-              mach_code = read_program_mem(address,&wait_state);
+
+              // Remove any spaces at the end of mask
+              while ( (*mask != '\0') && (*mask == ' ') )
+                mask++;
+
+              if ( *mask == '\0' )
+                {
+                  decode_nfo->length = length;
+                  return 1; // found a match
+                }
+
+              // must read another word
+              mach_code = read_program_mem(address+length,&wait_state);
+              decode_nfo->mach_code[length] = mach_code;
               length++;
+
               bit=BITS_PER_WORD-1;
             }
         }
@@ -486,39 +486,38 @@ int check_mask(const char *mask, Word mach_code, WordA address )
 
     printf("Error, funny bit length for mask=%s file=%s:%d\n",mask,__FILE__,__LINE__);
 
-  return length;
-
+    decode_nfo->length = length;
+    return 1;
 }
 
-gchar *vw_decode(gchar *mask, char info, Word start_code, WordA *location)
+// Decodes 9 memory mapped registers MMRx (ARx,SP) MVMM AR2,SP
+void vw_decode(gchar *ch, gchar *mask, char info, 
+               struct _decoded_opcode *decode_nfo )
 {
   unsigned int bits;
-  gchar *ch;
 
-  bits = bit_extract(info,mask,start_code, location);
-  ch = g_new(gchar,4);
+  bits = bit_extract(info,mask,decode_nfo,NULL);
 
   if ( bits > 7 )
-    g_snprintf(ch,4,"SP");
+    g_snprintf(ch,MAX_SUB_OP,"SP");
   else
-    g_snprintf(ch,4,"AR%d",bits);
-  return ch;
+    g_snprintf(ch,MAX_SUB_OP,"AR%d",bits);
 }
 
-gchar *c_decode(gchar *mask, char info, Word start_code, WordA *location)
+// decodes condition codes
+void c_decode(gchar *ch, gchar *mask, char info, 
+                struct _decoded_opcode *decode_nfo )
 {
   unsigned int bits;
-  gchar *ch;
 
-  bits = bit_extract(info,mask,start_code,location);
+  bits = bit_extract(info,mask,decode_nfo,NULL);
   
-  ch=g_new(gchar,13);
   *ch='\0';
 
   if ( bits == 0x0 )
     {
       g_strcat(ch,"UNC");
-      return ch;
+      return;
     }
 
   if ( bits & 0x40 )
@@ -612,421 +611,382 @@ gchar *c_decode(gchar *mask, char info, Word start_code, WordA *location)
 	    g_strcat(ch,"NTC");
 	}
     }
-  return ch;
+  return;
 }
 
-gchar *e_decode(gchar *mask, char info, Word start_code, WordA *location)
-{
-  unsigned int bits;
-  gchar *ch;
-
-  ch = g_new(gchar,4);
-  
-  bits = bit_extract(info,mask,start_code,location);
-  
-  switch (bits)
-    {
-    default:
-    case 0x0:
-      g_snprintf(ch,4,"AR0");
-      return ch;
-    case 0x1:
-      g_snprintf(ch,4,"AR1");
-      return ch;
-    case 0x2:
-      g_snprintf(ch,4,"AR2");
-      return ch;
-    case 0x3:
-      g_snprintf(ch,4,"AR3");
-      return ch;
-    case 0x4:
-      g_snprintf(ch,4,"AR4");
-      return ch;
-    case 0x5:
-      g_snprintf(ch,4,"AR5");
-      return ch;
-    case 0x6:
-      g_snprintf(ch,4,"AR6");
-      return ch;
-    case 0x7:
-      g_snprintf(ch,4,"AR7");
-      return ch;
-    }
-}
-
-gchar *xy_decode(gchar *mask, char info, Word start_code, WordA *location)
+// dual pointer decodes
+void xy_decode(gchar *ch, gchar *mask, char info,   
+               struct _decoded_opcode *decode_nfo)
 {
   // See C54_Vol1_CPU_and_Peripherals.pdf -> spru131g.pdf
   // pg 135 5-20
   unsigned int bits,mod,ar;
-  gchar *ch;
 
-  bits = bit_extract(info,mask,start_code,location);
+  bits = bit_extract(info,mask,decode_nfo,NULL);
   ar = (bits & 3)+2;
   mod = (bits & 12);
-  ch = g_new(gchar,8);
 
   if ( mod == 4)
-    g_snprintf(ch,8,"*AR%d-",ar);
+    g_snprintf(ch,MAX_SUB_OP,"*AR%d-",ar);
   else if ( mod == 8 )
-    g_snprintf(ch,8,"*AR%d+",ar);
+    g_snprintf(ch,MAX_SUB_OP,"*AR%d+",ar);
   else if ( mod == 0 )
-    g_snprintf(ch,8,"*AR%d",ar);
+    g_snprintf(ch,MAX_SUB_OP,"*AR%d",ar);
   else
-    g_snprintf(ch,8,"*AR%d+0%%",ar);
+    g_snprintf(ch,MAX_SUB_OP,"*AR%d+0%%",ar);
 
-  return ch;
+  return;
 }
 
-gchar *u_decode(gchar *mask, char info, Word start_code, WordA *location)
+// extract unsigned decimal number
+void u_decode(gchar *ch, gchar *mask, char info, 
+              struct _decoded_opcode *decode_nfo)
 {
   unsigned int bits;
-  gchar *ch;
 
-  bits = bit_extract(info,mask,start_code,location);
+  bits = bit_extract(info,mask,decode_nfo,NULL);
 
-  ch = g_new(gchar,8);
+  g_snprintf(ch,MAX_SUB_OP,"%d",bits);
 
-  g_snprintf(ch,8,"%d",bits);
-
-  return ch;
+  return;
 }
 
-gchar *p_decode(gchar *mask, char info, Word start_code, WordA *location)
+// same as u_decode but adds plus 1 to the number
+void p_decode(gchar *ch, gchar *mask, char info, 
+              struct _decoded_opcode *decode_nfo)
 {
   unsigned int bits;
-  gchar *ch;
 
-  bits = bit_extract(info,mask,start_code,location);
+  bits = bit_extract(info,mask,decode_nfo,NULL);
 
-  ch = g_new(gchar,8);
+  g_snprintf(ch,MAX_SUB_OP,"%d",bits+1);
 
-  g_snprintf(ch,8,"%d",bits+1);
-
-  return ch;
+  return;
 }
 
 
-gchar *h_decode(gchar *mask, char info, Word start_code, WordA *location)
+// Unsigned hex number
+void h_decode(gchar *ch, gchar *mask, char info, 
+                struct _decoded_opcode *decode_nfo)
 {
   unsigned int bits;
-  gchar *ch;
 
-  bits = bit_extract(info,mask,start_code,location);
+  bits = bit_extract(info,mask,decode_nfo,NULL);
 
-  ch = g_new(gchar,8);
+  g_snprintf(ch,MAX_SUB_OP,"0x%x",bits);
 
-  g_snprintf(ch,8,"0x%x",bits);
-
-  return ch;
+  return;
 }
 
-gchar *n_decode(gchar *mask, char info, Word start_code, WordA *location)
+// Signed number
+void n_decode(gchar *ch, gchar *mask, char info,  
+              struct _decoded_opcode *decode_nfo)
 {
-  gchar *ch;
   int bits;
 
-  bits = signed_bit_extract(info,mask,start_code,location);
+  bits = signed_bit_extract(info,mask,decode_nfo);
 
-  ch = g_new(gchar,8);
-  
-  g_snprintf(ch,8,"%d",bits);
+  g_snprintf(ch,MAX_SUB_OP,"%d",bits);
 
-  return ch;
+  return;
 }
 
-gchar *t_decode(gchar *mask, char info, Word start_code, WordA *location)
+// decodes status bits
+void t_decode(gchar *ch, gchar *mask, char info,  
+              struct _decoded_opcode *decode_nfo)
 {
-  gchar *ch;
   int bits;
 
-  bits = bit_extract(info,mask,start_code,location);
+  bits = bit_extract(info,mask,decode_nfo,NULL);
 
   switch ( bits )
     {
     case 9:
-      ch = g_strdup("OVB");
+      g_snprintf(ch,MAX_SUB_OP,"OVB");
       break;
     case 10:
-      ch = g_strdup("OVA");
+      g_snprintf(ch,MAX_SUB_OP,"OVA");
       break;
     case 11:
-      ch = g_strdup("C");
+      g_snprintf(ch,MAX_SUB_OP,"C");
       break;
     case 12:
-      ch = g_strdup("TC");
+      g_snprintf(ch,MAX_SUB_OP,"TC");
       break;
     case 512+5:
-      ch = g_strdup("CMPT");
+      g_snprintf(ch,MAX_SUB_OP,"CMPT");
       break;
     case 512+6:
-      ch = g_strdup("FRCT");
+      g_snprintf(ch,MAX_SUB_OP,"FRCT");
       break;
     case 512+7:
-      ch = g_strdup("C16");
+      g_snprintf(ch,MAX_SUB_OP,"C16");
       break;
     case 512+8:
-      ch = g_strdup("SXM");
+      g_snprintf(ch,MAX_SUB_OP,"SXM");
       break;
     case 512+9:
-      ch = g_strdup("OVM");
+      g_snprintf(ch,MAX_SUB_OP,"OVM");
       break;
     case 512+10:
-      ch = g_strdup("O");
+      g_snprintf(ch,MAX_SUB_OP,"O");
       break;
     case 512+11:
-      ch = g_strdup("INTM");
+      g_snprintf(ch,MAX_SUB_OP,"INTM");
       break;
     case 512+12:
-      ch = g_strdup("HM");
+      g_snprintf(ch,MAX_SUB_OP,"HM");
       break;
     case 512+13:
-      ch = g_strdup("XF");
+      g_snprintf(ch,MAX_SUB_OP,"XF");
       break;
     case 512+14:
-      ch = g_strdup("CPL");
+      g_snprintf(ch,MAX_SUB_OP,"CPL");
       break;
     case 512+15:
-      ch = g_strdup("BRAF");
+      g_snprintf(ch,MAX_SUB_OP,"BRAF");
       break;
     default:
-      ch = g_new(gchar,8);
-      g_snprintf(ch,8,"%d",bits);
+      g_snprintf(ch,MAX_SUB_OP,"%d",bits);
     }
-  return ch;
+  return;
 }
 
-gchar *z_decode(gchar *mask, char info, Word start_code, WordA *location)
+// decodes a delay
+void z_decode(gchar *ch, gchar *mask, char info,  
+              struct _decoded_opcode *decode_nfo )
 {
   unsigned int bits;
-  gchar *ch;
 
-  bits = bit_extract(info,mask,start_code,location);
+  bits = bit_extract(info,mask,decode_nfo,NULL);
 
   if ( bits == 0 )
-    ch = g_strdup("");
+    ch[0] = '\0';
   else
-    ch = g_strdup("D");
+    {
+      ch[0] = 'D';
+      ch[1] = '\0';
+    }
   
-  return ch;
+  return;
 }
 
-gchar *r_decode(gchar *mask, char info, Word start_code, WordA *location)
+// decodes a round
+void r_decode(gchar *ch, gchar *mask, char info,  
+              struct _decoded_opcode *decode_nfo )
 {
   unsigned int bits;
-  gchar *ch;
 
-  bits = bit_extract(info,mask,start_code,location);
+  bits = bit_extract(info,mask,decode_nfo,NULL);
 
   if ( bits == 0 )
-    ch = g_strdup("");
+    ch[0] = '\0';
   else
-    ch = g_strdup("R");
+    {
+      ch[0] = 'R';
+      ch[1] = '\0';
+    }
   
-  return ch;
+  return;
 }
 
-gchar *sd_decode(gchar *mask, char info, Word start_code, WordA *location)
+void sd_decode(gchar *ch, gchar *mask, char info, 
+                 struct _decoded_opcode *decode_nfo )
 {
   unsigned int bits;
-  gchar *ch;
 
-  bits = bit_extract(info,mask,start_code,location);
+  bits = bit_extract(info,mask,decode_nfo,NULL);
 
   if ( bits == 0 )
-    ch = g_strdup("A");
+    {
+      ch[0] = 'A';
+      ch[1] = '\0';
+    }
   else
-    ch = g_strdup("B");
+    {
+      ch[0] = 'B';
+      ch[1] = '\0';
+    }
   
-  return ch;
+  return;
 }
 
 // Decodes memory mapped addressing
-gchar *m_decode(gchar *mask, char info, Word start_code, WordA *location)
+void m_decode(gchar *ch, gchar *mask, char info, 
+              struct _decoded_opcode *decode_nfo )
 {
   unsigned int bits;
-  gchar *ch;
-  ch = g_new(gchar,4);
 
-  bits = bit_extract(info,mask,start_code,location);
+  bits = bit_extract(info,mask,decode_nfo,NULL);
 
   switch (bits)
     {
     case 0x00:
-      g_snprintf(ch,4,"IMR");
-      return ch;
+      g_snprintf(ch,MAX_SUB_OP,"IMR");
+      return;
     case 0x01:
-      g_snprintf(ch,4,"IFR");
-      return ch;
+      g_snprintf(ch,MAX_SUB_OP,"IFR");
+      return;
     case 0x06:
-      g_snprintf(ch,4,"ST0");
-      return ch;
+      g_snprintf(ch,MAX_SUB_OP,"ST0");
+      return;
     case 0x07:
-      g_snprintf(ch,4,"ST1");
-      return ch;
+      g_snprintf(ch,MAX_SUB_OP,"ST1");
+      return;
     case 0x0e:
-      g_snprintf(ch,4,"T");
-      return ch;
+      g_snprintf(ch,MAX_SUB_OP,"T");
+      return;
     case 0x0f:
-      g_snprintf(ch,4,"TRN");
-      return ch;
+      g_snprintf(ch,MAX_SUB_OP,"TRN");
+      return;
     case 0x10:
-      g_snprintf(ch,4,"AR0");
-      return ch;
+      g_snprintf(ch,MAX_SUB_OP,"AR0");
+      return;
     case 0x11:
-      g_snprintf(ch,4,"AR1");
-      return ch;
+      g_snprintf(ch,MAX_SUB_OP,"AR1");
+      return;
     case 0x12:
-      g_snprintf(ch,4,"AR2");
-      return ch;
+      g_snprintf(ch,MAX_SUB_OP,"AR2");
+      return;
     case 0x13:
-      g_snprintf(ch,4,"AR3");
-      return ch;
+      g_snprintf(ch,MAX_SUB_OP,"AR3");
+      return;
     case 0x14:
-      g_snprintf(ch,4,"AR4");
-      return ch;
+      g_snprintf(ch,MAX_SUB_OP,"AR4");
+      return;
     case 0x15:
-      g_snprintf(ch,4,"AR5");
-      return ch;
+      g_snprintf(ch,MAX_SUB_OP,"AR5");
+      return;
     case 0x16:
-      g_snprintf(ch,4,"AR6");
-      return ch;
+      g_snprintf(ch,MAX_SUB_OP,"AR6");
+      return;
     case 0x17:
-      g_snprintf(ch,4,"AR7");
-      return ch;
+      g_snprintf(ch,MAX_SUB_OP,"AR7");
+      return;
     case 0x18:
-      g_snprintf(ch,4,"SP");
-      return ch;
+      g_snprintf(ch,MAX_SUB_OP,"SP");
+      return;
     case 0x19:
-      g_snprintf(ch,4,"BK");
-      return ch;
+      g_snprintf(ch,MAX_SUB_OP,"BK");
+      return;
     case 0x1a:
-      g_snprintf(ch,4,"BRC");
-      return ch;
+      g_snprintf(ch,MAX_SUB_OP,"BRC");
+      return;
     case 0x1b:
-      g_snprintf(ch,4,"RSA");
-      return ch;
+      g_snprintf(ch,MAX_SUB_OP,"RSA");
+      return;
     case 0x1c:
-      g_snprintf(ch,4,"REA");
-      return ch;
+      g_snprintf(ch,MAX_SUB_OP,"REA");
+      return;
     case 0x1d:
-      g_snprintf(ch,4,"XPC");
-      return ch;
+      g_snprintf(ch,MAX_SUB_OP,"XPC");
+      return;
       
     }
   // Didn't use allocated string
-  g_free(ch);
-  return h_decode(mask,info,start_code,location);
+  return h_decode(ch,mask,info,decode_nfo);
 }
 
-gchar *a_decode(gchar *mask, char info, Word start_code, WordA *location)
+void a_decode(gchar *ch, gchar *mask, char info,  
+              struct _decoded_opcode *decode_nfo)
 {
   unsigned int mod,bits,arf;
-  gchar *ch;
   gchar ind[]="*";
-  int wait_state;
-  WordA next_loc;
+  int word_num;
 
   // See C54_Vol1_CPU_and_Peripherals.pdf -> spru131g.pdf
   // Chapter 5.5, pg 128
 
-  ch = g_new(gchar,20);
-
-  bits = bit_extract(info,mask,start_code,location);
+  bits = bit_extract(info,mask,decode_nfo,&word_num);
 
   mod = ( bits >> 3 ) & 0xf;
   arf = bits & 7;
 
   if ( !(bits & 0x80) )
     {
-#if 0
-      // Decode direct addressing as ARx
-      *ind='\0';
-#else
       // Decode as an unsigned number
-      return u_decode(mask,info,start_code,location);
-#endif
+      return u_decode(ch,mask,info,decode_nfo);
     }
 
   switch ( mod )
     {
     case 0:
-      g_snprintf(ch,20,"%sAR%d",ind,arf );
+      g_snprintf(ch,MAX_SUB_OP,"%sAR%d",ind,arf );
       break;
     case 1:
-      g_snprintf(ch,20,"%sAR%d-",ind,arf );
+      g_snprintf(ch,MAX_SUB_OP,"%sAR%d-",ind,arf );
       break;
     case 2:
-      g_snprintf(ch,20,"%sAR%d+",ind,arf );
+      g_snprintf(ch,MAX_SUB_OP,"%sAR%d+",ind,arf );
       break;
     case 3:
-      g_snprintf(ch,20,"%s+AR%d",ind,arf );
+      g_snprintf(ch,MAX_SUB_OP,"%s+AR%d",ind,arf );
       break;
     case 4:
-      g_snprintf(ch,20,"%sAR%d-0B",ind,arf );
+      g_snprintf(ch,MAX_SUB_OP,"%sAR%d-0B",ind,arf );
       break;
     case 5:
-      g_snprintf(ch,20,"%sAR%d-0",ind,arf );
+      g_snprintf(ch,MAX_SUB_OP,"%sAR%d-0",ind,arf );
       break;
     case 6:
-      g_snprintf(ch,20,"%sAR%d+0",ind,arf );
+      g_snprintf(ch,MAX_SUB_OP,"%sAR%d+0",ind,arf );
       break;
     case 7:
-      g_snprintf(ch,20,"%sAR%d+0B",ind,arf );
+      g_snprintf(ch,MAX_SUB_OP,"%sAR%d+0B",ind,arf );
       break;
     case 8:
-      g_snprintf(ch,20,"%sAR%d-%%",ind,arf );
+      g_snprintf(ch,MAX_SUB_OP,"%sAR%d-%%",ind,arf );
       break;
     case 9:
-      g_snprintf(ch,20,"%sAR%d-0%%",ind,arf );
+      g_snprintf(ch,MAX_SUB_OP,"%sAR%d-0%%",ind,arf );
       break;
     case 10:
-      g_snprintf(ch,20,"%sAR%d+%%",ind,arf );
+      g_snprintf(ch,MAX_SUB_OP,"%sAR%d+%%",ind,arf );
       break;
     case 11:
-      g_snprintf(ch,20,"%sAR%d+0%%",ind,arf );
+      g_snprintf(ch,MAX_SUB_OP,"%sAR%d+0%%",ind,arf );
       break;
     case 12:
-      next_loc = *location;
-      next_loc++;
-      *location = next_loc;
-      g_snprintf(ch,20,"%sAR%d(%d)",ind,arf,signed_bit_extract('n',"nnnnnnnn nnnnnnnn",read_program_mem(next_loc,&wait_state),location) );
+      g_snprintf(ch,MAX_SUB_OP,"%sAR%d(%d)",ind,arf,decode_nfo->mach_code[word_num+1] );
       break;
     case 13:
-      next_loc = *location;
-      next_loc++;
-      *location = next_loc;
-      g_snprintf(ch,20,"%s+AR%d(%d)",ind,arf,signed_bit_extract('n',"nnnnnnnn nnnnnnnn", read_program_mem(next_loc,&wait_state),location) );
+      g_snprintf(ch,MAX_SUB_OP,"%s+AR%d(%d)",ind,arf,decode_nfo->mach_code[word_num+1] );
       break;
     case 14:
-      next_loc = *location;
-      next_loc++;
-      *location = next_loc;
-      g_snprintf(ch,20,"%s+AR%d(%d)%%",ind,arf,signed_bit_extract('n',"nnnnnnnn nnnnnnnn",read_program_mem(next_loc,&wait_state),location ) );
-      //      g_snprintf(ch,20,"%s+AR%d(0x%x)%%",ind,arf,*(start_code +1) );
+      g_snprintf(ch,MAX_SUB_OP,"%s+AR%d(%d)%%",ind,arf,decode_nfo->mach_code[word_num+1] );
       break;
     case 15:
-      next_loc = *location;
-      next_loc++;
-      *location = next_loc;
-      g_snprintf(ch,20,"%s(%s)",ind,m_decode("hhhhhhhh hhhhhhhh",'h',read_program_mem(next_loc,&wait_state),&next_loc) );
-      break;
+      {
+        gchar ch2[MAX_SUB_OP];
+        Word mach_code_sav;
+
+        mach_code_sav = decode_nfo->mach_code[0];
+        decode_nfo->mach_code[0] = decode_nfo->mach_code[word_num+1];
+        m_decode(ch2,"mmmmmmmm mmmmmmmm",'m',decode_nfo);
+        decode_nfo->mach_code[0] = mach_code_sav;
+        
+        g_snprintf(ch,MAX_SUB_OP,"%s(%s)",ind,ch2 );
+        break;
+      }
     }
   
-  return ch;
+  return;
 }
-gchar *b_decode(gchar *mask, char info, Word start_code, WordA *location)
+// decodes memory mapped bits
+void b_decode(gchar *ch, gchar *mask, char info, 
+              struct _decoded_opcode *decode_nfo )
 {
   unsigned int mod,bits;
 
   // If it's in the form ARx just decode that and return
-  bits = bit_extract(info,mask,start_code,location);
+  bits = bit_extract(info,mask,decode_nfo,NULL);
   mod = ( bits >> 3 ) & 0xf;
 
   if ( (bits & 0x80)==0 && mod==0 )
-    return a_decode(mask,info,start_code,location);
-  // This doesn't handle indirect. Return the unsigned integer
-  return u_decode(mask,info,start_code,location);
+    return a_decode(ch, mask,info,decode_nfo);
+
+  // This doesn't handle indirect. Return the hex value
+  return h_decode(ch, mask,info,decode_nfo);
 }
 
 // Returns 1 if condition is true
@@ -1161,23 +1121,30 @@ int check_condition(Word bits)
 }
 
 
-Word bit_extract(char info, char *mask, Word mach_code, WordA *location)
+Word bit_extract(char info, char *mask, struct _decoded_opcode *decode_nfo,
+                 int *word_num)
 {
   int bit,smallest;
   Word ans;
-  int wait_state;
-  WordA current_location;
+  int current_location,on_word;
+  int found_a;
 
   ans = 0;
   smallest = 0;
+  on_word = -1;
   bit = BITS_PER_WORD;
-  if ( location )
-    current_location = *location;
+  found_a = 0;
+  current_location = 0;
+
   while ( *mask )
     {
       if ( *mask !=' ' )
 	{
 	  bit--;
+
+          if ( *mask == 'a' )
+            found_a = 1;
+
 	  if ( bit < 0 )
 	    {
 	      if ( *mask == '\0' )
@@ -1186,30 +1153,27 @@ Word bit_extract(char info, char *mask, Word mach_code, WordA *location)
 			 __FILE__,__LINE__);
 		}
 	      bit = BITS_PER_WORD-1;
-	      if ( location )
-		current_location = current_location + 1;
-	      else
-		{
-		  printf("Error! %s:%d\n",__FILE__,__LINE__);
-		  return 0;
-		}
-	      mach_code = read_program_mem(current_location,&wait_state);
-	      
+
+              // skip over next word if the a decode takes up 2 words
+              if ( found_a )
+                current_location = current_location + 1 + decode_nfo->var_length;
+              else
+                current_location = current_location + 1;
 	    }
 	}
       if ( *mask == info )
 	{
-	  ans = ans | (mach_code & (1<<bit));
+	  ans = ans | (decode_nfo->mach_code[current_location] & (1<<bit));
 	  smallest = bit;
-	  // Only want to increment location if actually used bits
-	  // from that location, otherwise location might get incremented
-	  // too often
-	  if ( location )
-	    *location = current_location;
+          if ( on_word < 0 )
+            on_word=current_location;
 	}
       mask++;
     }
   ans = ans >> smallest;
+
+  if ( word_num )
+    *word_num = on_word;
 
   return ans;
 }
@@ -1227,17 +1191,18 @@ SWord signed_5bit_extract(Word mach_code)
   return bits;
 }
 
-SWord signed_bit_extract(char info, char *mask, Word mach_code, WordA *location)
+SWord signed_bit_extract(char info, char *mask, struct _decoded_opcode *decode_nfo)
 {
   int bit,smallest,largest_bit,sign_bit;
   guint32 ans;
-  int wait_state;
+  int current_location;
 
   ans = 0;
   smallest = 0;
   bit = BITS_PER_WORD;
   largest_bit = -1;
   sign_bit = 0;
+  current_location = 0;
 
   while ( *mask )
     {
@@ -1252,18 +1217,18 @@ SWord signed_bit_extract(char info, char *mask, Word mach_code, WordA *location)
 			 __FILE__,__LINE__);
 		}
 	      bit = BITS_PER_WORD-1;
-	      *location = *location + 1;
-	      mach_code = read_program_mem(*location,&wait_state);
+              
+              current_location = current_location + 1;
 	    }
 	}
       if ( *mask == info )
 	{
 	  if ( largest_bit < 0 )
 	    {
-	      sign_bit=(mach_code & (1<<bit));
+	      sign_bit=(decode_nfo->mach_code[current_location] & (1<<bit));
 	      largest_bit = bit;
 	    }
-	  ans = ans | (mach_code & (1<<bit));
+	  ans = ans | (decode_nfo->mach_code[current_location] & (1<<bit));
 	  smallest = bit;
 	}
       mask++;
