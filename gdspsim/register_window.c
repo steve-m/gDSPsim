@@ -171,7 +171,7 @@ void create_register_window(struct _Registers *Registers)
   reg_entries.EAB  = set_reg_table("EAB",  4, 6, GTK_TABLE(table), 
 				  &Registers->EAB);
   reg_entries.BRC  = set_reg_table("BRC",  4, 7, GTK_TABLE(table), 
-				  &Registers->BRC);
+				  &MMR->BRC);
 
 
   fill_reg_entries(Registers);
@@ -260,7 +260,7 @@ void fill_reg_entries(struct _Registers *Registers)
   g_snprintf(temp_str,15,"0x%x",Registers->EAB);
   gtk_entry_set_text (GTK_ENTRY(reg_entries.EAB),temp_str);
  
-  g_snprintf(temp_str,15,"0x%x",Registers->BRC);
+  g_snprintf(temp_str,15,"0x%x",MMR->BRC);
   gtk_entry_set_text (GTK_ENTRY(reg_entries.BRC),temp_str);
  
 }
