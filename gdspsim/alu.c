@@ -46,6 +46,7 @@ union _bitconv
 /* 
  * Xmux 0, X operand is from DB register
  *      1, X operand is from shifter register
+ *      2, X operand is from A(32-16) (ABDST)
  * Ymux 0, Y operand is from A register
  *      1, Y operand is from B register
  *      2, Y operand is from T register
@@ -71,11 +72,34 @@ void alu(int Xmux, int Ymux, int Omux, int flag, struct _Registers *Reg)
   switch (Xmux)
     {
     case 0:
-      X.words.low = Reg->DB;
+      if ( SXM(MMR) )
+	X.gint64 = (SWord)Reg->DB;
+      else
+	X.words.low = Reg->DB;
       break;
     case 1:
       X.gp_reg = Reg->Shifter;
       break;
+    case 2:
+      {
+	union _GP_Reg_Union reg_union;
+	reg_union.gint64 = 0;
+	reg_union.gp_reg = MMR->A;
+	X.words.low = reg_union.words.high;
+	if ( reg_union.words.ext & 0x1 )
+	  {
+	    if ( SXM(MMR) )
+	      {
+		// make negative
+		X.gu32.high = 0xffffffff;
+	      }
+	      else
+		{
+		  X.gu32.high = 1;
+		}
+	  }
+	break;
+      }
     }
 
   switch (Ymux)
@@ -87,10 +111,16 @@ void alu(int Xmux, int Ymux, int Omux, int flag, struct _Registers *Reg)
       Y.gp_reg = MMR->B;
       break;
     case 2:
-      Y.words.low = MMR->T;
+      if ( SXM(MMR) )
+	Y.gint64 = (SWord)MMR->T;
+      else
+	Y.words.low = MMR->T;
       break;
     case 3:
-      Y.words.low = Reg->CB;
+      if ( SXM(MMR) )
+	Y.gint64 = (SWord)Reg->CB;
+      else
+	Y.words.low = Reg->CB;
       break;
     }
 
