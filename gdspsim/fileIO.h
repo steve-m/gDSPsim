@@ -26,12 +26,14 @@
 
 typedef enum { MEMORY_READ=0, MEMORY_WRITE=1, PIPELINE_EXECUTED=2 } FileIOReached;
 
+typedef enum { ADDRESS_REACHED_SET=1,AMOUNT_SET=2,FILENAME_SET=4,ADDRESS_ACCESS_SET=8,ALL_SET=0xf } FileIOModified;
+
 struct _fileIO
 {
   int mem_type_reached; // Data or Program mem
   WordA address_reached; // reached
   FileIOReached  reached_how;
-  int put_get; // put or get
+  int input; // =0 for an output file, =1 for an input file
   int amount;
   gchar *filename;
   int type_access;
@@ -40,20 +42,27 @@ struct _fileIO
   int valid;
   GtkWidget *connect_box;
   GtkWidget *removeB;
+  GtkWidget *restartB;
+  GtkWidget *flushB;
   GtkWidget *applyB;
-  GtkWidget *closeB;
-  int modified; // non-zero if things have been modified
+  GtkWidget *fileSetB;
+  FileIOModified modified; // non-zero if things have been modified
   FILE *file;
 
   GtkWidget *mem_type_reachedW;
   GtkWidget *address_reachedW;
   GtkWidget *reached_howW;
-  GtkWidget *put_getW;
   GtkWidget *amountW;
   GtkWidget *filenameW;
   GtkWidget *type_accessW;
   GtkWidget *address_accessW;
   
+  // this is NULL until, this structure has been registered (applied)
+  void (*registerF) (struct _fileIO *io);
+  // it's up to the registerF to set this
+  void (*updateF) (struct _fileIO *io);
+  // it's up to the registerF to set this
+  void (*removeF) (struct _fileIO *io);
 };
 
 void create_fileIO(GtkWidget *widget, gpointer data);
