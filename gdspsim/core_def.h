@@ -116,8 +116,8 @@ union _16_bits
  * B = A + *AR1
  */
 
-#define max_neg32 -2147483648
-#define max_pos32  2147483647
+#define max_neg32 -2147483648ll
+#define max_pos32  2147483647ll
 
 #define FIXME()(printf("FIXME %s:%d\n",__FILE__,__LINE__))
 
