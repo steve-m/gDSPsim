@@ -46,6 +46,7 @@ OBJS	= \
 	cc.o \
 	cmpl.o \
 	cmpm.o \
+	cmpr.o \
 	cmps.o \
 	dadd.o \
 	dadst.o \
