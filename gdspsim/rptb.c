@@ -57,7 +57,7 @@ Instruction_Class RPTB_Obj =
 static void decode(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   // Determine start address
-  if ( pipeP->word_number == 2 )
+  if ( pipeP->word_number == 2 && pipeP->cycles==0)
     {
       if ( (pipeP->current_opcode & 0x200) == 0)
 	{
@@ -72,13 +72,16 @@ static void decode(struct _PipeLine *pipeP, struct _Registers *Reg)
 
 static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
+  // If not delayed version, stall for 2 cycles
+  if ( (pipeP->current_opcode & 0x200) == 0)
+    {
+      if ( pipeP->cycles == 0 )
+	Reg->Decode_Again = 2;
+    }
+
   // Determine End address
   if ( pipeP->word_number == 1 )
     {
-      if ( (pipeP->current_opcode & 0x200) == 0)
-	{
-          Reg->Dont_Decode=2;
-        }
       pipeP->storage1 = Reg->IR;
     }
 };
