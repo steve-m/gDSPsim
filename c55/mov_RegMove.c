@@ -117,8 +117,9 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 
       if ( r < 4 )
 	{
-	  reg_union = get_register(r,1);
-	  reg_union = saturate(reg_union,r);
+	  reg_union = get_register(r,SXMD(MMR));
+	  reg_union = saturate(reg_union,r,M40(MMR),SATD(MMR));
+	  reg_union.words.low = 0;
 	}
       else
 	{
