@@ -38,14 +38,17 @@ SRCS	= \
 	mov_SpecRegMove.c \
 	mov_SpecRegSave.c \
 	neg.c \
+	not.c \
 	psh.c \
 	or.c \
+	sftl.c \
 	sfts.c \
 	sftsc.c	\
 	sqr.c \
 	sqrm.c \
 	sub.c \
 	xor.c \
+	alu.c \
 	chip_help.c \
 	cmem.c \
 	decode.c \
