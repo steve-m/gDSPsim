@@ -23,40 +23,56 @@
 #include "chip_core.h"
 
 #ifdef __cplusplus
-extern "C" {
+extern "C" 
+{
 #endif
 
-// mux (input control)
-// 0 = AC0
-// 1 = AC1
-// 2 = AC2
-// 3 = AC3
-// 4 = T0
-// 5 = T1
-// 6 = T2
-// 7 = T3
-// 8-15 = ARx
+  /* input_mux (input control)
+   *    0-15      Register 0-15
+   *    SHFT_DB   DB Register
+   *
+   * shift_mux
+   *    0-3       Use Register T0-T3 for shift amount
+   *    SHFT_CONSTANT  Use a Constant passed in shift for shift amount
+   *
+   * shift (for use when SHFT_CONSTANT (above) set)
+   *
+   * flag (See below for defines)
+   *
+   * output_mux
+   *    0-15           Register 0-15
+   *    SHFT_SHIFTER   Temporary Shifter Register
+   *
+   */
 
-// (shift amount control)
-// 0 = Immediate
+#define SHFT_DB 16
+#define SHFT_CONSTANT 8
+#define SHFT_SHIFTER 16
 
-  // flag
-  // bit 0 = Round
-  // bit 1 = Unsigned. Turns on saturations and saturates to 00ffffffff
-  //                   Unless C54CM=1
+  // Flag defines. Always use these
 
-// output_mux
-// 0 = AC0
-// 1 = AC1
-// 2 = AC2
-// 3 = AC3
-// 4 = T0
-// 5 = T1
-// 6 = T2
-// 7 = T3
-// 8-15 = ARx
+  // Saturation Control, one must be chosen
+#define SHFT_DONT_SATURATE 0x3
+#define SHFT_SATURATE 0x1
+#define SHFT_UNSIGNED_SATURATE 0x2
+#define SHFT_USE_SATD_SATA 0x0
 
-// SXM sign extension bit
+  // overflow detection, one must be chosen
+#define SHFT_SET_ACOV 0x40
+#define SHFT_NO_OVERFLOW_DETECTION 0x0
+
+  // M40, one must be chosen
+#define SHFT_M40_IS_1 0x100 // must be non-zero and mutual-exclusive of below
+#define SHFT_M40_IS_0 0x200 // must be non-zero and mutual-exclusive of above
+#define SHFT_USE_M40 0x0
+
+  // Sign, one must be chosen
+#define SHFT_SIGN_EXTEND_USING_SXMD 0x0
+#define SHFT_UNSIGNED 0x1
+
+
+#define SHFT_DONT_SET_CARRY 0x80
+
 inline void shifter(Word input_mux, Word shift_mux, SWord shift, 
 		    unsigned int flag, Word output_mux, 
 		    struct _Registers *Reg );
