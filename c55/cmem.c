@@ -18,6 +18,7 @@
 */
 
 #include "cmem.h"
+#include <memory.h>
 
 // decode CDP encoding, update pointer and return value of CDP.
 Word cmem_decode(int mod)
