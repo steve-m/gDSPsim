@@ -100,7 +100,7 @@ Word xmod_decode(int mod, int p)
   return AB;
 }
 
-// Sets DAB
+  // Sets CAB and DAB from Xmem and Ymem decode
 void xymem_address_stg_b2(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   unsigned int bits;
@@ -122,6 +122,40 @@ void xymem_address_stg_b2(struct _PipeLine *pipeP, struct _Registers *Reg)
   Reg->CAB = xmod_decode(mod,arf);
 
 }
+  
+// Sets DAB from Xmem decode
+void xmem_address_stg_b2(struct _PipeLine *pipeP, struct _Registers *Reg)
+{
+  unsigned int bits;
+  int mod,arf;
+  Opcode opcode;
+
+  opcode = pipeP->decode_nfo.mach_code;
+
+  // decode Xmem bits
+  bits = (opcode.bop[1]>>2) && 0x3f;
+  mod = bits & 7;
+  arf = bits >> 3;
+  Reg->DAB = xmod_decode(mod,arf);
+}
+
+  // Sets CAB and DAB from Xmem decode
+void xlmem_address_stg_b2(struct _PipeLine *pipeP, struct _Registers *Reg)
+{
+  unsigned int bits;
+  int mod,arf;
+  Opcode opcode;
+
+  opcode = pipeP->decode_nfo.mach_code;
+
+  // decode Xmem bits
+  bits = (opcode.bop[1]>>2) && 0x3f;
+  mod = bits & 7;
+  arf = bits >> 3;
+  Reg->DAB = xmod_decode(mod,arf);
+
+  Reg->CAB = Reg->DAB ^ 1;
+}
 
 // Sets DB
 void xymem_read_stg(struct _PipeLine *pipeP, struct _Registers *Reg)
@@ -131,4 +165,23 @@ void xymem_read_stg(struct _PipeLine *pipeP, struct _Registers *Reg)
   Reg->DB = read_data_mem(Reg->DAB,&wait_state);
   Reg->CB = read_data_mem(Reg->CAB,&wait_state);
 }
+
+// Sets EAB from Ymem decode of vvvvvvvv vvvvvvyy yyyyvvvv
+void ymem_set_EAB_b23(struct _PipeLine *pipeP, struct _Registers *Reg)
+{
+  unsigned int bits;
+  int mod,arf;
+  Opcode opcode;
+
+  opcode = pipeP->decode_nfo.mach_code;
+
+  // decode Ymem bits
+  bits = ((opcode.bop[1] & 0x3)<<2) | ((opcode.bop[1]>>4)&0x1f);
+  mod = bits & 7;
+  arf = bits >> 3;
+  Reg->EAB = xmod_decode(mod,arf);
+}
+
+
+
 

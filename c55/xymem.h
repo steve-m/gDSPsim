@@ -26,11 +26,20 @@
 extern "C" {
 #endif
 
-  // Sets DAB
+  // Sets CAB and DAB from Xmem and Ymem decode
   void xymem_address_stg_b2(struct _PipeLine *pipeP, struct _Registers *Reg);
+  
+  // Sets DAB from Xmem decode
+  void xmem_address_stg_b2(struct _PipeLine *pipeP, struct _Registers *Reg);
+  
+  // Sets DAB and CAB from Xmem decode
+  void xlmem_address_stg_b2(struct _PipeLine *pipeP, struct _Registers *Reg);
   
   // Sets DB
   void xymem_read_stg(struct _PipeLine *pipeP, struct _Registers *Reg);
+
+  // Sets EAB from Ymem decode of vvvvvvvv vvvvvvyy yyyyvvvv
+  void ymem_set_EAB_b23(struct _PipeLine *pipeP, struct _Registers *Reg);
 
 #ifdef __cplusplus
 }
