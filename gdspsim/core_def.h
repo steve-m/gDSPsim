@@ -31,7 +31,7 @@
 #define BITS_PER_WORD 8*BYTES_PER_WORD
 #define BITS_PER_ADDRESS 8*BYTES_PER_ADDRESS
 
-#define ALL_ONES 0xff
+#define MAX_WORD 0xffff
 
 // We want to deal with the proper bit length words.
 typedef guint16 Word;
