@@ -30,6 +30,7 @@ struct _reg_entries
   GtkWidget *SP;
   GtkWidget *ST0;
   GtkWidget *ST1;
+  GtkWidget *RC;
 
   GtkWidget *AR0;
   GtkWidget *AR1;
@@ -132,6 +133,8 @@ void create_register_window(struct _Registers *Registers)
 				  &MMR->ST0);
   reg_entries.ST1 = set_reg_table("ST1", 0, 5, GTK_TABLE(table), 
 				  &MMR->ST1);
+  reg_entries.RC = set_reg_table("RC", 0, 6, GTK_TABLE(table), 
+				  &Registers->RC);
 
 
   reg_entries.AR0 = set_reg_table("AR0", 2, 0, GTK_TABLE(table), 
@@ -201,6 +204,9 @@ void fill_reg_entries(struct _Registers *Registers)
  
   g_snprintf(temp_str,15,"0x%x",MMR->ST1);
   gtk_entry_set_text (GTK_ENTRY(reg_entries.ST1),temp_str);
+ 
+  g_snprintf(temp_str,15,"0x%x",Registers->RC);
+  gtk_entry_set_text (GTK_ENTRY(reg_entries.RC),temp_str);
  
   g_snprintf(temp_str,15,"0x%x",MMR->ar0);
   gtk_entry_set_text (GTK_ENTRY(reg_entries.AR0),temp_str);
