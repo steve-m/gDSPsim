@@ -28,6 +28,7 @@
 #include "register_window.h"
 #include "pipeline.h"
 #include "fileIO.h"
+#include "preferences.h"
 
 char **decode(unsigned int start, unsigned int end, char *buffer, GPtrArray *opcodes_info);
 
@@ -45,6 +46,11 @@ void set_program_start(WordA new_pc)
 {
   Registers->PC=new_pc;
   program_start=new_pc;
+}
+
+static void preferences_CB( GtkWidget *widget,  gpointer   data )
+{
+  edit_preferences();
 }
 
 static void restart_CB( GtkWidget *widget,  gpointer   data )
@@ -90,9 +96,10 @@ static void animate_CB( GtkWidget *widget,  gpointer   data )
     }
 }
 
-void destroy( GtkWidget *widget, gpointer   data )
+static void destroy( GtkWidget *widget, gpointer   data )
 {
   gtk_widget_destroy(widget);
+  gtk_main_quit();
 }
 
 static void register_view_CB( GtkWidget *widget,  gpointer   data )
@@ -170,6 +177,7 @@ static GtkItemFactoryEntry menu_items[] =
   { "/File/_Quit",    "<control>Q", (GtkItemFactoryCallback)gtk_widget_destroy, 0, NULL },
   { "/File/sep1",     NULL,         NULL, 0, "<Separator>" },
   { "/_Edit",      NULL,        NULL, 0, "<Branch>" },
+  { "/Edit/Preferences", NULL, (GtkItemFactoryCallback)preferences_CB , 0, NULL },
   { "/File/Font",    "", (GtkItemFactoryCallback)font_CB, 0, NULL },
   { "/_View",      NULL,        NULL, 0, "<Branch>" },
   { "/View/_Memory",    "<control>M", (GtkItemFactoryCallback)memory_CB, 0, NULL },
@@ -256,7 +264,7 @@ int main(int argc, char *argv[])
   gtk_window_set_title (GTK_WINDOW (window), "gDSPsim (gnu Digital Signal Processor Simulator)");
 
   gtk_signal_connect (GTK_OBJECT (window), "destroy",
-		      GTK_SIGNAL_FUNC(gtk_widget_destroyed),
+		      GTK_SIGNAL_FUNC(destroy),
 		      &window);
     
   gtk_container_set_border_width (GTK_CONTAINER (window), 10);
