@@ -185,7 +185,11 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 	case 0:
 	  // LD *ARx,A
 	  reg_union.guint64 = 0;
-	  reg_union.words.low = Reg->DB;
+	  if ( SXM(MMR) )
+	    reg_union.gint64 = (SWord)Reg->DB;
+	  else
+	    reg_union.words.low = Reg->DB;
+
 	  if ( (pipeP->current_opcode & 0x100) != 0 )
 	    MMR->B = reg_union.gp_reg;
 	  else
@@ -219,18 +223,15 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 	  // LD #n,s
 	  {
 	    
-	    SWord n;
+	    unsigned char n;
 	    
 	    n = ( pipeP->current_opcode & 0xff );
-	    if ( n >= 0x80 )
-	      {
-		reg_union.gint64 = n - 0x100;
-	      }
+	    reg_union.guint64 = 0;
+	    if ( SXM(MMR) )
+	      reg_union.gint64 = (char)n;
 	    else
-	      {
-		// reg_union.guint64 = 0;
-		reg_union.guint64 = n;
-	      }
+	      reg_union.words.low = n;
+
 	    if ( (pipeP->current_opcode & 0x100) != 0 )
 	      MMR->B = reg_union.gp_reg;
 	    else
@@ -241,16 +242,16 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 	case 6:
 	  {
 	    // LD #n,u,s
-	    int regNum;
-	    regNum = (pipeP->current_opcode&0x100)>>8;
+	    int d;
+	    d = (pipeP->current_opcode&0x100)>>8;
 	    
 	    reg_union.gint64 = (SWord)pipeP->storage1;
-	    if (regNum)
+	    if (d)
 	    MMR->B = reg_union.gp_reg;
 	    else
 	      MMR->A = reg_union.gp_reg;
 	    
-	    shifter(regNum,Reg,2,pipeP->current_opcode&0xf,regNum);
+	    shifter(d,Reg,2,pipeP->current_opcode&0xf,regNum);
 	    
 	    return;
 	  }
