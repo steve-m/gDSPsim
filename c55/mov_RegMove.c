@@ -83,7 +83,7 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 	      // Move from GP reg to GP reg
 	      // saturate according to SATD
 	      // detect overflow according to M40
-	      reg_union = get_register(r);
+	      reg_union = get_register(r,1);
 	      set_reg_saturate(reg_union,R,SATD(MMR));
 	    }
 	  else
@@ -117,7 +117,7 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 
       if ( r < 4 )
 	{
-	  reg_union = get_register(r);
+	  reg_union = get_register(r,1);
 	  reg_union = saturate(reg_union,r);
 	}
       else

@@ -79,7 +79,7 @@ static void address_stg(struct _PipeLine *pipeP, struct _Registers *Reg)
   if ( pipeP->opcode_subType == 3 )
     {
       smem_address_stg_b2(pipeP,Reg);
-      pipeP->storage2 = DAB;
+      pipeP->storage2 = Reg->DAB;
     }
 }
 
