@@ -24,7 +24,7 @@ GList *symbolL=NULL;
 GList *symbol_label=NULL;
 
 /* Returns a symbol if it exists, must NOT be freed by caller */
-gchar *get_symbol(WordA address)
+gchar *get_symbol(WordP address)
 {
   GList *list;
   struct _symL *symL;
@@ -43,7 +43,7 @@ gchar *get_symbol(WordA address)
   return NULL;
 }
 
-gboolean get_address_from_symbol(WordA *address, gchar const *symbol)
+gboolean get_address_from_symbol(WordP *address, gchar const *symbol)
 {
   GList *list;
   struct _symL *symL;
@@ -54,7 +54,7 @@ gboolean get_address_from_symbol(WordA *address, gchar const *symbol)
 
       if ( strcmp(symL->name,symbol) == 0 )
 	{
-	  *address = (WordA)symL->value;
+	  *address = (WordP)symL->value;
 	  return TRUE;
 	}
     }

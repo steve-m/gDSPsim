@@ -49,7 +49,7 @@ extern "C" {
 #endif
 
 // turn text into an address. returns TRUE is sucessful
-gboolean text_to_address(const gchar *ch, WordA *address);
+gboolean text_to_address(const gchar *ch, WordP *address);
 // turn text into an int. returns TRUE is sucessful
 gboolean text_to_int(const gchar *ch, int *address);
 

@@ -32,7 +32,7 @@ void clear_mem_changed(void);
 
 // Used to mark what memory has changed
 // type==0 for written, type==1 for read
-void set_mem_changed(WordA address, int type);
+void set_mem_changed(WordP address, int type);
 
 
 #endif // __MEMORY_WINDOW_H__

@@ -22,7 +22,7 @@
 
 #include "c54_core.h"
 
-WordA update_xymem( Word XYmem, int Xdecode, struct _Registers *Reg);
+WordP update_xymem( Word XYmem, int Xdecode, struct _Registers *Reg);
 void xymem_read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg);
 void xymem_read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg);
 void xmem_read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg);

@@ -31,7 +31,7 @@ typedef enum { ADDRESS_REACHED_SET=1,AMOUNT_SET=2,FILENAME_SET=4,ADDRESS_ACCESS_
 struct _fileIO
 {
   int mem_type_reached; // Data or Program mem
-  WordA address_reached; // reached
+  WordP address_reached; // reached
   FileIOReached  reached_how;
   int input; // =0 for an output file, =1 for an input file
   int amount;

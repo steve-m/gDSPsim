@@ -71,7 +71,7 @@ static void read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   int k;
-  WordA iptr;
+  WordP iptr;
 
   write_data_mem(Reg->EAB,Reg->RTN);
 

@@ -45,7 +45,7 @@ extern "C" {
   void remove_fileIO_break_on_pipeline(struct _fileIO *io);
   
   // Return 1 if breakpoint set, 0 if breakpoint removed
-  int toggle_breakpoint(WordA bp);
+  int toggle_breakpoint(WordP bp);
   
 #ifdef __cplusplus
 }

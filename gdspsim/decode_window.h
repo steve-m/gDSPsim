@@ -30,10 +30,10 @@ extern "C" {
 void create_decode_window();
 void set_decode_index_max_range(unsigned long int lower_index, unsigned long int upper_index);
 void unhighlight_pipeline();
-void highlight_pipeline(WordA follow);
-void update_pipeline(WordA prefetch);
+void highlight_pipeline(WordP follow);
+void update_pipeline(WordP prefetch);
 // Convert a line number to the corresponding word
-WordA line2word(GArray *word2line, int line, WordA start);
+WordP line2word(GArray *word2line, int line, WordP start);
 #ifdef __cplusplus
 }
 #endif

@@ -47,7 +47,7 @@ void mach_code_to_text( struct _decoded_opcode *decode_nfo,
 int find_object( struct _decoded_opcode *decode_nfo);
 
 /* Returns an array of strings of decoded opcodes */
-void decoded_opcodes(GPtrArray *textA,WordA start,WordA end, GArray *word2line);
+void decoded_opcodes(GPtrArray *textA,WordP start,WordP end, GArray *word2line);
 
 #ifdef __cplusplus
 }

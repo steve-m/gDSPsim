@@ -26,11 +26,11 @@
 
 // This updates the auxillary registers and returns the read address
 // Xdecode == 0, use low 4 bits, Xdecode != 0 use high 4 bits
-WordA update_xymem( Word XYmem, int Xdecode, struct _Registers *Reg)
+WordP update_xymem( Word XYmem, int Xdecode, struct _Registers *Reg)
 {
   int mod,ar,bits;
   Word *arfP;
-  WordA ReadAddress;
+  WordP ReadAddress;
 
   if ( Xdecode )
     {

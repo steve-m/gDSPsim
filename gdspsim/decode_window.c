@@ -51,7 +51,7 @@ void decode_step(void);
 
 /* Returns an array of strings that should be freed by the caller */
 gchar **get_decoded_text(unsigned long int start_index, unsigned long int end_index);
-static void insert_text(WordA start_mem, WordA end_mem, GArray *word2line);
+static void insert_text(WordP start_mem, WordP end_mem, GArray *word2line);
 
 struct _decode_window_nfo *dwn=NULL;
 
@@ -59,8 +59,8 @@ struct _decode_window_nfo
 {
   GtkWidget *clist;
   GtkWidget *decodeW;
-  WordA start;
-  WordA end;
+  WordP start;
+  WordP end;
   GArray *word2line;
   //  GtkListStore *model;
 };
@@ -74,7 +74,7 @@ static void change_end_address(GtkWidget *entry, guint64 address,
 				 gpointer data)
 {
   struct _decode_window_nfo *dwn;
-  WordA mem;
+  WordP mem;
 
   unhighlight_pipeline();
   dwn = data;
@@ -111,7 +111,7 @@ static void change_start_address(GtkWidget *entry, guint64 address,
 				 gpointer data)
 {
   struct _decode_window_nfo *dwn;
-  WordA mem;
+  WordP mem;
 
   unhighlight_pipeline();
   dwn = data;
@@ -148,8 +148,8 @@ static void click_CB( GtkWidget *W, gint row, gint column, GdkEventButton *event
 
   if ( column == 0 )
     {
-      WordA addr;
-      addr = (WordA)gtk_clist_get_row_data(GTK_CLIST(dwn->clist),row);
+      WordP addr;
+      addr = (WordP)gtk_clist_get_row_data(GTK_CLIST(dwn->clist),row);
       // Only allow breakpoints on instructions and not labels
       if ( addr )
 	{
@@ -194,7 +194,7 @@ void create_decode_window()
   GtkWidget *vbox,*hbox,*scrolledW;
   GPtrArray *textA;
   GtkWidget *entryTop,*entryBottom;
-  WordA start_mem,end_mem;
+  WordP start_mem,end_mem;
   gchar temp_str[10];
   struct _entryCB_nfo *entry_start_nfo;
   GtkWidget *menubar;
@@ -345,10 +345,10 @@ void create_decode_window()
 }
 
 static int pipe[6]={-2, -2, -2, -2, -2, -2};
-static WordA pipeW[6];
+static WordP pipeW[6];
   static int cntr=0;
 
-void update_pipeline(WordA prefetch)
+void update_pipeline(WordP prefetch)
 {
   // TODO need to find out if program memory has logged a change
   // if so, redo window.
@@ -376,7 +376,7 @@ void unhighlight_pipeline()
   gtk_clist_thaw(GTK_CLIST(dwn->clist));
 }
 
-void highlight_pipeline(WordA follow)
+void highlight_pipeline(WordP follow)
 {
 
   int lineNo,k,tcntr;
@@ -444,7 +444,7 @@ void set_decode_index_max_range(unsigned long int lower_index, unsigned long int
 }
 
 
-static void insert_text(WordA start_mem, WordA end_mem, GArray *word2line)
+static void insert_text(WordP start_mem, WordP end_mem, GArray *word2line)
 {
   GPtrArray *textA;
   int k;
@@ -524,9 +524,9 @@ static void insert_text(WordA start_mem, WordA end_mem, GArray *word2line)
   g_ptr_array_free(textA,FALSE);  
 }
 
-WordA line2word(GArray *word2line, int line, WordA start)
+WordP line2word(GArray *word2line, int line, WordP start)
 {
-  WordA guess,guess_hi,guess_low;
+  WordP guess,guess_hi,guess_low;
   int line_guess;
 
   guess_hi = word2line->len-1;

@@ -32,7 +32,7 @@ extern Word *PM;
 
 void default_registers(struct _Registers *Registers);
 int find_opcode(Word *start_code, Word **next_code, GPtrArray *decode_info);
-void set_pipe_decodeP(Word start_code, WordA address, 
+void set_pipe_decodeP(Word start_code, WordP address, 
                       struct _Registers *Registers, int flags);
 void flush_pipeline(struct _Registers *Registers);
 
@@ -86,7 +86,7 @@ static GList *FileIOPipeLine=NULL;
  */
 
 // Return 1 if breakpoint set, 0 if breakpoint removed
-int toggle_breakpoint(WordA bp)
+int toggle_breakpoint(WordP bp)
 {
   int k;
 
@@ -94,7 +94,7 @@ int toggle_breakpoint(WordA bp)
   
   for (k=0;k<breakpoints->len;k++)
     {
-      if ( g_array_index(breakpoints,WordA,k) == bp )
+      if ( g_array_index(breakpoints,WordP,k) == bp )
 	{
 	  // Turn break point off
 	  g_array_remove_index_fast(breakpoints,k);
@@ -271,7 +271,7 @@ int pipeline(struct _Registers *Registers)
               Registers->fetch_flags = 0;
               for (k=0;k<breakpoints->len;k++)
                 {
-                  if ( g_array_index(breakpoints,WordA,k) == Registers->PAB )
+                  if ( g_array_index(breakpoints,WordP,k) == Registers->PAB )
                     {
                       
                       Registers->fetch_flags |= 1;
@@ -385,7 +385,7 @@ void default_registers(struct _Registers *Registers)
 // Returns a PC read stall. Normally zero unless the last
 // instruction was something like a 1 word opcode that takes
 // 2 cycles such as a DST
-void set_pipe_decodeP(Word start_code, WordA address, struct _Registers *Registers, int flags)
+void set_pipe_decodeP(Word start_code, WordP address, struct _Registers *Registers, int flags)
 {
   //int length;
 
@@ -501,7 +501,7 @@ struct _Registers *pipe_new()
   Registers->Special_Flush = 1;
 
   if ( breakpoints == NULL )
-    breakpoints = g_array_new(FALSE,FALSE,sizeof(WordA));
+    breakpoints = g_array_new(FALSE,FALSE,sizeof(WordP));
 
   return Registers;
 }

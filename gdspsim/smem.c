@@ -128,7 +128,7 @@ void smem_read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
 
 void mmem_read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-  WordA DAB;
+  WordP DAB;
   
   if ( pipeP->total_words > 1 )
     {

@@ -58,7 +58,7 @@ static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
 
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-  WordA iptr;
+  WordP iptr;
 
   MMR->ST0 = 0x1800; //0001100000000000b;
   MMR->ST1 = 0x2900; //0010100100000000b;

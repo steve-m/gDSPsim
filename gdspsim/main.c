@@ -37,9 +37,9 @@ struct _Registers *Registers;
 GtkAccelGroup *gDSP_keyboard_accel;
 int gStopRun;
 
-static WordA program_start=0;
+static WordP program_start=0;
 
-void set_program_start(WordA new_pc)
+void set_program_start(WordP new_pc)
 {
   Registers->PC=new_pc;
   program_start=new_pc;

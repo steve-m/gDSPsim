@@ -37,9 +37,9 @@ extern "C" {
 #endif
 
 /* Returns a symbol if it exists, MUST be freed by caller */
-gchar *get_symbol(WordA address);
+gchar *get_symbol(WordP address);
 
-gboolean get_address_from_symbol(WordA *address, gchar const *symbol);
+gboolean get_address_from_symbol(WordP *address, gchar const *symbol);
 
 #ifdef __cplusplus
 }

@@ -59,7 +59,7 @@ void entry_hexCB( GtkWidget *widget, struct _entryCB_nfo *entryCB_nfo )
 void entry_addressCB( GtkWidget *W, struct _entryCB_nfo *entryCB_nfo )
 {
   gchar *entry_text;
-  WordA hex_value;
+  WordP hex_value;
 
   // entry_text = gtk_entry_get_text(GTK_ENTRY(entryCB_nfo));
   entry_text = gtk_editable_get_chars(GTK_EDITABLE(entryCB_nfo->entry),0,-1);
@@ -192,7 +192,7 @@ void entry_gpreg_maskCB( GtkWidget *widget, GP_Reg *reg, guint64 mask )
   g_free(entry_text);
 }
 
-gboolean text_to_address(const gchar *ch, WordA *address)
+gboolean text_to_address(const gchar *ch, WordP *address)
 {
   gchar const *textP;
   int num;

@@ -37,8 +37,8 @@ struct _mem_window_nfo
   GtkCList *clist;  // The vbox that memory display is packed into
   GtkWidget *label_data;
   GtkWidget *label_prog;
-  WordA start;
-  WordA end;
+  WordP start;
+  WordP end;
   struct _entryCB_nfo *start_nfo;
   struct _entryCB_nfo *end_nfo;
 };
@@ -59,13 +59,13 @@ static Word SP_last;
 struct _mem_changed
 {
   int valid;
-  WordA changed[MEM_CHANGED_BLK];
+  WordP changed[MEM_CHANGED_BLK];
   unsigned int accessed[MEM_CHANGED_BLK][2]; // written, read
 };
 
 GList *head_mem_changed=NULL;
 
-void entry_data_memCB( GtkWidget *widget, WordA offset )
+void entry_data_memCB( GtkWidget *widget, WordP offset )
 {
   gchar *entry_text,*textP;
   int value;
@@ -92,7 +92,7 @@ void entry_data_memCB( GtkWidget *widget, WordA offset )
 
 }
 
-void entry_prog_memCB( GtkWidget *widget, WordA offset )
+void entry_prog_memCB( GtkWidget *widget, WordP offset )
 {
   gchar *entry_text,*textP;
   int value;
@@ -125,7 +125,7 @@ static void click_CB( GtkWidget *W, gint row, gint column, GdkEventButton *event
   GtkWidget *popupW,*tableW,*label,*entry;
   GtkTable *table;
   gchar temp_str[7];
-  WordA address;
+  WordP address;
 
   address = row + mwn->start;
 
@@ -208,7 +208,7 @@ static void mem_type_changeCB( GtkWidget *W, struct _mem_window_nfo *mwn )
     }
 }
 
-static void mem_view_append(WordA mem, MemType memtype, GtkCList *clist)
+static void mem_view_append(WordP mem, MemType memtype, GtkCList *clist)
 {
   int wait;
   gchar *data[2];
@@ -230,7 +230,7 @@ static void mem_view_append(WordA mem, MemType memtype, GtkCList *clist)
 
 }
 
-static void mem_view_prepend(WordA mem, MemType memtype, GtkCList *clist)
+static void mem_view_prepend(WordP mem, MemType memtype, GtkCList *clist)
 {
   int wait;
   gchar *data[2];
@@ -252,9 +252,9 @@ static void mem_view_prepend(WordA mem, MemType memtype, GtkCList *clist)
 
 }
 
-static void update_memory_view(struct _mem_window_nfo *mwn, WordA start_mem, WordA end_mem)
+static void update_memory_view(struct _mem_window_nfo *mwn, WordP start_mem, WordP end_mem)
 {
-  WordA mem;
+  WordP mem;
   gchar temp_str[7];
 
   gtk_clist_freeze(mwn->clist);
@@ -357,7 +357,7 @@ static void change_start_address(GtkWidget *entry, guint64 address,
 				 gpointer data)
 {
   struct _mem_window_nfo *mwn;
-  WordA mem;
+  WordP mem;
 
   mwn = data;
   mem = address;
@@ -367,7 +367,7 @@ static void change_start_address(GtkWidget *entry, guint64 address,
 static void change_end_address(GtkWidget *entry, guint64 address, 
 			       gpointer data)
 {
-  WordA mem;
+  WordP mem;
   struct _mem_window_nfo *mwn;
 
   mwn = data;
@@ -389,7 +389,7 @@ void create_memory_window()
 {
   GtkWidget *vbox,*hbox,*scrolledW,*clist;
   GtkWidget *entryTop,*entryBottom,*memtype_button;
-  WordA mem;
+  WordP mem;
   gchar temp_str[7];
   gchar *titles[]={"address","value"};
   struct _mem_window_nfo *mem_window;
@@ -533,7 +533,7 @@ static void initialize_changed_mem(void)
 }
 
 // type==0 for written, type==1 for read
-int check_if_changed_set(WordA address, int type)
+int check_if_changed_set(WordP address, int type)
 {
   GList *list;
   struct _mem_changed *mc;
@@ -557,7 +557,7 @@ int check_if_changed_set(WordA address, int type)
 }
      
 
-void set_mem_changed(WordA address, int type)
+void set_mem_changed(WordP address, int type)
 {
   GList *list;
   struct _mem_changed *mc;

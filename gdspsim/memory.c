@@ -24,8 +24,8 @@
 
 struct _def_mem
 {
-  WordA start;
-  WordA end;
+  WordP start;
+  WordP end;
   int wait_state;
   MemType type;
   Word *mem;
@@ -33,7 +33,7 @@ struct _def_mem
 
 struct _fileIO_break
 {
-  WordA address;
+  WordP address;
   MemType type;
   struct _fileIO *io;
 };
@@ -51,7 +51,7 @@ GList *FileWriteBreak=NULL;
  * correct value */
 // This will need to be more complicated soon, that's why it's
 // broken out into a separate file.
-Word read_mem(WordA offset, int *wait_state, MemType type, int *available)
+Word read_mem(WordP offset, int *wait_state, MemType type, int *available)
 {
   GList *list;
   struct _def_mem *mem_page;
@@ -153,7 +153,7 @@ Word read_mem(WordA offset, int *wait_state, MemType type, int *available)
  * correct value */
 // This will need to be more complicated soon, that's why it's
 // broken out into a separate file.
-int write_mem(WordA offset, Word value, MemType type)
+int write_mem(WordP offset, Word value, MemType type)
 {
   GList *list;
   int wait_state;
@@ -241,7 +241,7 @@ int write_mem(WordA offset, Word value, MemType type)
 
 int write_program_mem(Word offset, Word value)
 {
-  WordA address;
+  WordP address;
 
   address = PAGE() | offset;
 
@@ -249,18 +249,18 @@ int write_program_mem(Word offset, Word value)
 }
 int write_data_mem(Word offset, Word value)
 {
-  WordA address;
+  WordP address;
 
   address = PAGE() | offset;
 
   return write_mem(address,value,DATA_MEM_TYPE);
 }
 
-int write_program_mem_long(WordA offset, Word value)
+int write_program_mem_long(WordP offset, Word value)
 {
   return write_mem(offset,value,PROGRAM_MEM_TYPE);
 }
-int write_data_mem_long(WordA offset, Word value)
+int write_data_mem_long(WordP offset, Word value)
 {
   return write_mem(offset,value,DATA_MEM_TYPE);
 }
@@ -268,7 +268,7 @@ int write_data_mem_long(WordA offset, Word value)
 Word read_data_mem(Word offset, int *wait_state)
 {
   int available;
-  WordA address;
+  WordP address;
 
   address = PAGE() | offset;
   return read_mem(address,wait_state,DATA_MEM_TYPE,&available);
@@ -279,7 +279,7 @@ Word read_data_mem(Word offset, int *wait_state)
 PWord read_program_mem(Word offset, int *wait_state)
 {
   int available;
-  WordA address;
+  WordP address;
   Word word;
   PWord pwrd;
 
@@ -293,7 +293,7 @@ PWord read_program_mem(Word offset, int *wait_state)
   return pwrd;
 }
 
-Word read_data_mem_long(WordA offset, int *wait_state)
+Word read_data_mem_long(WordP offset, int *wait_state)
 {
   int available;
   return read_mem(offset,wait_state,DATA_MEM_TYPE,&available);
@@ -301,7 +301,7 @@ Word read_data_mem_long(WordA offset, int *wait_state)
     printf("Warning trying to access invalid memory at address 0x%x\n",offset);
 }
 
-Word read_program_mem_long(WordA offset, int *wait_state)
+Word read_program_mem_long(WordP offset, int *wait_state)
 {
   int available;
   return read_mem(offset,wait_state,PROGRAM_MEM_TYPE,&available);
@@ -342,21 +342,21 @@ void print_mem_list(void)
 
 }
 
-static WordA default_start_view=0x80;
-static WordA default_end_view=0x100;
-void set_prog_mem_start_end(WordA start, WordA end)
+static WordP default_start_view=0x80;
+static WordP default_end_view=0x100;
+void set_prog_mem_start_end(WordP start, WordP end)
 {
   default_start_view=start;
   default_end_view=MIN(end,start+0x200);
 }
 
-void get_prog_mem_start_end(WordA *start, WordA *end)
+void get_prog_mem_start_end(WordP *start, WordP *end)
 {
   *start=default_start_view;
   *end=default_end_view;
 }
 
-static GList *insert_mem_list( GList *memlist, WordA start, WordA end, MemType type, int wait_state)
+static GList *insert_mem_list( GList *memlist, WordP start, WordP end, MemType type, int wait_state)
 {
   struct _def_mem *def_mem,*def_mem2;
   GList *list,*list2;
@@ -417,7 +417,7 @@ static void combine_mem_blocks(GList *keepL, GList *removeL)
   removeL=g_list_remove_link(removeL,removeL);
 }
 
-static GList *adjust_mem_list( GList *memlist, WordA start, WordA end, MemType type, int wait_state)
+static GList *adjust_mem_list( GList *memlist, WordP start, WordP end, MemType type, int wait_state)
 {
   struct _def_mem *def_mem,*def_mem2;
   GList *list,*list2;
@@ -497,7 +497,7 @@ static GList *adjust_mem_list( GList *memlist, WordA start, WordA end, MemType t
   return list;
 }
   
-static void fill_mem_with_data(Word *data, WordA start, int size, struct _def_mem *def_mem)
+static void fill_mem_with_data(Word *data, WordP start, int size, struct _def_mem *def_mem)
 {
   int k;
   Word *mem;
@@ -510,7 +510,7 @@ static void fill_mem_with_data(Word *data, WordA start, int size, struct _def_me
     }
 }
  
-static void fill_mem_with_const(Word fill, WordA start, int size, struct _def_mem *def_mem)
+static void fill_mem_with_const(Word fill, WordP start, int size, struct _def_mem *def_mem)
 {
   int k;
   Word *mem;
@@ -523,7 +523,7 @@ static void fill_mem_with_const(Word fill, WordA start, int size, struct _def_me
     }
 }
  
-void cp_to_mem(Word *data, WordA start, long int size, MemType type)
+void cp_to_mem(Word *data, WordP start, long int size, MemType type)
 {
   int wait_state=0;
   GList *list;
@@ -557,7 +557,7 @@ void cp_to_mem(Word *data, WordA start, long int size, MemType type)
   return;
 }
 
-void fill_to_mem(Word fill,  WordA start, long int size, MemType type)
+void fill_to_mem(Word fill,  WordP start, long int size, MemType type)
 {
   int wait_state=0;
   GList *list;
@@ -609,12 +609,12 @@ void set_MMR_ptr()
   MMR = (struct _MMR *)mem;
 }
 
-Word read_port_mem(WordA offset, int *wait_state)
+Word read_port_mem(WordP offset, int *wait_state)
 {
   return read_program_mem(offset,wait_state);
 }
 
-int write_port_mem(WordA offset, Word value)
+int write_port_mem(WordP offset, Word value)
 {
   return write_program_mem(offset,value);
 }
