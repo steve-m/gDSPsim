@@ -17,6 +17,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
+// Audit: Feb 23,2002:1 wkk
+
 #include "c54_core.h"
 #include "hardware.h"
 #include <stdio.h>
@@ -54,17 +56,26 @@ static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   union _GP_Reg_Union reg_union; 
 
-  if ( (pipeP->current_opcode & 0x100) == 0 )
-    reg_union.gp_reg = MMR->A;
-  else
-    reg_union.gp_reg = MMR->B;
-
-  Reg->PC = reg_union.words.low;
-  Reg->XPC = reg_union.words.high & 0x7f;
-
-  if ( (pipeP->current_opcode & 0x200) == 0 )
+  // stall by 3 cycles
+  if ( pipeP->cycles == 0 )
     {
-      Reg->Flush = Reg->Flush + 2;
+      Reg->Decode_Again = 3;
+    }
+
+  if (pipeP->cycles == 3)
+    {
+      if ( (pipeP->current_opcode & 0x100) == 0 )
+	reg_union.gp_reg = MMR->A;
+      else
+	reg_union.gp_reg = MMR->B;
+      
+      Reg->PC = reg_union.words.low;
+      Reg->XPC = reg_union.words.high & 0x7f;
+      
+      if ( (pipeP->current_opcode & 0x200) == 0 )
+	{
+	  Reg->Flush = Reg->Flush + 2;
+	}
     }
 }
 

@@ -17,6 +17,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
+// Audit: Feb 23,2002:1 wkk
+
 #include "c54_core.h"
 #include "hardware.h"
 #include <stdio.h>
@@ -55,28 +57,43 @@ static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   union _GP_Reg_Union reg_union;
 
-  MMR->SP--;
-  if (pipeP->current_opcode & 0x200)
+  // stall by 3 cycles
+  if ( pipeP->cycles == 0 )
     {
-      write_data_mem(MMR->SP,Reg->PC+3);
-    }
-  else
-    {
-      write_data_mem(MMR->SP,Reg->PC+1);
-      Reg->Flush = Reg->Flush + 2;
-    }
+      Reg->Decode_Again = 3;
 
-  MMR->SP--;
-  write_data_mem(MMR->SP,Reg->XPC);
+      MMR->SP--;
+    }
+  else if ( pipeP->cycles == 1 )
+    {
+      if (pipeP->current_opcode & 0x200)
+	{
+	  write_data_mem(MMR->SP,Reg->PC+3);
+	}
+      else
+	{
+	  write_data_mem(MMR->SP,Reg->PC+1);
+	}
+    }
+  else if ( pipeP->cycles == 2 )
+    {
+      MMR->SP--;
+    }
+  else if ( pipeP->cycles == 3 )
+    {
+      write_data_mem(MMR->SP,Reg->XPC);
   
-  if ( pipeP->current_opcode & 0x100 )
-    reg_union.gp_reg = MMR->B;
-  else
-    reg_union.gp_reg = MMR->A;
+      if ( pipeP->current_opcode & 0x100 )
+	reg_union.gp_reg = MMR->B;
+      else
+	reg_union.gp_reg = MMR->A;
 
-  Reg->PC = reg_union.words.low;
-  Reg->XPC = reg_union.words.high & 0x7f;
+      Reg->PC = reg_union.words.low;
+      Reg->XPC = reg_union.words.high & 0x7f;
 
+      if ( (pipeP->current_opcode & 0x200) == 0)
+	Reg->Flush = Reg->Flush + 2;
+    }
 }
 
 /* Generates an array of Words that this opcode text generates or NULL
