@@ -176,16 +176,55 @@ static int write_mem(WordA offset, Word value, MemType type)
   return 0;
 }
 
-int write_program_mem(WordA offset, Word value)
+int write_program_mem(Word offset, Word value)
+{
+  WordA address;
+
+  address = DP(MMR)<<16 | offset;
+
+  return write_mem(address,value,PROGRAM_MEM_TYPE);
+}
+int write_data_mem(Word offset, Word value)
+{
+  WordA address;
+
+  address = DP(MMR)<<16 | offset;
+
+  return write_mem(address,value,DATA_MEM_TYPE);
+}
+
+int write_program_mem_long(WordA offset, Word value)
 {
   return write_mem(offset,value,PROGRAM_MEM_TYPE);
 }
-int write_data_mem(WordA offset, Word value)
+int write_data_mem_long(WordA offset, Word value)
 {
   return write_mem(offset,value,DATA_MEM_TYPE);
 }
 
-Word read_data_mem(WordA offset, int *wait_state)
+Word read_data_mem(Word offset, int *wait_state)
+{
+  int available;
+  WordA address;
+
+  address = DP(MMR)<<16 | offset;
+  return read_mem(address,wait_state,DATA_MEM_TYPE,&available);
+  if ( !available )
+    printf("Warning trying to access invalid memory at address 0x%x\n",offset);
+}
+
+Word read_program_mem(Word offset, int *wait_state)
+{
+  int available;
+  WordA address;
+
+  address = DP(MMR)<<16 | offset;
+  return read_mem(address,wait_state,PROGRAM_MEM_TYPE,&available);
+  if ( !available )
+    printf("Warning trying to access invalid memory at address 0x%x\n",offset);
+}
+
+Word read_data_mem_long(WordA offset, int *wait_state)
 {
   int available;
   return read_mem(offset,wait_state,DATA_MEM_TYPE,&available);
@@ -193,7 +232,7 @@ Word read_data_mem(WordA offset, int *wait_state)
     printf("Warning trying to access invalid memory at address 0x%x\n",offset);
 }
 
-Word read_program_mem(WordA offset, int *wait_state)
+Word read_program_mem_long(WordA offset, int *wait_state)
 {
   int available;
   return read_mem(offset,wait_state,PROGRAM_MEM_TYPE,&available);

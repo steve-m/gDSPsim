@@ -28,18 +28,36 @@ typedef enum { PROGRAM_MEM_TYPE=1,  DATA_MEM_TYPE=2 } MemType;
  * a wait state of 0 and external RAM has a wait state of 1 or more. This
  * procedure takes into account all the memory mapping needed to get the
  * correct value */
-Word read_data_mem(WordA offset, int *wait_state);
 
-Word read_program_mem(WordA offset, int *wait_state);
+// read data mem using DP for page
+Word read_data_mem(Word offset, int *wait_state);
+
+// read program mem using DP for page
+Word read_program_mem(Word offset, int *wait_state);
+
+// read data mem ignoring DP
+Word read_data_mem_long(WordA offset, int *wait_state);
+
+// read program mem ignoring DP
+Word read_program_mem_long(WordA offset, int *wait_state);
 
 // available = 1, if it is available
 // available = 0, if it is not (not been written too)
 Word read_mem(WordA offset, int *wait_state, MemType type, int *available);
 
 /* Write's to memory. Return's wait state or -1 if unsucessfull */
-int write_program_mem(WordA offset, Word value);
 
-int write_data_mem(WordA offset, Word value);
+// write to program mem using DP for page
+int write_program_mem(Word offset, Word value);
+
+// write to data mem using DP for page
+int write_data_mem(Word offset, Word value);
+
+// write to program mem using offset
+int write_program_mem_long(WordA offset, Word value);
+
+// write to data mem using offset
+int write_data_mem_long(WordA offset, Word value);
 
 Word read_port_mem(WordA offset, int *wait_state);
 int write_port_mem(WordA offset, Word value);
