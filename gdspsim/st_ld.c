@@ -87,14 +87,16 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
   union _GP_Reg_Union reg_union;
   int input_mux;
 
+  // Ymem = src << (ASM-16)
   input_mux = pipeP->current_opcode & 0x200 >> 9;
-  shifter(input_mux,NULL,3,0,2);
+  shifter(input_mux,Reg,3,0,2);
 
   switch ( pipeP->opcode_subType )
     {
     case 0:
       {
-	reg_union.words.low = Reg->DB;
+	reg_union.gint64 = 0;
+	reg_union.words.high = Reg->DB;
 	if ( pipeP->current_opcode & 0x100 )
 	  MMR->B = reg_union.gp_reg;
 	else
