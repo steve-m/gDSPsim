@@ -17,6 +17,33 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
+#include "multiplier.h"
+#include <stdlib.h>
+#include <stdio.h>
+
+struct _bytes
+{
+  unsigned char byte0;
+  unsigned char byte1;
+  unsigned char byte2;
+  unsigned char byte3;
+};
+
+struct _words
+{
+  Word low;
+  Word high;
+};
+
+union _bitconv
+{
+  gint32 i32;
+  guint32 iu32;
+  struct _words words;
+  struct _bytes bytes;
+  
+};
+
 
 
 /* Xmux 0, X operand is from T register, signed
@@ -39,10 +66,6 @@
  *      3, Store in B register with Rounding
  */
 
-#include "multiplier.h"
-#include <stdlib.h>
-#include <stdio.h>
-
 // See page 4-20 (108) Vol1
 /* Multiplies 17-bits by 17-bits and returns 40-bits.
  * For signed each 16-bit memory is signed extended, 
@@ -52,7 +75,8 @@ void multiplier(int Xmux, int Ymux, int Amux, int Smux, struct _Registers *Reg)
 {
   gint32 X,Y; // Really need 17-bits
   gint64 Result64;
-  union _GP_Reg_Union gp_reg;
+  union _GP_Reg_Union reg_union;
+  union _bitconv t;
 
   switch (Xmux)
     {
@@ -63,7 +87,19 @@ void multiplier(int Xmux, int Ymux, int Amux, int Smux, struct _Registers *Reg)
       X = Reg->DB;
       break;
     case 2:
-      printf("fixme %s:%d\n",__FILE__,__LINE__);
+      reg_union.gint64 = 0;
+      reg_union.gp_reg = MMR->A;
+      t.words.low = reg_union.words.high; // Set bits 31-16 of A
+      if ( reg_union.gp_reg.byte4 & 0x1 )
+        {
+          t.words.high = 0xffff;
+        }
+      else
+        {
+          t.words.high = 0;
+        }
+      X = t.i32;
+      break;
     case 3:
       X = Reg->DB;
       X = abs(X);
@@ -79,7 +115,18 @@ void multiplier(int Xmux, int Ymux, int Amux, int Smux, struct _Registers *Reg)
       Y = Reg->DB;
       break;
     case 2:
-      printf("fixme %s:%d\n",__FILE__,__LINE__);
+      reg_union.gint64 = 0;
+      reg_union.gp_reg = MMR->A;
+      t.words.low = reg_union.words.high; // Set bits 31-16 of A
+      if ( reg_union.gp_reg.byte4 & 0x1 )
+        {
+          t.words.high = 0xffff;
+        }
+      else
+        {
+          t.words.high = 0;
+        }
+      Y = t.i32;
       break;
     case 3:
       Y = Reg->CB;
@@ -93,42 +140,45 @@ void multiplier(int Xmux, int Ymux, int Amux, int Smux, struct _Registers *Reg)
   // Now multiply X*Y in 17 bits to get 40 bits
   Result64 = X*Y;
 
+  if ( FRCT(MMR) )
+    Result64 = Result64 >> 1;
+
   // Now add 40 bits to 40 bits
   if ( Amux == 1 )
     {
       // Accumulate using A register
-      gp_reg.gp_reg = MMR->A;
-      Result64 = Result64 + gp_reg.gint64;
+      reg_union.gp_reg = MMR->A;
+      Result64 = Result64 + reg_union.gint64;
     }
   else if ( Amux == 2 )
     {
       // Accumulate using B register
-      gp_reg.gp_reg = MMR->B;
-      Result64 = Result64 + gp_reg.gint64;
+      reg_union.gp_reg = MMR->B;
+      Result64 = Result64 + reg_union.gint64;
     }
   else if ( Amux == 3 )
     {
       // Accumulate using A register
-      gp_reg.gp_reg = MMR->A;
-      Result64 = gp_reg.gint64 - Result64;
+      reg_union.gp_reg = MMR->A;
+      Result64 = reg_union.gint64 - Result64;
     }
   else if ( Amux == 4 )
     {
       // Accumulate using B register
-      gp_reg.gp_reg = MMR->B;
-      Result64 = gp_reg.gint64 - Result64;
+      reg_union.gp_reg = MMR->B;
+      Result64 = reg_union.gint64 - Result64;
     }
  
 
-  gp_reg.gint64 = Result64;
+  reg_union.gint64 = Result64;
 
   if ( Smux )
     {
       // Store in B register
-      MMR->B = gp_reg.gp_reg;
+      MMR->B = reg_union.gp_reg;
     }
   else
     {
-      MMR->A = gp_reg.gp_reg;
+      MMR->A = reg_union.gp_reg;
     }
 }
