@@ -119,7 +119,7 @@ static const Instruction_Class *All_Objects[All_Objects_Len]=
   &XOR_Obj,
 };
 
-#define NUM_MASK_CODE 26
+#define NUM_MASK_CODE 27
 static Decode_Func mask_function[NUM_MASK_CODE]=
 {
   t3_decode,
@@ -142,6 +142,7 @@ static Decode_Func mask_function[NUM_MASK_CODE]=
   n_decode,
   p_decode,
   rR_decode,
+  s_decode,
   t_decode,
   u_decode,
   v_decode,
@@ -149,7 +150,7 @@ static Decode_Func mask_function[NUM_MASK_CODE]=
   xy_decode,
   zZ_decode,
 };
-static gchar mask_code[NUM_MASK_CODE]={"34ACFGHIRTUVZcfhmnprtuvxyz"};
+static gchar mask_code[NUM_MASK_CODE]={"34ACFGHIRTUVZcfhmnprstuvxyz"};
 
 
 // Sets class,sub_type,length,mach_code1,mach_code2 of decode_nfo. 
@@ -203,7 +204,7 @@ void mach_code_to_text( struct _decoded_opcode *decode_nfo,
         {
 	  if ( *opcode == '\'' )
 	    {
-	      opcode++;
+	      opcode++; // skip opening '
 	      while ( *opcode && *opcode!='\'' )
 		{
 		  // Quoted text
@@ -212,7 +213,13 @@ void mach_code_to_text( struct _decoded_opcode *decode_nfo,
 		      *ansP++ = *opcode++;
 		      len++;
 		    }
+		  else
+		    {
+		      opcode++; // just get to the end
+		    }
 		}
+	      if ( *opcode )
+		opcode++; // skip closing '
 	    }
 	  else
 	    {
@@ -250,6 +257,10 @@ void mach_code_to_text( struct _decoded_opcode *decode_nfo,
 		    {
 		      *ansP++ = *opcode++;
 		      len++;
+		    }
+		  else
+		    {
+		      opcode++; // just get to the end
 		    }
 		}
 	    }
@@ -476,7 +487,7 @@ void decoded_opcodes(GPtrArray *textA,WordA start,WordA end, GArray *word2line)
 	}
       for (k=0;k<num_to_read;k++)
 	{
-	  mach_code = read_program_mem(start+k+MAX_OP_LEN-num_to_read,&wait_state);
+	  mach_code = read_program_mem_long(start+k+MAX_OP_LEN-num_to_read,&wait_state);
 	  decode_nfo.mach_code.bop[k+MAX_OP_LEN-num_to_read] = mach_code;
 	}
       decode_nfo.address = start;
