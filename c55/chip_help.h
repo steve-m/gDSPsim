@@ -32,6 +32,9 @@ extern "C"
   // sign_extend if true
   union _GP_Reg_Union get_register(int r, int sign_extend);
 
+  // returns a register, extends to 40 bits if _M40 is set
+  union _GP_Reg_Union get_register2(int r, int sign_extend, int _M40);
+
   // Set ACx (r=0-3). No flags or saturation set. Uses LSB
   // for 16 bit registers
   void set_register(union _GP_Reg_Union reg_union, int r);
@@ -42,12 +45,26 @@ extern "C"
   // is non-zero or to reg_union if sat_bit is zero.
   void set_reg_saturate(union _GP_Reg_Union reg_union, int r, int sat_bit);
 
+  // Set the low 16 bits of a register
+  void set_k16_regLO(int r, Word value);
+
+  // Set the low 16 bits of a register
+  void set_k16_regHI(int r, Word value);
+
   // Set ACOV[0-3] (r=0-3) if reg_union is saturated. Saturation is
   // 0x80 0000 0000 and 0x7f ffff ffff if _M40=1 and 
   // 0xff 8000 0000 and 0x00 7fff ffff if _M40=0.
+  // if r=[4-15] saturation value is 0x7fff and 0x8000. No 
   // Saturated value is returned if _SATD=1,3 and reg_union is _SATD=0,2
-  // ACx (r=0,3) is set to Saturated value is _SATD=2,3
+  // ACx (r=0,3) is set to Saturated value if _SATD=2,3
   union _GP_Reg_Union saturate(union _GP_Reg_Union reg_union, int r, int _M40, int _SATD);
+
+  // returns 0 if condition is false and non-zero if true
+  int check_condition(unsigned char cond, struct _Registers *Reg);
+
+  void set_extended_reg(WordA value, int xr, struct _Registers *Reg);
+
+  WordA get_extended_reg(int xr, struct _Registers *Reg);
 
 #ifdef __cplusplus
 }
