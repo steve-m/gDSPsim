@@ -1,7 +1,7 @@
 /*
  * gDSPsim - GNU Digital Signal Processor Simulator
  *
- * Copyright (C) 2001, Kerry Keal, kerry@industrialmusic.com
+ * Copyright (C) 2001-2002, Kerry Keal, kerry@industrialmusic.com
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -20,9 +20,14 @@
 #ifndef __MEMORY_H__
 #define __MEMORY_H__
 
-#include "c54_core.h"
+#include "chip_core.h"
+#include "fileIO.h"
 
 typedef enum { PROGRAM_MEM_TYPE=1,  DATA_MEM_TYPE=2 } MemType;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* Read data memory and determine it's wait state. Generally on chip RAM has
  * a wait state of 0 and external RAM has a wait state of 1 or more. This
@@ -33,7 +38,7 @@ typedef enum { PROGRAM_MEM_TYPE=1,  DATA_MEM_TYPE=2 } MemType;
 Word read_data_mem(Word offset, int *wait_state);
 
 // read program mem using DP for page
-Word read_program_mem(Word offset, int *wait_state);
+PWord read_program_mem(Word offset, int *wait_state);
 
 // read data mem ignoring DP
 Word read_data_mem_long(WordA offset, int *wait_state);
@@ -44,6 +49,8 @@ Word read_program_mem_long(WordA offset, int *wait_state);
 // available = 1, if it is available
 // available = 0, if it is not (not been written too)
 Word read_mem(WordA offset, int *wait_state, MemType type, int *available);
+// returns wait state
+int write_mem(WordA offset, Word value, MemType type);
 
 /* Write's to memory. Return's wait state or -1 if unsucessfull */
 
@@ -76,5 +83,19 @@ void set_MMR_ptr();
 
 // Debug function to print defined memory
 void print_mem_list(void);
+
+
+// Functions used for file IO
+void set_fileIO_break_on_read(WordA address, MemType type, struct _fileIO *io);
+
+void set_fileIO_break_on_write(WordA address, MemType type, struct _fileIO *io);
+
+void remove_fileIO_break_on_read(struct _fileIO *io);
+
+void remove_fileIO_break_on_write(struct _fileIO *io);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // __MEMORY_H__

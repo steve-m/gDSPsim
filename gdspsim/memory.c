@@ -31,9 +31,19 @@ struct _def_mem
   Word *mem;
 };
 
+struct _fileIO_break
+{
+  WordA address;
+  MemType type;
+  struct _fileIO *io;
+};
+
 GList *ProgMemList=NULL;
 GList *DataMemList=NULL;
 GList *DataProgMemList=NULL;
+
+GList *FileReadBreak=NULL;
+GList *FileWriteBreak=NULL;
 
 /* Read data memory and determine it's wait state. Generally on chip RAM has
  * a wait state of 0 and external RAM has a wait state of 1 or more. This
@@ -46,6 +56,19 @@ Word read_mem(WordA offset, int *wait_state, MemType type, int *available)
   GList *list;
   struct _def_mem *mem_page;
   Word *mem_element;
+  struct _fileIO_break *fIObrk;
+  
+  list = FileReadBreak;
+  while ( list )
+    {
+      fIObrk = list->data;
+      if ( (fIObrk->address = offset) && (fIObrk->type == type) )
+	{
+	  // time to do fileIO
+	  fileIO_process(fIObrk->io);
+	}
+      list = list->next;
+    }
 
   *available = 1;
   set_mem_changed(offset,1);
@@ -130,12 +153,25 @@ Word read_mem(WordA offset, int *wait_state, MemType type, int *available)
  * correct value */
 // This will need to be more complicated soon, that's why it's
 // broken out into a separate file.
-static int write_mem(WordA offset, Word value, MemType type)
+int write_mem(WordA offset, Word value, MemType type)
 {
   GList *list;
   int wait_state;
   struct _def_mem *mem_page;
   Word *mem_element;
+  struct _fileIO_break *fIObrk;
+  
+  list = FileWriteBreak;
+  while ( list )
+    {
+      fIObrk = list->data;
+      if ( (fIObrk->address = offset) && (fIObrk->type == type) )
+	{
+	  // time to do fileIO
+	  fileIO_process(fIObrk->io);
+	}
+      list = list->next;
+    }
 
   // This memory address has been written to
   set_mem_changed(offset,0);
@@ -207,7 +243,7 @@ int write_program_mem(Word offset, Word value)
 {
   WordA address;
 
-  address = DP(MMR)<<16 | offset;
+  address = PAGE() | offset;
 
   return write_mem(address,value,PROGRAM_MEM_TYPE);
 }
@@ -215,7 +251,7 @@ int write_data_mem(Word offset, Word value)
 {
   WordA address;
 
-  address = DP(MMR)<<16 | offset;
+  address = PAGE() | offset;
 
   return write_mem(address,value,DATA_MEM_TYPE);
 }
@@ -234,21 +270,27 @@ Word read_data_mem(Word offset, int *wait_state)
   int available;
   WordA address;
 
-  address = DP(MMR)<<16 | offset;
+  address = PAGE() | offset;
   return read_mem(address,wait_state,DATA_MEM_TYPE,&available);
   if ( !available )
     printf("Warning trying to access invalid memory at address 0x%x\n",offset);
 }
 
-Word read_program_mem(Word offset, int *wait_state)
+PWord read_program_mem(Word offset, int *wait_state)
 {
   int available;
   WordA address;
+  Word word;
+  PWord pwrd;
 
-  address = DP(MMR)<<16 | offset;
-  return read_mem(address,wait_state,PROGRAM_MEM_TYPE,&available);
+  address = PAGE() | offset;
+  word = read_mem(PADDR_TO_ADDR(address),wait_state,PROGRAM_MEM_TYPE,&available);
   if ( !available )
     printf("Warning trying to access invalid memory at address 0x%x\n",offset);
+
+  pwrd = WORD_TO_PWORD(word,address);
+
+  return pwrd;
 }
 
 Word read_data_mem_long(WordA offset, int *wait_state)
@@ -305,7 +347,7 @@ static WordA default_end_view=0x100;
 void set_prog_mem_start_end(WordA start, WordA end)
 {
   default_start_view=start;
-  default_end_view=MIN(end,start+0x100);
+  default_end_view=MIN(end,start+0x200);
 }
 
 void get_prog_mem_start_end(WordA *start, WordA *end)
@@ -576,3 +618,70 @@ int write_port_mem(WordA offset, Word value)
 {
   return write_program_mem(offset,value);
 }
+
+void set_fileIO_break_on_read(WordA address, MemType type, struct _fileIO *io)
+{
+  struct _fileIO_break *fIObrk;
+
+  fIObrk = g_new(struct _fileIO_break,1);
+
+  fIObrk->address = address;
+  fIObrk->type = type;
+  fIObrk->io = io;
+  FileReadBreak = g_list_append(FileReadBreak,fIObrk);
+}
+
+void set_fileIO_break_on_write(WordA address, MemType type, struct _fileIO *io)
+{
+  struct _fileIO_break *fIObrk;
+
+  fIObrk = g_new(struct _fileIO_break,1);
+
+  fIObrk->address = address;
+  fIObrk->type = type;
+  fIObrk->io = io;
+  FileWriteBreak = g_list_append(FileWriteBreak,fIObrk);
+}
+
+
+void remove_fileIO_break_on_read(struct _fileIO *io)
+{
+  GList *list;
+  struct _fileIO_break *fIObrk;
+
+  list = FileReadBreak;
+  while (list)
+    {
+      fIObrk = list->data;
+      if ( io == fIObrk->io )
+	{
+	  FileReadBreak = g_list_remove_link(FileReadBreak,list);
+	  g_free(fIObrk);
+	  return;
+	}
+      list=list->next;
+    }
+  printf("Programming Error! Bad Call. %s:%d\n",__FILE__,__LINE__);
+}
+
+void remove_fileIO_break_on_write(struct _fileIO *io)
+{
+  GList *list;
+  struct _fileIO_break *fIObrk;
+
+  list = FileWriteBreak;
+  while (list)
+    {
+      fIObrk = list->data;
+      if ( io == fIObrk->io )
+	{
+	  FileWriteBreak = g_list_remove_link(FileWriteBreak,list);
+	  g_free(fIObrk);
+	  return;
+	}
+      list=list->next;
+    }
+  printf("Programming Error! Bad Call. %s:%d\n",__FILE__,__LINE__);
+}
+
+
