@@ -23,9 +23,7 @@ Read in [filename]
 </p>
 
 <p>
-<b>Running</b>
-<br>
-Setting Break points:  In the decode window click in the left column to set a break point and a stop sign will appear when it is properly set. To remove the break point click on the stop sign and the stop sign will disappear confirming the removal of the break point.
+<b>Shortcut Keys</b>
 <br>
 [F5] Runs the simulation
 <br>
@@ -34,6 +32,27 @@ Setting Break points:  In the decode window click in the left column to set a br
 [F7] Animate the simulation (Runs slower, with lots of highlighting)
 <br>
 [F8] Steps through the code 1 opcode at a time.
+</p>
+
+<p>
+<b>Decode Window</b>
+<br>
+Setting Break points:  In the decode window click in the left column to set a break point and a stop sign will appear when it is properly set. To remove the break point click on the stop sign and the stop sign will disappear confirming the removal of the break point.<br>
+When stepping through code, color bars will track the code where each color represents a different stage of the pipeline. You can set how stepping through the code tracks the color highlighting in the preferences for the window.
+<br>
+The 2 entries at the top of the window set the memory addresses that are decoded in the window. You can enter hex numbers or label names in the entry block
+</p>
+
+<p>
+<b>Register Window</b>
+<br>
+When registers are changed the turn red. If the value changes while running, then changes back to the original value, the value stays black. This may change in the future.
+</p>
+
+<p>
+<b>Memory Window</b>
+<br>
+The location of the stack pointer is highlighted yellow. When values are changed they are changed to red. When values are read, they are turned light-blue. The color are maintained even if the value changes back to it's original value between break points. In the future the number of times a memory location is read or written too may be available. The 2 entries at the top of the window set the memory addresses that are shown in the window. You can enter hex numbers or label names in the entry block. The Data/Program button at the top toggles the type of memory displayed.
 </p>
 
 <p>
