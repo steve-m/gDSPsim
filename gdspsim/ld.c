@@ -251,7 +251,7 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 	    else
 	      MMR->A = reg_union.gp_reg;
 	    
-	    shifter(d,Reg,2,pipeP->current_opcode&0xf,regNum);
+	    shifter(d,Reg,2,pipeP->current_opcode&0xf,d);
 	    
 	    return;
 	  }
