@@ -22,7 +22,12 @@
 
 // Should be called once to setup
 struct _Registers *pipe_new();
-void pipeline(struct _Registers *Registers);
+
+// Return 1 if it hits a breakpoint
+// Return 0, otherwise
+int pipeline(struct _Registers *Registers);
+
+void set_breakpoint(WordA bp);
 
 #endif //__PIPELINE_H__
 
