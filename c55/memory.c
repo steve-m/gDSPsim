@@ -269,11 +269,17 @@ Word read_data_mem(Word offset, int *wait_state)
 {
   int available;
   WordA address;
+  unsigned char b1,b2;
 
-  address = PAGE() | offset;
-  return read_mem(address,wait_state,DATA_MEM_TYPE,&available);
+  address = PAGE() | (offset<<1);
+  b1 = read_mem(address,wait_state,DATA_MEM_TYPE,&available);
   if ( !available )
-    printf("Warning trying to access invalid memory at address 0x%x\n",offset);
+    printf("Warning trying to access invalid memory at  byte address 0x%x\n",address);
+  b2 = read_mem(address+1,wait_state,DATA_MEM_TYPE,&available);
+
+  if ( !available )
+    printf("Warning trying to access invalid memory at byte address 0x%x\n",address);
+  return b1<<8 | b2;
 }
 
 WordP read_program_mem(Word offset, int *wait_state)
@@ -296,9 +302,16 @@ WordP read_program_mem(Word offset, int *wait_state)
 Word read_data_mem_long(WordA offset, int *wait_state)
 {
   int available;
-  return read_mem(offset,wait_state,DATA_MEM_TYPE,&available);
+  unsigned char b1,b2;
+
+  b1 = read_mem(offset<<1,wait_state,DATA_MEM_TYPE,&available);
   if ( !available )
-    printf("Warning trying to access invalid memory at address 0x%x\n",offset);
+    printf("Warning trying to access invalid memory at  Word address 0x%x\n",offset);
+  b2 = read_mem((offset<<1)+1,wait_state,DATA_MEM_TYPE,&available);
+
+  if ( !available )
+    printf("Warning trying to access invalid memory at Word address 0x%x\n",offset);
+  return b1<<8 | b2;
 }
 
 WordP read_program_mem_long(WordA offset, int *wait_state)
