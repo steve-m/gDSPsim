@@ -37,9 +37,10 @@
 // 1 = Store in B
 // 2 = Low Bits to EB
 // 3 = High Bits to EB
+// 4 = Store to Shifter register
 
 // SXM sign extension bit
-inline void shifter(Word input_mux, struct _Registers *Reg, Word shift_mux, SWord shift, Word output_mux, Word SXM)
+inline void shifter(Word input_mux, struct _Registers *Reg, Word shift_mux, SWord shift, Word output_mux)
 {
   union _GP_Reg_Union reg;
   
@@ -75,8 +76,7 @@ inline void shifter(Word input_mux, struct _Registers *Reg, Word shift_mux, SWor
       break;
     }
 
-
-  if ( SXM )
+  if ( SXM(MMR) )
     {
       // Sign extended
       reg.gint64 = reg.gint64 << shift;
@@ -99,13 +99,15 @@ inline void shifter(Word input_mux, struct _Registers *Reg, Word shift_mux, SWor
       break;
     case 3:
       write_data_mem(Reg->EAB,reg.words.high);
+    case 4:
+      Reg->Shifter = reg.gp_reg;
     }
 }
 
 // storage_mux 
 // 0, store in A
 // not 0, store in B
-
+#if 0
 // shift, amount to shift
 void shifter2GPreg(int input_mux, int shift, Word SXM, struct _Registers *Reg, Word storage_mux)
 {
@@ -119,7 +121,7 @@ void shifter2GPreg(int input_mux, int shift, Word SXM, struct _Registers *Reg, W
       reg.gp_reg = MMR->A;
       break;
     case 1:
-      reg.gp_reg = MMR->A;
+      reg.gp_reg = MMR->B;
       break;
     case 2:
       reg.words.low = Reg->DB;
@@ -169,4 +171,48 @@ void shiftWord2GPreg(SWord input, int shift, Word SXM, struct _Registers *Reg, W
   else
     MMR->A =reg.gp_reg;
   return;
+}
+#endif
+// Rotate register. clears guard bits, rotates bit_in in, and returns
+// bit rotated out
+//
+// imux (input)
+// 0 = A
+// 1 = B 
+// direction
+// 0 = rotate left
+// 1 = rotate right
+inline int rotate(int imux, int direction, int bit_in, struct _Registers *Reg)
+{
+  union _GP_Reg_Union reg;
+  int bit_out;
+  
+  reg.guint64 = 0;
+
+  if ( imux )
+    reg.gp_reg = MMR->B;
+  else
+    reg.gp_reg = MMR->A;
+  
+  if ( direction )
+    {
+      bit_out = reg.gint64 & 0x1;
+      reg.gint64 = reg.gint64 >> 1;
+      reg.guint64 = reg.guint64 & 0xffffffff;
+      reg.guint64 = reg.guint64 | (bit_in<<31);
+    }
+  else
+    {
+      bit_out = (reg.gint64 & 0x80000000)>>31;
+      reg.gint64 = reg.gint64 << 1;
+      reg.guint64 = reg.guint64 & 0xffffffff;
+      reg.guint64 = reg.guint64 | bit_in;
+    }
+
+  if ( imux )
+    MMR->B = reg.gp_reg;
+  else
+    MMR->A = reg.gp_reg;
+
+  return bit_out;
 }

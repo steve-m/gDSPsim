@@ -39,8 +39,7 @@
 // 2 = Low Bits to EB
 // 3 = High Bits to EB
 
-// SXM sign extension bit
-inline void shifter(Word input_mux, struct _Registers *Reg, Word shift_mux, SWord shift, Word output_mux, Word SXM);
+inline void shifter(Word input_mux, struct _Registers *Reg, Word shift_mux, SWord shift, Word output_mux);
 
 
 // mux (input control)
@@ -55,7 +54,7 @@ inline void shifter(Word input_mux, struct _Registers *Reg, Word shift_mux, SWor
 
 // 0 = Low Bits to EB
 // 1 = High Bits to EB
-
+#if 0
 // SXM sign extension bit
 void shifter2EB (int input_mux, int shift_mux, int output_mux, Word SXM);
 // storage_mux 
@@ -66,5 +65,17 @@ void shifter2EB (int input_mux, int shift_mux, int output_mux, Word SXM);
 void shifter2GPreg(int input_mux, int shift, Word SXM, struct _Registers *Reg, Word storage_mux);
 void shiftWord2GPreg(SWord input, int shift, Word SXM, struct _Registers *Reg, Word storage_mux);
 void shifter2store (int input_mux, struct _Registers *Reg, int shift_mux, SWord shift, int output_mux, Word SXM);
+#endif
+
+// Rotate register. clears guard bits, rotates bit_in in, and returns
+// bit rotated out
+//
+// imux (input)
+// 0 = A
+// 1 = B 
+// direction
+// 0 = rotate left
+// 1 = rotate right
+inline int rotate(int imux, int direction, int bit_in, struct _Registers *Reg);
 
 #endif //__SHIFTER_H__
