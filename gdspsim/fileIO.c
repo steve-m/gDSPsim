@@ -21,7 +21,6 @@
 #include <stdio.h>
 #include "memory.h"
 #include "string.h"
-#include "gtk_help.h"
 #include "entryCB.h"
 
 static GtkWidget *fileIOW=NULL;
