@@ -30,9 +30,9 @@
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg);
 static GPtrArray *machine_code(gchar *opcode_text);
 
-static gchar *mask[]=    { "111101uu 10101eee" };
-static gchar *opcode[] = { "CMPR u,e" };
-static gchar *comment[]= { "TC = AR0 $(u) $(e)" };
+static gchar *mask[]=    { "111101uu 10101vvv" };
+static gchar *opcode[] = { "CMPR u,v" };
+static gchar *comment[]= { "TC = AR0 $(u) $(v)" };
 
 /* This definition is global because another routine will make have
  * an array that points to all the different instruction classes.
