@@ -58,19 +58,86 @@ Instruction_Class ABS_Obj =
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   union _GP_Reg_Union reg_union;
+  int OVdst;
+
+  OVdst = 0;
+  reg_union.gint64 = 0;
 
   if ( pipeP->current_opcode & 0x200 )
-    reg_union.gp_reg = MMR->B;
+    reg_union.guint64 = GP_REG_2_UINT64(MMR->B);
   else
-    reg_union.gp_reg = MMR->A;
+    reg_union.guint64 = GP_REG_2_UINT64(MMR->A);
+  
+  printf("--- 0x%llx\n",reg_union.guint64);
+  
+  if ( OVM(MMR) )
+    {
+      if ( reg_union.gp_reg.byte4 & 0x80 )
+	{
+	  // negative
+	  if ( reg_union.gp_reg.byte4 == 0xff )
+	    {
+	      reg_union.gint64 = -reg_union.gint64;
+	    }
+	  else
+	    {
+	      if ( reg_union.gu32.low == 0 )
+		{
+		  // Special case
+		  reg_union.guint64 = (guint64)0x7fffffff;
+		}
+	      else
+		{
+		  // negative and overflowed
+		  reg_union.guint64 = (guint64)0xffffffff80000000;
+		}
+	      OVdst = 1;
+	    }
+	}
+      else if ( reg_union.gp_reg.byte4 )
+	{
+	  // positive and overflowed
+	  reg_union.guint64 = (guint64)0x7fffffff;
+	  OVdst = 1;
+	}
+    }
+  else
+    {
+      if ( reg_union.gint64 < 0 )
+	{
+	  // negative
+	  reg_union.gint64 = -reg_union.gint64;
+	}
+      if ( reg_union.guint64 > (guint64)0x7fffffff )
+	{
+	  OVdst = 1;
+	}
+    }
 
-  if ( reg_union.gint64 < 0 )
-    reg_union.gint64 = -reg_union.gint64;
+      
+	
 
+
+  if ( reg_union.gint64 == 0 )
+    set_C(MMR,1);
+
+ 
   if ( pipeP->current_opcode & 0x100 )
-    MMR->B = reg_union.gp_reg;
+    {
+      MMR->B = reg_union.gp_reg;
+      if ( OVdst )
+	{
+	  set_OVB(MMR,1);
+	}
+    }
   else
-    MMR->A = reg_union.gp_reg;
+    {
+      MMR->A = reg_union.gp_reg;
+      if ( OVdst )
+	{
+	  set_OVA(MMR,1);
+	}
+    }
 }
 
 /* Generates an array of Words that this opcode text generates or NULL
