@@ -53,10 +53,7 @@ Instruction_Class BANZ_Obj =
 
 static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-
-  
-  if (pipeP->word_number==2)
-    smem_read_stg1(pipeP,Reg);
+  smem_read_stg1(pipeP,Reg);
 
   if ( pipeP->word_number == 1 )
     {
