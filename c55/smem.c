@@ -298,7 +298,43 @@ Word bit_reversal(Word start, Word bit_reversed_one, SWord adjustment)
   return base+index;
 
 }
-     
+
+// r=0, LO(AC0)=value1
+//      LO(AC1)=value2
+// r=2, LO(AC2)=value1
+//      LO(AC3)=value2
+void set_k16_pair_LOreg(int r, Word value1, Word value2, int sign_extend)
+{
+  if ( r )
+    {
+      MMR->AC0.wgp.word0 = value1;
+      MMR->AC1.wgp.word0 = value2;
+    }
+  else
+    {
+      MMR->AC0.wgp.word0 = value1;
+      MMR->AC1.wgp.word0 = value2;
+    }
+}
+
+// r=0, HI(AC0)=value1
+//      HI(AC1)=value2
+// r=2, HI(AC2)=value1
+//      HI(AC3)=value2
+void set_k16_pair_HIreg(int r, Word value1, Word value2, int sign_extend)
+{
+  if ( r )
+    {
+      MMR->AC0.wgp.word1 = value1;
+      MMR->AC1.wgp.word1 = value2;
+    }
+  else
+    {
+      MMR->AC0.wgp.word1 = value1;
+      MMR->AC1.wgp.word1 = value2;
+    }
+}
+
 // r register number 0-15
 void set_k16_reg(int r, Word value, int sign_extend)
 {
@@ -555,11 +591,10 @@ void smem_read_stg(struct _PipeLine *pipeP, struct _Registers *Reg)
 void smem_read_stg_dbl(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   int wait_state;
-  Word w1,w2;
 
-  w1 = read_data_mem(Reg->DAB,&wait_state);
-  w2 = read_data_mem(Reg->DAB^1,&wait_state);
-  Reg->DB2 = ((DWord)w1)<<16 | ((DWord)w2);
+  // FIXME need to use Reg->CAB
+  Reg->DB = read_data_mem(Reg->DAB,&wait_state);
+  Reg->CB = read_data_mem(Reg->DAB^1,&wait_state);
 }
 
 void smem_set_EAB_b2(struct _PipeLine *pipeP, struct _Registers *Reg)
