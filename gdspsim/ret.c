@@ -54,21 +54,28 @@ Instruction_Class RET_Obj =
 
 static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-  Reg->EAB = MMR->SP;
-  MMR->SP++;
-
-  Reg->Dont_Decode = 1;
+  // stall by 2 cycle
+  if ( pipeP->cycles == 0 )
+    Reg->Decode_Again = 2;
+  else if ( pipeP->cycles == 2 )
+    {
+      Reg->EAB = MMR->SP;
+      MMR->SP++;
+    }
 }
 
 static void read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   int wait_state;
 
-  Reg->PC = read_data_mem(Reg->EAB,&wait_state);
-
-  if ( (pipeP->current_opcode & 0x200) == 0 )
+  if ( pipeP->cycles == 2 )
     {
-      Reg->Flush = Reg->Flush + 2;
+      Reg->PC = read_data_mem(Reg->EAB,&wait_state);
+
+      if ( (pipeP->current_opcode & 0x200) == 0 )
+	{
+	  Reg->Flush = Reg->Flush + 2;
+	}
     }
 }
 
