@@ -25,7 +25,7 @@
 
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg);
 
-static gchar *mask[]=    { "0101000s aaaaaaaa" };
+static gchar *mask[]=    { "0101100s aaaaaaaa" };
 static gchar *opcode[] = { "DRSUB a,s" };
 static gchar *comment[]= { "$(s)=$(s)-$(a)" };
 
