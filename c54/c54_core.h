@@ -109,6 +109,8 @@ struct _Registers
   int RC_first_pass; // set to 1 for read_stg1 following repeat single
   // Set to 1 to stall and calls that part of the pipe and only that
   // part of the pipe again.
+  int RC_loop; // set to 1 for read_stg1 after a repeat loop has started
+  // it is not 1 for the first pass when RC_first_pass is one.
   int Dont_Decode; // Set to non zero to not run any more
   // fetch, decode, or prefetch, PC increment.
   int fetch_flags; // Used to step breakpoints amoung other things

@@ -209,6 +209,7 @@ int pipeline(struct _Registers *Registers)
 	{
 	  // RC was set
 	  Registers->RC_first_pass = 1;
+	  // Registers->RC_loop = 1;
 	}
 
 
@@ -311,7 +312,12 @@ int pipeline(struct _Registers *Registers)
         }
 
       if ( Registers->RC_first_pass )
-	Registers->RC_first_pass = 0;
+	{
+	  Registers->RC_first_pass = 0;
+	  Registers->RC_loop=1;
+	}
+      else
+	Registers->RC_loop=0;
     }
   else
     {
@@ -369,6 +375,7 @@ void default_registers(struct _Registers *Registers)
   Registers->Flush = 0;
   Registers->Special_Flush = 0;
   Registers->RC_first_pass = 0;
+  Registers->RC_loop = 0;
   Registers->Dont_Decode = 0;
   Registers->Decode_Again = 0;
   Registers->fetch_flags = 0;

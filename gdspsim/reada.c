@@ -62,7 +62,7 @@ static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
 	  pipeP->storage1 = Reg->IR;
 	}
 
-      if ( Reg->RC_first_pass || ( Reg->RC == 0 ) )
+      if ( Reg->RC_loop == 0 )
 	{
 	  union _GP_Reg_Union reg_union;
 	  
