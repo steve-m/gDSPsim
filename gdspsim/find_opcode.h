@@ -21,7 +21,7 @@
 #define __FIND_OPCODE_H__
 
 #include "chip_core.h"
-#include "decode.h"
+#include <decode.h>
 
 
 struct _decode_opcode

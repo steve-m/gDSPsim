@@ -1,7 +1,7 @@
 /*
  * gDSPsim - GNU Digital Signal Processor Simulator
  *
- * Copyright (C) 2001, Kerry Keal, kerry@industrialmusic.com
+ * Copyright (C) 2001-2002, Kerry Keal, kerry@industrialmusic.com
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -20,11 +20,19 @@
 #ifndef __REGISTER_WINDOW_H__
 #define __REGISTER_WINDOW_H__
 
-#include "c54_core.h"
+#include <chip_core.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 void create_register_window(struct _Registers *Registers);
 
 // Used to update the register window
 void fill_reg_entries(struct _Registers *Registers);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //__REGISTER_WINDOW_H__
