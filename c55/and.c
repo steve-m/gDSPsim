@@ -34,7 +34,7 @@ static gchar *mask[]=
 
   "01111010 uuuuuuuu uuuuuuuu rrRR010v", // AND k16 << #16, [ACx,] ACy
   "01110010 hhhhhhhh hhhhhhhh rrRRuuuu", // AND k16 << #SHFT, [ACx,] ACy
-  "11110100 AAAAAAAI kkkkkkkk kkkkkkkk", // AND k16, Smem
+  "11110100 ssssssss hhhhhhhh hhhhhhhh", // AND k16, Smem
 };
 
 static gchar *opcode[] = 
@@ -47,7 +47,7 @@ static gchar *opcode[] =
 
   "'AND' u<<#16,r,R", // AND k16 << #16, [ACx,] ACy
   "'AND' h<<#u,r,R", // AND k16 << #SHFT, [ACx,] ACy
-  "'AND' u,s", // AND k16, Smem
+  "'AND' #h,s", // AND k16, Smem
 };
 
 static void address_stg(struct _PipeLine *pipeP, struct _Registers *Reg);

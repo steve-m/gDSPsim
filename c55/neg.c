@@ -28,7 +28,7 @@ static gchar *mask[]=
 
 static gchar *opcode[] = 
 { 
-  "NEG r,R",
+  "'NEG' r,R",
 };
 
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg);

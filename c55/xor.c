@@ -34,7 +34,7 @@ static gchar *mask[]=
   
   "01111010 uuuuuuuu uuuuuuuu rrRR100v", // XOR k16 << #16, [ACx,] ACy
   "01110100 hhhhhhhh hhhhhhhh rrRRuuuu", // XOR k16 << #SHFT, [ACx,] ACy
-  "11110110 AAAAAAAI kkkkkkkk kkkkkkkk", // XOR k16, Smem
+  "11110110 ssssssss hhhhhhhh hhhhhhhh", // XOR k16, Smem
 };
 
 static gchar *opcode[] = 
@@ -47,7 +47,7 @@ static gchar *opcode[] =
 
   "'XOR' u<<#16,r,R", // XOR k16 << #16, [ACx,] ACy
   "'XOR' h<<#u,r,R", // XOR k16 << #SHFT, [ACx,] ACy
-  "'XOR' u,s", //XOR k16, Smem
+  "'XOR' h,s", //XOR k16, Smem
 };
 
 static void address_stg(struct _PipeLine *pipeP, struct _Registers *Reg);
