@@ -22,6 +22,8 @@
 #include <stdio.h>
 #include "smem.h"
 #include "xymem.h"
+#include "alu.h"
+#include "shifter.h"
 #include "decode.h"
 
 static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg);
@@ -178,196 +180,144 @@ static void read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
 
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-  union _GP_Reg_Union reg_union;
-  union _GP_Reg_Union reg_union2;
-
+  int regNumDst,regNumSrc;
   if ( pipeP->word_number == 1 )
     {
-
+      
       switch ( pipeP->opcode_subType )
 	{
 	case 0: // ADD Smem,src
 	  {
-	    if ( pipeP->current_opcode & 0x100 )
-	      reg_union.gp_reg = MMR->B;
-	    else
-	      reg_union.gp_reg = MMR->A;
+	    // src = src + Smem
+	    regNumSrc = (pipeP->current_opcode&0x100)>>8;
 	    
-	    reg_union2.gp_reg = alu_add(reg_union.gp_reg,Reg->DB,0,SXM(MMR) );
-	    
-	    if ( pipeP->current_opcode & 0x100 )
-	      MMR->B = reg_union2.gp_reg;
-	    else
-	      MMR->A = reg_union2.gp_reg;
+	    alu(0,regNumSrc,regNumSrc,0,Reg);
 	    break;
 	  }
 	case 1: // ADD Smem,TS,src
 	  {
-	    if ( pipeP->current_opcode & 0x100 )
-	      reg_union.gp_reg = MMR->B;
-	    else
-	      reg_union.gp_reg = MMR->A;
+	    // src = src + (Smem<<TS)
+	    regNumSrc = (pipeP->current_opcode&0x100)>>8;
 	    
-	    reg_union2.gp_reg = alu_add(reg_union.gp_reg,Reg->DB,MMR->T,SXM(MMR) );
-	    
-	    if ( pipeP->current_opcode & 0x100 )
-	      MMR->B = reg_union2.gp_reg;
-	    else
-	      MMR->A = reg_union2.gp_reg;
+	    shifter(2,Reg,0,0,4);
+	    alu(1,regNumSrc,regNumSrc,0,Reg);
 	    break;
 	  }
 	case 2: // ADD Smem,16,src,dst
 	  {
-	    if ( pipeP->current_opcode & 0x200 )
-	      reg_union.gp_reg = MMR->B;
-	    else
-	      reg_union.gp_reg = MMR->A;
+	    // dst = src + (Smem<<16)
+	    regNumDst = (pipeP->current_opcode&0x100)>>8;
+	    regNumSrc = (pipeP->current_opcode&0x200)>>9;
 	    
-	    reg_union2.gp_reg = alu_add(reg_union.gp_reg,Reg->DB,16,SXM(MMR) );
-	    
-	    if ( pipeP->current_opcode & 0x100 )
-	      MMR->B = reg_union2.gp_reg;
-	    else
-	      MMR->A = reg_union2.gp_reg;
+	    shifter(2,Reg,2,16,4);
+	    alu(1,regNumSrc,regNumDst,0,Reg);
 	    break;
 	  }
 	case 3: // ADD Smem,shift,src,dst
 	  {
+	    // dst = src + (Smem<<shift)
 	    int shift;
 	    
-	    if ( pipeP->storage1 & 0x200 )
-	      reg_union.gp_reg = MMR->B;
-	    else
-	      reg_union.gp_reg = MMR->A;
+	    regNumDst = (pipeP->storage1&0x100)>>8;
+	    regNumSrc = (pipeP->storage1&0x200)>>9;
 
-	    shift = signed_5bit_extract(pipeP->storage1);
 	    
-	    reg_union2.gp_reg = alu_add(reg_union.gp_reg,Reg->DB,shift,SXM(MMR) );
-
-	    if ( pipeP->storage1 & 0x100 )
-	      MMR->B = reg_union2.gp_reg;
-	    else
-	      MMR->A = reg_union2.gp_reg;
+	    shift = signed_5bit_extract(pipeP->storage1);
+	    shifter(2,Reg,2,shift,4);
+ 	    alu(1,regNumSrc,regNumDst,0,Reg);
 	    break;
 	  }
 	case 4: // ADD Xmem,shift,src
 	  {
+	    // src = src + (Xmem<<shift)
 	    int shift;
 	    
-	    if ( pipeP->current_opcode & 0x100 )
-	      reg_union.gp_reg = MMR->B;
-	    else
-	      reg_union.gp_reg = MMR->A;
+	    regNumSrc = (pipeP->current_opcode&0x100)>>8;
 	    
 	    shift = pipeP->current_opcode & 0xf;
-	    
-	    reg_union2.gp_reg = alu_add(reg_union.gp_reg,Reg->DB,shift,SXM(MMR) );
-	    
-	    if ( pipeP->current_opcode & 0x100 )
-	      MMR->B = reg_union2.gp_reg;
-	    else
-	      MMR->A = reg_union2.gp_reg;
+	    shifter(2,Reg,2,shift,4);
+	    alu(1,regNumSrc,regNumSrc,0,Reg);
 	    break;
 	  }
 	case 5: // ADD Xmem,Ymem,dst
 	  {
-	    if ( pipeP->current_opcode & 0x100 )
-	      reg_union.gp_reg = MMR->B;
-	    else
-	      reg_union.gp_reg = MMR->A;
-	    
-	    reg_union2.gp_reg = alu_add(reg_union.gp_reg,Reg->DB,0,SXM(MMR) );
-	    
-	    // shift result by 16
-	    reg_union2.guint64 = reg_union2.guint64 << 16;
-	    
-	    if ( pipeP->current_opcode & 0x100 )
-	      MMR->B = reg_union2.gp_reg;
-	    else
-	      MMR->A = reg_union2.gp_reg;
+	    // dst = (Xmem<<16) + (Ymem<<16)
+	    regNumDst = (pipeP->storage1&0x100)>>8;
+	    // special flag for shift, bit=2^2
+	    alu(0,3,regNumDst,4,Reg);
 	    break;
 	  }
 	case 6: // ADD  #lk [, SHFT], src [, dst ]
 	  {
+	    // dst = src + (lk<<shift)
 	    SWord shift;
-	    
-	    if ( (pipeP->current_opcode & 0x200) != 0 )
-	      reg_union.gp_reg = MMR->B;
-	    else
-	      reg_union.gp_reg = MMR->A;
-	    
+	    int regNumDst,regNumSrc;
+	    	    
 	    shift = pipeP->current_opcode & 0xf;
+	    regNumDst = (pipeP->current_opcode&0x100)>>8;
+	    regNumSrc = (pipeP->current_opcode&0x200)>>9;
 	    
-	    reg_union2.gp_reg = alu_add(reg_union.gp_reg,pipeP->storage1,shift,SXM(MMR) );
+	    // we're shifting a constant, not sure how the
+	    // barrel shifter is suppose to do this,
+	    // I'm going to throw the constant into CB.
+	    // If this is the correct way, then this should
+	    // have been done earlier.
+	    Reg->CB = pipeP->storage1;
+
+	    shifter(3,Reg,2,shift,4);
 	    
-	    if ( pipeP->current_opcode & 0x100 )
-	      MMR->B = reg_union2.gp_reg;
-	    else
-	      MMR->A = reg_union2.gp_reg;
+	    alu(1,regNumSrc,regNumDst,0,Reg);
+	    
 	    break;
 	  }
 	case 7: // ADD  #lk, 16, src [, dst ]
 	  {
-	    if ( pipeP->current_opcode & 0x200 )
-	      reg_union.gp_reg = MMR->B;
-	    else
-	      reg_union.gp_reg = MMR->A;
+	    // dst = src + (lk<<16)
+	    int regNumDst,regNumSrc;
+
+	    regNumDst = (pipeP->current_opcode&0x100)>>8;
+	    regNumSrc = (pipeP->current_opcode&0x200)>>9;
+
+	    // we're shifting a constant, not sure how the
+	    // barrel shifter is suppose to do this,
+	    // I'm going to throw the constant into CB.
+	    // If this is the correct way, then this should
+	    // have been done earlier.
+	    Reg->CB = pipeP->storage1;
+
+	    shifter(3,Reg,2,16,4);
 	    
-	    reg_union2.gp_reg = alu_add(reg_union.gp_reg,pipeP->storage1,16,SXM(MMR) );
-	    
-	    if ( pipeP->current_opcode & 0x100 )
-	      MMR->B = reg_union2.gp_reg;
-	    else
-	      MMR->A = reg_union2.gp_reg;
+	    alu(1,regNumSrc,regNumDst,0,Reg);
+
 	    break;
 	  }
 	case 8: // ADD  src [, SHIFT], [, dst ]
 	  {
+	    // dst = dst + ( src << shift)
 	    int shift;
-	    
-	    if ( pipeP->current_opcode & 0x200 )
-	      reg_union.gp_reg = MMR->B;
-	    else
-	      reg_union.gp_reg = MMR->A;
-	    
-	    if ( pipeP->current_opcode & 0x100 )
-	      reg_union2.gp_reg = MMR->B;
-	    else
-	      reg_union2.gp_reg = MMR->A;
-	    
+	    int regNumDst,regNumSrc;
+
+	    regNumDst = (pipeP->current_opcode&0x100)>>8;
+	    regNumSrc = (pipeP->current_opcode&0x200)>>9;
+
 	    shift = signed_5bit_extract(pipeP->current_opcode);
 	    
-	    reg_union2.gp_reg = alu_add40(reg_union.gp_reg,reg_union2.gp_reg,shift,Reg );
-	    
-	    if ( pipeP->current_opcode & 0x100 )
-	      MMR->B = reg_union2.gp_reg;
-	    else
-	      MMR->A = reg_union2.gp_reg;
+	    shifter(regNumSrc,Reg,2,shift,4);
+
+	    alu(1,regNumDst,regNumDst,0,Reg);
 	    break;
-	    
 	  }
 	case 9: // ADD  src, ASM, [, dst ]
 	  {
-	    int shift;
-	    
-	    if ( pipeP->current_opcode & 0x200 )
-	      reg_union.gp_reg = MMR->B;
-	    else
-	      reg_union.gp_reg = MMR->A;
-	    
-	    if ( pipeP->current_opcode & 0x100 )
-	      reg_union2.gp_reg = MMR->B;
-	    else
-	      reg_union2.gp_reg = MMR->A;
-	    
-	    shift = ASM(MMR);
-	    
-	    reg_union2.gp_reg = alu_add40(reg_union.gp_reg,reg_union2.gp_reg,shift,Reg);
-	    
-	    if ( pipeP->current_opcode & 0x100 )
-	      MMR->B = reg_union2.gp_reg;
-	    else
-	      MMR->A = reg_union2.gp_reg;
+	    // dst = dst + ( src << ASM)
+	    int regNumDst,regNumSrc;
+
+	    regNumDst = (pipeP->current_opcode&0x100)>>8;
+	    regNumSrc = (pipeP->current_opcode&0x200)>>9;
+
+	    shifter(regNumSrc,Reg,1,0,4);
+
+	    alu(1,regNumDst,regNumDst,0,Reg);
 	    break;
 	  }
 	  
