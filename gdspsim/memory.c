@@ -232,68 +232,9 @@ void set_prog_mem_start_end(WordA start, WordA end)
 
 void get_prog_mem_start_end(WordA *start, WordA *end)
 {
-  extern WordA start_address;
-
-  if ( start_address )
-    {
-      *start=start_address;
-      *end=start_address+0x100;
-    }
-  else
-    {
-      *start=default_start_view;
-      *end=default_end_view;
-    }
+  *start=default_start_view;
+  *end=default_end_view;
 }
-
-#if 0
-  struct _def_mem *def_mem;
-  GList *list;
-  WordA start2,end2;
-
-  if ( DataProgMemList )
-    {
-      *start = ((struct _def_mem *)DataProgMemList->data)->start;
-
-      for (list=DataProgMemList;list;list=list->next)
-	{
-	  def_mem = (struct _def_mem *)list->data;
-	  *end = def_mem->end;
-	}
-    
-      if ( ProgMemList )
-	{
-	  start2 = ((struct _def_mem *)ProgMemList->data)->start;
-	  if ( start2 < *start )
-	    *start = start2;
-
-	  for (list=ProgMemList;list;list=list->next)
-	    {
-	      def_mem = (struct _def_mem *)list->data;
-	      end2 = def_mem->end;
-	    }
-	  if ( end2 > *end )
-	    *end = end2;
-	}
-      return;
-    }
-  else if ( ProgMemList )
-    {
-      *start = ((struct _def_mem *)ProgMemList->data)->start;
-
-      for (list=ProgMemList;list;list=list->next)
-	{
-	  def_mem = (struct _def_mem *)list->data;
-	  *end = def_mem->end;
-	}
-      return;
-    }
-
-  printf("Warning no memory has been defined\n");
-  return;
-
-}
-#endif
 
 static GList *insert_mem_list( GList *memlist, WordA start, WordA end, MemType type, int wait_state)
 {
