@@ -1,0 +1,26 @@
+To compile the simulator for the C54:
+
+cd c54
+make
+
+Note: you'll need to have gtk+extra. Download from http://gtkextra.sourceforge.net/
+
+To analyze a file.
+./gdspsim -f filename
+
+
+To compile the simulator for the C55
+cd c55
+make
+
+The C55 port still needs alot of work.
+
+
+KNOWN BUGS
+
+The plot axes don't update unless you move the plot.
+
+The file IO needs more work.
+
+
+
