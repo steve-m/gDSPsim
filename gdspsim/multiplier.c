@@ -31,6 +31,8 @@
  * Amux 0, Accumulate using 0
  *      1, Accumulate using A
  *      2, Accumulate using B
+ *      3, Accumulate by subtracting from A
+ *      4, Accumulate by subtracting from B
  * Smux 0, Store in A register
  *      1, Store in B register
  *      2, Store in A register with Rounding
@@ -98,11 +100,23 @@ void multiplier(int Xmux, int Ymux, int Amux, int Smux, struct _Registers *Reg)
       gp_reg.gp_reg = MMR->A;
       Result64 = Result64 + gp_reg.gint64;
     }
-  if ( Amux == 2 )
+  else if ( Amux == 2 )
     {
       // Accumulate using B register
       gp_reg.gp_reg = MMR->B;
       Result64 = Result64 + gp_reg.gint64;
+    }
+  else if ( Amux == 3 )
+    {
+      // Accumulate using A register
+      gp_reg.gp_reg = MMR->A;
+      Result64 = gp_reg.gint64 - Result64;
+    }
+  else if ( Amux == 2 )
+    {
+      // Accumulate using B register
+      gp_reg.gp_reg = MMR->B;
+      Result64 = gp_reg.gint64 - Result64;
     }
  
 
@@ -117,18 +131,4 @@ void multiplier(int Xmux, int Ymux, int Amux, int Smux, struct _Registers *Reg)
     {
       MMR->A = gp_reg.gp_reg;
     }
-}
-
-/* See page 4-10 (98) Vol1
- * mux1 0, A
- *      1, B
- *      2, T
- *      3, CB
- * mux2 0, DB
- *      1, shifter output (40 bits)
- * Smux 0, output goes to A
- *      1, output goes to B
- */
-void alu(int mux1, int mux2, int Smux, struct _Registers *Reg)
-{
 }
