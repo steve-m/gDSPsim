@@ -407,7 +407,7 @@ int check_mask(const char *mask, struct _decoded_opcode *decode_nfo )
 {
   int bit,wait_state,length,smem;
   Word mach_code;
-  WordA address;
+  WordP address;
 
   g_return_val_if_fail(*mask,-1);
 
