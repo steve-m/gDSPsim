@@ -24,6 +24,7 @@
 #define __C55_CORE_H__
 // We want to deal with the proper bit length words.
 typedef guint16 Word;
+typedef guint32 DWord;
 typedef gint16 SWord;
 typedef guint32 WordA; //type of variable used for addressing Words.
 #define MAX_WORD 0xffff
@@ -63,20 +64,6 @@ union _GP_Reg
 };
 
 typedef union _GP_Reg GP_Reg;
-
-#if 0
-struct _byte_opcode
-{
-  unsigned char byte0;
-  unsigned char byte1;
-  unsigned char byte2;
-  unsigned char byte3;
-  unsigned char byte4;
-  unsigned char byte5;
-  unsigned char byte6;
-  unsigned char byte7;
-};
-#endif
 
 struct _word_opcode
 {
@@ -191,7 +178,7 @@ struct _MMR
   Word BK47;
   Word BKC;
   Word BSA01;
-  Word BAS23;
+  Word BSA23;
   Word BSA45;
   Word BSA67;
   Word BSAC;
@@ -269,8 +256,14 @@ extern struct _Registers *Reg;
 #define ARLC(Reg,arf)((((Reg)->ST2_55)&(1<<(arf)))>>(arf))
 
 #define SATA(Reg)((((Reg)->ST3_55)&0x20)>>5)
+#define SMUL(Reg)((((Reg)->ST3_55)&0x2)>>1)
 
 // Convenience macros to set status bits
+#define set_ACOV2(Reg,data)((Reg)->ST0_55=((Reg)->ST0_55 & 0x7fff)|((data) & 0x1)<<15)
+#define set_ACOV3(Reg,data)((Reg)->ST0_55=((Reg)->ST0_55 & 0xbfff)|((data) & 0x1)<<14)
+#define set_ACOV0(Reg,data)((Reg)->ST0_55=((Reg)->ST0_55 & 0xfbff)|((data) & 0x1)<<10)
+#define set_ACOV1(Reg,data)((Reg)->ST0_55=((Reg)->ST0_55 & 0xfdff)|((data) & 0x1)<<9)
+
 #define set_BRAF(Reg,data)((Reg)->ST1_55=((Reg)->ST1_55 & 0x7fff)|((data) & 0x1)<<15)
 
 struct _Registers
@@ -283,6 +276,7 @@ struct _Registers
   Word DAB; // 1st Data Memory Bus Address
   Word CAB; // 2nd Data Memory Bus Address
   Word DB;  // Data Memory Read from 1st Data Memory Bus
+  WordA DB2;  // Data Memory Read from from dbl
   Word CB;  // Data Memory Read from 2nd Data Memory Bus
   Word EAB; // Write Bus Address
   Word P;
@@ -290,7 +284,7 @@ struct _Registers
   WordA PAR; // Program Memory Read Address for things like READA
   Word DAR; // Register to hold address for DAB mvdm,mvkd
   Word RC;  // Repeat Counter
-  Word RTN; // Return address used for fast return from interrupt
+  WordA RETA; // Return address used for fast return from interrupt
   GP_Reg Shifter;
   char left_over_guard_bits_Shifter;
   WordA Lmem1;
@@ -387,6 +381,13 @@ typedef unsigned char PWord;
 #define WORD_TO_PWORD(wrd,address)(((address)&0x1)?(((wrd)>>8)&0xff):((wrd)&0xff))
 #define PADDR_TO_ADDR(address)((address)>>1)
 #define PROG_MEM_CONV 1
+
+#define GP_REG17_TO_UINT32(x) ( ((x).bgp.byte4 & 0x1 ) ? ( (guint32)0xffff0000 | ((guint32)(x).wgp.word0) ) : ((guint32)(x).wgp.word0 ) ) 
+
+#define max_neg32 -2147483648ll 
+#define max_pos32  2147483647ll
+#define max_neg40 -549755813888ll
+#define max_pos40  549755813887ll
 
 #endif // __C55_CORE_H__
 
