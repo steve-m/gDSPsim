@@ -1,7 +1,7 @@
 /*
  * gDSPsim - GNU Digital Signal Processor Simulator
  *
- * Copyright (C) 2001, Kerry Keal, kerry@industrialmusic.com
+ * Copyright (C) 2002, Kerry Keal, kerry@industrialmusic.com
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -21,14 +21,43 @@
 #define __FILEIO_H__
 
 #include <gtk/gtk.h>
+#include "chip_core.h"
+#include <stdio.h>
 
 struct _fileIO
 {
-  int access_mem_type;
-  int place_mem_type;
+  int mem_type_reached; // Data or Program mem
+  WordA address_reached; // reached
+  int reached_how;
+  int put_get; // put or get
+  int amount;
+  gchar *filename;
+  int type_access;
+  int address_access;
+
+  int valid;
+  GtkWidget *connect_box;
+  GtkWidget *removeB;
+  GtkWidget *applyB;
+  GtkWidget *closeB;
+  int modified; // non-zero if things have been modified
+  FILE *file;
+
+  GtkWidget *mem_type_reachedW;
+  GtkWidget *address_reachedW;
+  GtkWidget *reached_howW;
+  GtkWidget *put_getW;
+  GtkWidget *amountW;
+  GtkWidget *filenameW;
+  GtkWidget *type_accessW;
+  GtkWidget *address_accessW;
+  
 };
 
 void create_fileIO(GtkWidget *widget, gpointer data);
+
+// Function to call when a file IO condition is met
+void fileIO_process(struct _fileIO *io);
 
 #endif // __FILEIO_H__
 
