@@ -23,11 +23,12 @@
 #include "xymem.h"
 #include "multiplier.h"
 
-static GPtrArray *machine_code(gchar *opcode_text);
+static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg);
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg);
+static GPtrArray *machine_code(gchar *opcode_text);
 
 static gchar *mask[]=    { "111101sd 10001111" };
-static gchar *opcode[] = { "NORM d" };
+static gchar *opcode[] = { "NORM s,d" };
 static gchar *comment[]= { "$(d)=$(s)<<T" };
 
 /* This definition is global because another routine will make have
@@ -39,7 +40,7 @@ Instruction_Class NORM_Obj =
   NULL, // prefetch
   NULL, // fetch
   NULL, // decode
-  NULL, // read_stg1 (access)
+  read_stg1, // read_stg1 (access)
   NULL, // read_stg2 (read)
   execute, // execute
   NULL, // number_words 
@@ -51,25 +52,30 @@ Instruction_Class NORM_Obj =
   machine_code
 };
 
+static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
+{
+  pipeP->storage1 = MMR->T;
+}
+
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-  int AorB;
-  union _GP_Reg_Union regS;
+  int d,s;
+  union _GP_Reg_Union reg_union;
 
-  AorB = (pipeP->current_opcode & 0x100 ) >> 8;
-  if ( AorB )
-    regS.gp_reg = MMR->B;
+  d = (pipeP->current_opcode & 0x100 ) >> 8;
+  if ( d )
+    reg_union.gp_reg = MMR->B;
   else
-    regS.gp_reg = MMR->A;
+    reg_union.gp_reg = MMR->A;
 
-  regS.gint64 = regS.gint64 << MMR->T;
+  reg_union.gint64 = reg_union.gint64 << pipeP->storage1;
 
-  AorB = (pipeP->current_opcode & 0x200 ) >> 9;
+  s = (pipeP->current_opcode & 0x200 ) >> 9;
 
-  if ( AorB )
-    MMR->B = regS.gp_reg;
+  if ( s )
+    MMR->B = reg_union.gp_reg;
   else
-    MMR->A = regS.gp_reg;
+    MMR->A = reg_union.gp_reg;
 }
 
 
