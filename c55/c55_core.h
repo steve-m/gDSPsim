@@ -266,6 +266,7 @@ extern struct _Registers *Reg;
 #define set_ACOV1(Reg,data)((Reg)->ST0_55=((Reg)->ST0_55 & 0xfdff)|((data) & 0x1)<<9)
 
 #define set_BRAF(Reg,data)((Reg)->ST1_55=((Reg)->ST1_55 & 0x7fff)|((data) & 0x1)<<15)
+#define set_M40(Reg,data)((Reg)->ST1_55=((Reg)->ST1_55 & 0xfbff)|((data) & 0x1)<<10)
 
 struct _Registers
 {
@@ -274,11 +275,12 @@ struct _Registers
   //Word PAB; // Program Address Bus. Filled with Prefetch
   //Word PB;  // Program Data. Filled during Fetch
   //Word IR;  // Instruction Register. Filled with Decode
-  Word DAB; // 1st Data Memory Bus Address
-  Word CAB; // 2nd Data Memory Bus Address
+  WordA DAB; // 1st Data Memory Bus Address
+  WordA CAB; // 2nd Data Memory Bus Address
+  WordA BAB; // 3rd Data Memory Bus Address
   Word DB;  // Data Memory Read from 1st Data Memory Bus
-  WordA DB2;  // Data Memory Read from from dbl
   Word CB;  // Data Memory Read from 2nd Data Memory Bus
+  Word BB;
   Word EAB; // Write Bus Address
   Word P;
   Word PM;  // Program Memory Read for things like READA
