@@ -386,6 +386,7 @@ typedef struct _Instruction_Class Instruction_Class;
 typedef unsigned char PWord;
 #define WORD_TO_PWORD(wrd,address)(((address)&0x1)?(((wrd)>>8)&0xff):((wrd)&0xff))
 #define PADDR_TO_ADDR(address)((address)>>1)
+#define PROG_MEM_CONV 1
 
 #endif // __C55_CORE_H__
 

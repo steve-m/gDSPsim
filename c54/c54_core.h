@@ -253,6 +253,7 @@ typedef struct _Instruction_Class Instruction_Class;
 typedef Word PWord;
 #define WORD_TO_PWORD(wrd,address)((wrd))
 #define PADDR_TO_ADDR(address)((address))
+#define PROG_MEM_CONV 2
 
 #endif // __C54_CORE_H__
 
