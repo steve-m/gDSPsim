@@ -78,6 +78,7 @@ struct _Registers
   Word PM;  // Program Memory Read for things like READA
   Word PAR; // Program Memory Read Address for things like READA
   Word RC;  // Repeat Counter
+  Word RTN; // Return address used for fast return from interrupt
   GP_Reg Shifter;
   char left_over_guard_bits_Shifter;
   WordA Lmem1;
