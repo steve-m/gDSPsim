@@ -17,6 +17,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
+// Audit: Feb 23,2002:1 wkk
+
 #include "c54_core.h"
 #include "hardware.h"
 #include <stdio.h>
@@ -25,9 +27,9 @@
 static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg);
 static GPtrArray *machine_code(gchar *opcode_text);
 
-static gchar *mask[]=    { "111110z0 1uuuuuuu hhhhhhhh hhhhhhhh" };
-static gchar *opcode[] = { "FBz h" };
-static gchar *comment[]= { "Far Branch $(z) $(u) $(h)" };
+static gchar *mask[]=    { "111110z0 1lllllll llllllll llllllll" };
+static gchar *opcode[] = { "FBz l" };
+static gchar *comment[]= { "Far Branch $(z) $(l)" };
 
 /* This definition is global because another routine will make have
  * an array that points to all the different instruction classes.

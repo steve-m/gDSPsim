@@ -46,6 +46,11 @@ void b_decode(gchar *ch, gchar *mask, char info,
 // decodes condition codes
 void c_decode(gchar *ch, gchar *mask, char info, 
               struct _decoded_opcode *decode_nfo );
+
+// checks the symbol table for a label
+void l_decode(gchar *ch, gchar *mask, char info, 
+              struct _decoded_opcode *decode_nfo );
+
 // Decode memory mapped registers, STM #0,AR0 or STM #0,0x60
 void m_decode(gchar *ch, gchar *mask, char info, 
               struct _decoded_opcode *decode_nfo );

@@ -285,7 +285,7 @@ static const Instruction_Class *All_Objects[All_Objects_Len]=
   &XORM_Obj,
 };
 
-#define NUM_MASK_CODE 17
+#define NUM_MASK_CODE 18
 static Decode_Func mask_function[NUM_MASK_CODE]=
 {
   a_decode,
@@ -293,6 +293,7 @@ static Decode_Func mask_function[NUM_MASK_CODE]=
   c_decode,
   sd_decode,
   h_decode,
+  l_decode,
   m_decode,
   n_decode,
   p_decode,
@@ -307,7 +308,7 @@ static Decode_Func mask_function[NUM_MASK_CODE]=
   z_decode,
 
 };
-static gchar mask_code[NUM_MASK_CODE]={"abcdhmnprstuvwxyz"};
+static gchar mask_code[NUM_MASK_CODE]={"abcdhlmnprstuvwxyz"};
 
 
 // Sets class,sub_type,length,mach_code1,mach_code2 of decode_nfo. 

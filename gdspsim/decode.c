@@ -26,6 +26,7 @@
 #include "decode.h"
 #include "hardware.h"
 #include "memory.h"
+#include "symbols.h"
 
 gchar *find_operands(char *mask,gchar *info, Word *start_code);
 int find_opcode(Word *start_code, Word **next_code, GPtrArray *decode_info);
@@ -664,6 +665,20 @@ void p_decode(gchar *ch, gchar *mask, char info,
   return;
 }
 
+void l_decode(gchar *ch, gchar *mask, char info, 
+                struct _decoded_opcode *decode_nfo)
+{
+  gchar *sym_name;
+  unsigned int bits;
+
+  bits = bit_extract(info,mask,decode_nfo,NULL);
+
+  sym_name=get_symbol(bits);
+  if (sym_name)
+    g_snprintf(ch,MAX_SUB_OP,"%s",sym_name);
+  else
+    g_snprintf(ch,MAX_SUB_OP,"0x%x",bits);
+}
 
 // Unsigned hex number
 void h_decode(gchar *ch, gchar *mask, char info, 

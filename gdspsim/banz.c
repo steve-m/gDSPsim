@@ -17,6 +17,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
+// Audit: Feb 23,2002:1 wkk
+
 #include "c54_core.h"
 #include "hardware.h"
 #include <stdio.h>
@@ -26,9 +28,9 @@
 static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg);
 static GPtrArray *machine_code(gchar *opcode_text);
 
-static gchar *mask[]=    { "011011z0 aaaaaaaa hhhhhhhh hhhhhhhh" };
-static gchar *opcode[] = { "BANZz h,a" };
-static gchar *comment[]= { "Branch $(h) if $(a) != 0" };
+static gchar *mask[]=    { "011011z0 aaaaaaaa llllllll llllllll" };
+static gchar *opcode[] = { "BANZz l,a" };
+static gchar *comment[]= { "Branch $(l) if $(a) != 0" };
 
 /* This definition is global because another routine will make have
  * an array that points to all the different instruction classes.
@@ -57,7 +59,6 @@ static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
 
   if ( pipeP->word_number == 1 )
     {
-      
       if (Reg->DAB)
 	{
 	  Reg->PC = Reg->IR;
