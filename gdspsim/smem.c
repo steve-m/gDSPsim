@@ -448,18 +448,20 @@ void lmem_set_EAB(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   int num_words;
 
+  // DST uses this
+
   num_words = num_words_for_smem(pipeP);
 
   if ( num_words > 1 )
     {
-      // word_number counts down from total_words
-      if ( (pipeP->total_words - pipeP->word_number) == 1 )
+      if ( pipeP->cycles == 1 )
+        {
+	  Reg->EAB = update_smem_2words(pipeP->current_opcode & 0xff , 
+					Reg->IR , Reg);
+	}
+      else if ( pipeP->cycles == 2 )
 	{
-	  if ( pipeP->cycles == 0 )
-	    Reg->EAB = update_smem_2words(pipeP->current_opcode & 0xff , 
-					pipeP->storage1 , Reg);
-	  else
-	    Reg->EAB++;
+	  Reg->EAB = Reg->EAB ^ 1;
 	}
     }
   else if ( pipeP->word_number == 1 )
@@ -482,8 +484,8 @@ void lmem_set_EAB(struct _PipeLine *pipeP, struct _Registers *Reg)
 	{
 	  if ( pipeP->cycles == 0 )
 	    Reg->EAB = update_smem(pipeP->current_opcode & 0xff , Reg, CPL(MMR));
-	  else
-	    Reg->EAB++;
+	  else if ( pipeP->cycles == 1 )
+	    Reg->EAB = Reg->EAB ^ 1;
 	}
     }
 }
