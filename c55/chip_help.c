@@ -29,6 +29,7 @@ union _GP_Reg_Union get_register(int r, int sign_extend)
   switch ( r )
     {
     case 0:
+      //fixme, sign extend to 64 bits
       reg_union.gp_reg = MMR->AC0;
       return reg_union;
     case 1:
@@ -246,27 +247,27 @@ void set_reg_saturate(union _GP_Reg_Union reg_union, int r, int sat_bit)
   return;
 }
 
-// Set ACOV[0-3] (r=0-3) if reg_union is saturated. Saturation
-// is 40 bits if M40 (read inside function) is set and 32 bits
-// if M40 is not set. Return saturated value if SATD is set.
-union _GP_Reg_Union saturate(union _GP_Reg_Union reg_union, int r)
+// Set ACOV[0-3] (r=0-3) if reg_union is saturated. Saturation is
+// 0x80 0000 0000 and 0x7f ffff ffff if _M40=1 and 
+// 0xff 8000 0000 and 0x00 7fff ffff if _M40=0.
+// Saturated value is returned if _SATD=1,3 and reg_union is _SATD=0,2
+// ACx (r=0,3) is set to Saturated value is _SATD=2,3
+union _GP_Reg_Union saturate(union _GP_Reg_Union reg_union, int r, int _M40, 
+			     int _SATD)
 {
   int saturated=0;
-  int sat_bit;
 
-  sat_bit = SATD(MMR);
-
-  if ( M40(MMR) )
+  if ( _M40 )
     {
       if ( reg_union.gint64 > max_pos40 )
 	{
-	  if ( sat_bit )
+	  if ( _SATD & 1 )
 	    reg_union.gint64 = max_pos40;
 	  saturated=1;
 	}
       if ( reg_union.gint64 < max_neg40 )
 	{
-	  if ( sat_bit )
+	  if ( _SATD & 1 )
 	    reg_union.gint64 = max_neg40;
 	  saturated=1;
 	}
@@ -275,13 +276,13 @@ union _GP_Reg_Union saturate(union _GP_Reg_Union reg_union, int r)
     {
       if ( reg_union.gint64 > max_pos32 )
 	{
-	  if ( sat_bit )
+	  if ( _SATD & 1 )
 	    reg_union.gint64 = max_pos32;
 	  saturated=1;
 	}
       if ( reg_union.gint64 < max_neg32 )
 	{
-	  if ( sat_bit )
+	  if ( _SATD & 1 )
 	    reg_union.gint64 = max_neg32;
 	  saturated=1;
 	}
@@ -305,5 +306,9 @@ union _GP_Reg_Union saturate(union _GP_Reg_Union reg_union, int r)
 	  break;
 	}
     }
+
+  if ( _SATD & 2 )
+    set_register(reg_union,r);
+
   return reg_union;
 }

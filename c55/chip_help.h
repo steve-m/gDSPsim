@@ -29,6 +29,7 @@ extern "C"
 
 
   // returns a register value AC[0-3], Temp Reg or Pointer Reg
+  // sign_extend if true
   union _GP_Reg_Union get_register(int r, int sign_extend);
 
   // Set ACx (r=0-3). No flags or saturation set. Uses LSB
@@ -37,14 +38,16 @@ extern "C"
   
   // Set ACOV[0-3] (r=0-3) if reg_union is saturated. Saturation
   // is 40 bits if M40 (read inside function) is set and 32 bits
-  // if M40 is not set. Return saturated value if SATD is set.
-  union _GP_Reg_Union saturate(union _GP_Reg_Union reg_union, int r);
-
-  // Set ACOV[0-3] (r=0-3) if reg_union is saturated. Saturation
-  // is 40 bits if M40 (read inside function) is set and 32 bits
   // if M40 is not set. Set register ACx (r=0-3) to saturated value if sat_bit
   // is non-zero or to reg_union if sat_bit is zero.
   void set_reg_saturate(union _GP_Reg_Union reg_union, int r, int sat_bit);
+
+  // Set ACOV[0-3] (r=0-3) if reg_union is saturated. Saturation is
+  // 0x80 0000 0000 and 0x7f ffff ffff if _M40=1 and 
+  // 0xff 8000 0000 and 0x00 7fff ffff if _M40=0.
+  // Saturated value is returned if _SATD=1,3 and reg_union is _SATD=0,2
+  // ACx (r=0,3) is set to Saturated value is _SATD=2,3
+  union _GP_Reg_Union saturate(union _GP_Reg_Union reg_union, int r, int _M40, int _SATD);
 
 #ifdef __cplusplus
 }
