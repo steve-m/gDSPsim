@@ -17,6 +17,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
+// Audit: Feb 20,2002:1 wkk
+
 #include "c54_core.h"
 #include "hardware.h"
 #include <stdio.h>
@@ -59,7 +61,7 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   int bit;
 
-  bit = 0xf - MMR->T;
+  bit = 0xf - (MMR->T && 0xf);
 
   if ( Reg->DB & ( 1 << bit ) )
     MMR->ST0 = MMR->ST0 | 0x1000;
