@@ -71,7 +71,7 @@ struct _reg_entries
   struct _entry_nfo PMST;
   struct _entry_nfo XPC;
 
-#if 0
+#if 1
   // Flag bits that make up ST0 and ST1
   struct _entry_nfo C;
   struct _entry_nfo OVA;
@@ -267,7 +267,7 @@ void create_register_window(struct _Registers *Registers)
   //set_reg_table(&reg_entries.OVB, "OVB",  6, 2, GTK_TABLE(table), 
     //	&MMR->ST0, WORD_TYPE, 0x0200);
   
-#if 0
+#if 1
   set_reg_table(&reg_entries.FRCT, "FRCT",  6, 3, GTK_TABLE(table), 
 		&MMR->ST1, WORD_TYPE, 0x40);
   
@@ -410,9 +410,9 @@ void fill_reg_entries(struct _Registers *Registers)
 
   set_word(MMR->SP,reg_entries.SP.W);
  
-  set_word(MMR->ST0,reg_entries.ST0.W);
+  //set_word(MMR->ST0,reg_entries.ST0.W);
  
-  set_word(MMR->ST1,reg_entries.ST1.W);
+  //  set_word(MMR->ST1,reg_entries.ST1.W);
  
   // set_word(MMR->T,reg_entries.T.W);
  
@@ -459,7 +459,7 @@ void fill_reg_entries(struct _Registers *Registers)
   set_word(MMR->RSA,reg_entries.RSA.W);
  
   set_word(MMR->REA,reg_entries.REA.W);
- 
+
   set_word(MMR->PMST,reg_entries.PMST.W);
  
   set_word(MMR->XPC,reg_entries.XPC.W);
