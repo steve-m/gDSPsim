@@ -27,9 +27,9 @@
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg);
 static GPtrArray *machine_code(gchar *opcode_text);
 
-static gchar *mask[]=    { "1000100s aaaaaaaa" };
-static gchar *opcode[] = { "STLM s,a" };
-static gchar *comment[]= { "$(a)=$(s)" };
+static gchar *mask[]=    { "1000100s mmmmmmmm" };
+static gchar *opcode[] = { "STLM s,m" };
+static gchar *comment[]= { "$(m)=$(s)" };
 
 /* This definition is global because another routine will make have
  * an array that points to all the different instruction classes.
@@ -40,8 +40,8 @@ Instruction_Class STLM_Obj =
   NULL, // prefetch
   NULL, // fetch
   NULL, // decode
-  mmem_read_stg1, // read_stg1 (access)
-  mmem_read_stg2, // read_stg2 (read)
+  NULL, // read_stg1 (access)
+  mmem_set_EAB, // read_stg2 (read)
   execute, // execute
   num_words_for_smem, // number_words 
   NULL, // set_cycle_number
@@ -52,11 +52,17 @@ Instruction_Class STLM_Obj =
   machine_code
 };
 
+/*
+ * If this is direct addressing it stores the low bits of s (A,B regs) into
+ * a (page 0 Memory Mapped Regs). If it's indirect it reads the address the
+ * pointer points to and sets the upper 9 bits to 0 to get the page 0 address.
+ */
+
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   union _GP_Reg_Union reg;
   
-  if ( pipeP->current_opcode & 0x10000 )
+  if ( pipeP->current_opcode & 0x100 )
     {
       reg.gp_reg = MMR->B;
     }
@@ -65,7 +71,7 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
       reg.gp_reg = MMR->A;
     }
 
-  write_data_mem(Reg->DB,reg.words.low);
+  write_data_mem(Reg->EAB,reg.words.low);
 }
 
 /* Generates an array of Words that this opcode text generates or NULL

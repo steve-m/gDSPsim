@@ -55,7 +55,7 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   union _GP_Reg_Union reg;
 
-  if ( pipeP->current_opcode & 0x20000 )
+  if ( pipeP->current_opcode & 0x200 )
     {
       reg.gp_reg = MMR->A;
     }

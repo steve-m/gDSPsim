@@ -3,17 +3,18 @@
 
 #include "c54_core.h"
 
-GP_Reg alu_add(GP_Reg op1, SWord op2, SWord op2_shift, struct _Registers *Registers);
+// Shifts 2 operand (16 bits) by op2_shift to make it 32 bits then adds it to the first 40 bit operand
+GP_Reg alu_add(GP_Reg op1, SWord op2, SWord op2_shift, Word SXM);
+
+// Shifts 2 operand by op2_shift then adds the 2 40 bit numbers
+GP_Reg alu_add40(GP_Reg op1, GP_Reg op2, SWord op2_shift, struct _Registers *Registers);
+
 
 // This converts op to a GP_Reg, then shifts it
 GP_Reg word_to_GP_Reg(SWord op, SWord op_shift);
 
 // This shifts op, then converts the low bits to a word
 Word GP_Reg_Low_to_Word(GP_Reg op, SWord op_shift);
-
-
-// This updates the auxillary registers and returns the read address
-Word update_smem( int Smem, struct _Registers *Reg);
 
 // Decodes arf and returns a pointer to the ARx pointer reg.
 // CMPT is the compatibility mode flag

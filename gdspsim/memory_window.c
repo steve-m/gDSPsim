@@ -39,7 +39,22 @@ struct _mem_window_nfo
   GtkWidget *label_prog;
   WordA start;
   WordA end;
+  struct _entryCB_nfo *start_nfo;
+  struct _entryCB_nfo *end_nfo;
 };
+static void destroy_window_CB( GtkWidget *W, gpointer data )
+{
+  struct _mem_window_nfo *nfo;
+
+  nfo=data;
+
+  all_mem_win_list=g_list_remove(all_mem_win_list,nfo);
+
+  g_free(nfo->end_nfo);
+  g_free(nfo->start_nfo);
+  g_free(nfo);
+}
+
 static void data_mem_changeCB( GtkWidget *W, int address )
 {
   g_return_if_fail(W);
@@ -233,6 +248,10 @@ void create_memory_window()
   all_mem_win_list = g_list_prepend(all_mem_win_list,mem_window);
 
   mem_window->memoryW = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+
+  gtk_signal_connect(GTK_OBJECT(mem_window->memoryW),"destroy",
+		     (GtkSignalFunc)destroy_window_CB,mem_window);
+
   gtk_widget_set_name (mem_window->memoryW, "Disassembly");
   // gtk_widget_set_usize (GTK_WIDGET(memoryW), 300, 200);
   gtk_window_set_title (GTK_WINDOW (mem_window->memoryW), "Disassebly");
@@ -263,7 +282,7 @@ void create_memory_window()
   get_prog_mem_start_end(&mem_window->start,&mem_window->end);
 
   entry_start_nfo = g_new(struct _entryCB_nfo,1);
-  
+  mem_window->start_nfo = entry_start_nfo; // Saving to prevent mem leak
 
   entryTop = gtk_entry_new();
   entry_start_nfo->entry = entryTop;
@@ -280,6 +299,8 @@ void create_memory_window()
 		     entry_start_nfo);
   gtk_widget_show (entryTop);
 
+  entry_end_nfo = g_new(struct _entryCB_nfo,1);
+  mem_window->end_nfo = entry_end_nfo; // Saving to prevent mem leak
 
   entryBottom = gtk_entry_new();
   entry_end_nfo->entry = entryBottom;

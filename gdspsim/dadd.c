@@ -20,6 +20,7 @@
 #include "c54_core.h"
 #include "hardware.h"
 #include <stdio.h>
+#include "smem.h"
 
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg);
 
@@ -33,8 +34,8 @@ Instruction_Class DADD_Obj =
   NULL, // prefetch
   NULL, // fetch
   NULL, // decode
-  NULL, // read_stg1 (access)
-  NULL, // read_stg2 (read)
+  smem_read_stg1, // read_stg1 (access)
+  smem_read_stg2, // read_stg2 (read)
   execute, // execute
   NULL, // number_words 
   NULL, // set_cycle_number
@@ -54,20 +55,7 @@ Instruction_Class DADD_Obj =
 
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-  Operand_List *operands;
-  GP_Reg *src,*dst;
-  SWord *Lmem;
-
-  // operands are pointers to register values.
-  // type tells which type instance this is.
-
-  operands = &pipeP->operands;
-  
-  Lmem = operands->op0.arP;
-  src = operands->op1.regP;
-  dst = operands->op2.regP;
-
-
+  FIXME();
   if ( C16(MMR) )
     {
       // Dual 16-bit mode. dst[31?-16]=src[31-16]+Lmem[MSB]

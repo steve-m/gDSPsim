@@ -47,17 +47,17 @@ struct _file_info *process_coff(char *buffer, int size)
   nfo->buffer_size = size;
 
 
-  printf("Time: %s\n",ctime(&header->f_timdat));
+  printf("Time: %s\n",ctime((time_t *)&CHAR_TO_UINT16(header->time_stamp)));
 
   // get section info
-  g_return_val_if_fail(size > header->f_opthdr + sizeof(struct _coff_header)+2,NULL);
+  g_return_val_if_fail(size > CHAR_TO_UINT16(header->num_bytes_opt) + sizeof(struct _coff_header)+2,NULL);
 
-  char_header =  buffer + header->f_opthdr + sizeof(struct _coff_header)+2;
+  char_header =  buffer + CHAR_TO_UINT16(header->num_bytes_opt) + sizeof(struct _coff_header)+2;
 
   section_header = (struct _section_header *)char_header;
 
   s_header = section_header;
-  for (k=0;k<header->f_nscns;k++)
+  for (k=0;k<CHAR_TO_UINT16(header->num_sections);k++)
     {
       s_name = strstr(s_header->s_name,".text");
       if ( s_name )

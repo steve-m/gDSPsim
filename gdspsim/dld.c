@@ -79,7 +79,7 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
   if ( pipeP->word_number == 1 )
     {
       reg_union.words.low = Reg->DB;
-      if ( pipeP->current_opcode & 0x10000 )
+      if ( pipeP->current_opcode & 0x100 )
 	MMR->B = reg_union.gp_reg;
       else
 	MMR->A = reg_union.gp_reg;
@@ -87,7 +87,7 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
   else
     {
       reg_union.words.high = Reg->DB;
-      if ( pipeP->current_opcode & 0x10000 )
+      if ( pipeP->current_opcode & 0x100 )
 	MMR->B = reg_union.gp_reg;
       else
 	MMR->A = reg_union.gp_reg;

@@ -41,6 +41,10 @@ GtkWidget *gdsp_decodeW=NULL;
 extern struct _file_info *gdsp_file_nfo;
 struct _Registers *Registers;
 
+void set_PC(WordA new_pc)
+{
+  Registers->PC=new_pc;
+}
 
 static void step_CB( GtkWidget *widget,  gpointer   data )
 {

@@ -64,93 +64,29 @@ struct _MMR
 
 struct _Registers
 {
-#if 0
-  // CPU Memory-Mapped Registers
-  Word IMR; // 0 - Interrupt Mask Register
-  Word IFR; // 1 - Interrupt Flag Register
-  Word reserved1; // 2
-  Word reserved2; // 3
-  Word reserved3; // 4
-  Word reserved4; // 5
-  Word ST0; // 6 - Status Register 0  see pg 90, 4-2 spru131g.pdf
-            // 15-13 : ARP
-            // 12    : TC
-            // 11    : C
-            // 10    : OVA
-            //  9    : OVB
-            //  8-0  : DP
-  Word ST1; // 7 - Status Register 1  see pg 92 4-4 spru131g.pdf
-            // 15    : BRAF
-            // 14    : CPL
-            // 13    : XF
-            // 12    : HM
-            // 11    : INTM
-            // 10    : 0
-            //  9    : OVM
-            //  8    : SXM
-            //  7    : C16
-            //  6    : FRCT
-            //  5    : CMPT
-            //  4-0  : ASM
-
-
-  GP_Reg A; // 8 - Accumulator A Low
-            // 9 - Accumulator A High
-            // A - Accumulator A Guard Bits
-  char left_over_guard_bits_A; // fitting 40 bit A into a 48 bit slot
-  GP_Reg B;
-  char left_over_guard_bits_B; // fitting 40 bit B into a 48 bit slot
-  Word T;
-  Word TRN;
-  Word ar0;
-  Word ar1;
-  Word ar2;
-  Word ar3;
-  Word ar4;
-  Word ar5;
-  Word ar6;
-  Word ar7;
-  Word SP;
-  Word BK; // 19 - Circular Buffer Size Register
-  Word BRC; // 1A - Block Repeat Counter
-  Word RSA; // 1B - Block Repeat Start Address
-  Word REA; // 1C - Block Repeat End Address
-  Word XPC; // 1D - Program counter extension;
-  Word reserved5; // 1E
-  Word reserved6; // 1F
-#endif
- // Word PMST; // pg 96 spru131g.pdf
-  // Word IPTR:8; // bits 15-7
-  // Word MP_MC:1; // bit 6
-  // Word OVLY:1; // bit 5
-  // Word AVIS:1; // bit 4
-  // Word DROM:1; // bit 3
-  // Word CLKOFF:1; // bit 2
-  // Word SMUL:1; // bit 1
-  // Word SST:1; // bit 0
-  
-  // Word SXM:1; // sign extension bit  FIXME
-
- // Other Registers.
-  //Word DP;
-  //Word ASM;
-  //Word ARP; // right location. fixme
-  Word PC;
-  //Word C16:1; // bit 7 of ST1  right location. fixme
-  //Word CMPT:1;  // right location. fixme
-
+  Word PC;  // Program Counter
+  Word XPC;  // Extend bits for Program Counter
   Word PAB; // Program Address Bus. Filled with Prefetch
-  Word PB; // Program Data. Filled during Fetch
-  Word IR; // Instruction Register. Filled with Decode
-  Word DAB;
-  Word CAB;
-  Word DB;
-  Word CB;
-  Word EAB; // Write bus
+  Word PB;  // Program Data. Filled during Fetch
+  Word IR;  // Instruction Register. Filled with Decode
+  Word DAB; // 1st Data Memory Bus Address
+  Word CAB; // 2nd Data Memory Bus Address
+  Word DB;  // Data Memory Read from 1st Data Memory Bus
+  Word CB;  // Data Memory Read from 2nd Data Memory Bus
+  Word EAB; // Write Bus Address
   Word P;
-
+  Word PM;  // Program Memory Read for things like READA
+  Word PAR; // Program Memory Read Address for things like READA
+  Word RC;  // Repeat Counter
   // admin
-  int Flush; // set =1 to flush pipeline
+  int Special_Flush; // Used to inialize the pipeline
+  int Flush; // set =1 to flush pipeline, done in read_stg1 stage
+  int RC_first_pass; // set to 1 for read_stg1 following repeat single
+  // Set to 1 to stall and calls that part of the pipe and only that
+  // part of the pipe again.
+  int Dont_Decode; // Set to non zero to not run any more
+  // fetch, decode, or prefetch, PC increment.
+  int Dont_Fetch; // Set to non zero to not run any more fetch
 };
 
 extern struct _MMR *MMR;
@@ -158,9 +94,12 @@ extern struct _MMR *MMR;
 
 // Convenience macros to read status bits
 #define ARP(Reg)((((Reg)->ST0)&0x1fff)>>13)
+#define C_bit(Reg)((((Reg)->ST0)&0x800)>>11)
 #define SXM(Reg)((((Reg)->ST1)&0x100)>>8)
 #define C16(Reg)((((Reg)->ST1)&0x80)>>7)
 #define CMPT(Reg)((((Reg)->ST1)&0x20)>>5)
+#define CPL(Reg)((((Reg)->ST1)&0x4000)>>14)
+#define ASM(Reg)(signed_5bit_extract((Reg)->ST1))
 
 // Convenience macros to set status bits
 #define set_ARP(Reg,data)((Reg)->ST0=((Reg)->ST0 & 0x1fff)|(((data) & 0x7)<<13))
@@ -182,6 +121,7 @@ union u_operands
   SWord op_sword;
 };
 
+#if 0
 struct _Operand_List
 {
   int num_operands;
@@ -192,6 +132,7 @@ struct _Operand_List
 };
 
 typedef struct _Operand_List Operand_List;
+#endif
 
 struct _PipeLine
 {
@@ -205,7 +146,7 @@ struct _PipeLine
   int word_number; // which word number this is for the opcode
   int total_words; // total number of words for this opcode
   int cycle_number; // cycle number for each word in the opcode
-  Operand_List operands;
+  //Operand_List operands;
   Word storage1; // Just a place to store something that might be needed
   Word storage2; // in processing an opcode
 };

@@ -23,6 +23,7 @@
 #include "xymem.h"
 #include "smem.h"
 #include "shifter.h"
+#include "decode.h"
 
 static GPtrArray *machine_code(gchar *opcode_text);
 static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg);
@@ -139,9 +140,15 @@ static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
 	{
 	  pipeP->storage1 = Reg->IR;
 	}
+      return;
     case 3:
       // 2 or 3 Smem word
-      printf("Fixme %s:%d\n",__FILE__,__LINE__);
+      smem_read_stg1(pipeP,Reg);
+      if ( pipeP->word_number == 1 )
+	{
+	  pipeP->storage1 = Reg->IR;
+	}
+      return;
     case 4:
       xmem_read_stg1(pipeP,Reg);
     }
@@ -155,23 +162,15 @@ static void read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
     case 0:
     case 1:
     case 2:
+    case 3:
     case 10:
     case 11:
     case 15:
       smem_read_stg2(pipeP,Reg);
       return;
-    case 6:
-    case 7:
-      // always 2 words
-      if ( pipeP->word_number == 1 )
-	{
-	  pipeP->storage1 = Reg->IR;
-	}
-    case 3:
-      // 2 or 3 Smem word
-      printf("Fixme %s:%d\n",__FILE__,__LINE__);
     case 4:
       xmem_read_stg2(pipeP,Reg);
+      return;
     }
 }
 
@@ -179,105 +178,122 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   union _GP_Reg_Union reg_union;
 
-  switch ( pipeP->opcode_subType )
+  if ( pipeP->word_number == 1 )
     {
-    case 0:
-      // LD *ARx,A
-      reg_union.guint64 = 0;
-      reg_union.words.low = Reg->DB;
-      if ( pipeP->current_opcode & 0x10000 )
-	MMR->B = reg_union.gp_reg;
-      else
-	MMR->A = reg_union.gp_reg;
-      return;
-    case 1:
-      // LD *ARx,TS,A
-      shifter2GPreg(2,(int)MMR->T,SXM(MMR),Reg,pipeP->current_opcode & 0x10000);
-      return;
-    case 2:
-      // LD *ARx,16,A
-      shifter2GPreg(2,16,SXM(MMR),Reg,pipeP->current_opcode & 0x10000);
-      return;
-    case 3:
-      // LD *ARx,5,A
-      if ( pipeP->word_number == 1 )
+      switch ( pipeP->opcode_subType )
 	{
-	  int shift;
+	case 0:
+	  // LD *ARx,A
+	  reg_union.guint64 = 0;
+	  reg_union.words.low = Reg->DB;
+	  if ( (pipeP->current_opcode & 0x100) != 0 )
+	    MMR->B = reg_union.gp_reg;
+	  else
+	    MMR->A = reg_union.gp_reg;
+	  return;
+	case 1:
+	  // LD *ARx,TS,A
+	  shifter2GPreg(2,(int)MMR->T,SXM(MMR),Reg,pipeP->current_opcode & 0x100);
+	  return;
+	case 2:
+	  // LD *ARx,16,A
+	  shifter2GPreg(2,16,SXM(MMR),Reg,pipeP->current_opcode & 0x100);
+	  return;
+	case 3:
+	  // LD *ARx,5,A
+	  if ( pipeP->word_number == 1 )
+	    {
+	      SWord shift;
+	      
+	      shift = signed_5bit_extract(pipeP->storage1);
+
+	      shifter2GPreg(2,shift,SXM(MMR),Reg,pipeP->storage1 & 0x100);
+	    }
+	  return;
+	case 4:
+	  // LD *ARx,u,A
+	  shifter2GPreg(2,(int)(pipeP->storage1 & 0xf),
+			SXM(MMR),Reg,pipeP->current_opcode & 0x100);
+	  return;
+	case 5:
+	  // LD #n,s
+	  {
+	    
+	    SWord n;
+	    
+	    n = ( pipeP->current_opcode & 0xff );
+	    if ( n >= 0x80 )
+	      {
+		reg_union.gint64 = n - 0x100;
+	      }
+	    else
+	      {
+		// reg_union.guint64 = 0;
+		reg_union.guint64 = n;
+	      }
+	    if ( (pipeP->current_opcode & 0x100) != 0 )
+	      MMR->B = reg_union.gp_reg;
+	    else
+	      MMR->A = reg_union.gp_reg;
+	    return;
+	  }
+
+	case 6:
+	  // LD #n,u,s      
+	  shiftWord2GPreg((SWord)pipeP->storage1,(int)pipeP->current_opcode & 0xf,
+			  1,Reg,pipeP->current_opcode & 0x100);
 	  
-	  shift = pipeP->storage1 && 0x1f;
-	  if (shift >= 0x10)
-	    shift = shift - 0x20;
-	  shifter2GPreg(2,shift,SXM(MMR),Reg,pipeP->storage1 & 0x10000);
+	  return;
+	case 7:
+	  // LD #n,16,s
+	  shiftWord2GPreg((SWord)pipeP->storage1,(int)16,
+			  1,Reg,pipeP->current_opcode & 0x100);
+	  return;
+	case 8:
+	  // LD s,ASM,d
+	  {
+	    Word input_mux;
+	    Word output_mux;
+	    
+	    output_mux = pipeP->current_opcode & 0x100 >> 8;
+	    input_mux = pipeP->current_opcode & 0x200 >> 9;
+	    shifter(input_mux,Reg,1,0,output_mux,SXM(MMR));
+	    return;
+	  }
+	case 9:
+	  // LD s,n,d
+	  return;
+	case 10:
+	  // LD a,T
+	  MMR->T = Reg->DB;
+	  return;
+	case 11:
+	  // LD a,DP
+	  set_DP(MMR,Reg->DB);
+	  return;
+	case 12:
+	  // LD #u,DP
+	  set_DP(MMR,pipeP->current_opcode);
+	  return;
+	case 13:
+	  // LD #n,ASM
+	  set_ASM(MMR,pipeP->current_opcode);
+	  return;
+	case 14:
+	  // LD #u,ARP
+	  set_ARP(MMR,pipeP->current_opcode);
+	  return;
+	case 15:
+	  // LD a,ASM
+	  if ( pipeP->word_number == 1 )
+	    {
+	      set_ASM(MMR,Reg->DB);
+	    }
+	  return;
 	}
-      return;
-    case 4:
-      // LD *ARx,u,A
-      shifter2GPreg(2,(int)(pipeP->storage1 & 0xf),
-		    SXM(MMR),Reg,pipeP->current_opcode & 0x10000);
-      return;
-    case 5:
-      // LD #n,s
-      {
-	
-	SWord n;
-
-	n = ( pipeP->current_opcode & 0xff );
-	if ( n >= 0x80 )
-	  {
-	    reg_union.gint64 = n - 0x100;
-	  }
-	else
-	  {
-	    // reg_union.guint64 = 0;
-	    reg_union.guint64 = n;
-	  }
-	if ( pipeP->current_opcode & 0x10000 )
-	  MMR->B = reg_union.gp_reg;
-	else
-	  MMR->A = reg_union.gp_reg;
-	return;
-      }
-    case 6:
-      // LD #n,u,s      
-      shiftWord2GPreg((SWord)pipeP->storage1,(int)pipeP->current_opcode & 0xf,
-		    1,Reg,pipeP->current_opcode & 0x10000);
-      
-    case 7:
-      // LD #n,16,s
-      shiftWord2GPreg((SWord)pipeP->storage1,(int)16,
-		    1,Reg,pipeP->current_opcode & 0x10000);
-    case 8:
-      // LD s,ASM,d
-      shifter2EBand_Store(pipeP->current_opcode & 0x20000,1,pipeP->current_opcode & 0x10000,SXM(MMR));
-    case 9:
-      // LD s,n,d
-    case 10:
-      // LD a,T
-      MMR->T = Reg->DB;
-    case 11:
-      // LD a,DP
-      set_DP(MMR,Reg->DB);
-    case 12:
-      // LD #u,DP
-      set_DP(MMR,pipeP->current_opcode);
-    case 13:
-      // LD #n,ASM
-      set_ASM(MMR,pipeP->current_opcode);
-    case 14:
-      // LD #u,ARP
-      set_ARP(MMR,pipeP->current_opcode);
-    case 15:
-      // LD a,ASM
-      set_ASM(MMR,Reg->DB);
-
     }
-  
-
-// shifter();
-
-
-
 }
+
 int number_words(struct _PipeLine *pipeP)
 {
   switch ( pipeP->opcode_subType )

@@ -25,9 +25,9 @@ static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg);
 static void decode(struct _PipeLine *pipeP, struct _Registers *Reg);
 static GPtrArray *machine_code(gchar *opcode_text);
 
-static gchar *mask[]=    { "11100111 mmmmwwww" };
-static gchar *opcode[] = { "MVMM m,w" };
-static gchar *comment[]= { "$(w)=$(m)" };
+static gchar *mask[]=    { "11100111 vvvvwwww" };
+static gchar *opcode[] = { "MVMM v,w" };
+static gchar *comment[]= { "$(w)=$(v)" };
 
 /* This definition is global because another routine will make have
  * an array that points to all the different instruction classes.

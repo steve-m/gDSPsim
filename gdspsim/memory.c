@@ -227,13 +227,23 @@ static WordA default_end_view=0x100;
 void set_prog_mem_start_end(WordA start, WordA end)
 {
   default_start_view=start;
-  default_end_view=MIN(end,start+0x399);
+  default_end_view=MIN(end,start+0x100);
 }
 
 void get_prog_mem_start_end(WordA *start, WordA *end)
 {
-  *start=default_start_view;
-  *end=default_end_view;
+  extern WordA start_address;
+
+  if ( start_address )
+    {
+      *start=start_address;
+      *end=start_address+0x100;
+    }
+  else
+    {
+      *start=default_start_view;
+      *end=default_end_view;
+    }
 }
 
 #if 0
@@ -298,8 +308,6 @@ static GList *insert_mem_list( GList *memlist, WordA start, WordA end, MemType t
   def_mem->wait_state=wait_state;
   def_mem->mem = g_new(Word,end-start+1);
   
-  printf("--creating %d:%d\n",start,end);
-
   if ( memlist == NULL )
     {
       list2 = g_list_prepend(NULL, def_mem);
@@ -334,8 +342,6 @@ static void combine_mem_blocks(GList *keepL, GList *removeL)
   keep = (struct _def_mem *)keepL->data;
   remove = (struct _def_mem *)removeL->data;
 
-  printf("moving %d:%d to %d:%d\n",remove->start,remove->end,keep->start,keep->end);
-
   keep->mem = g_new(Word,keep->end-keep->start+1);
   mem = keep->mem;
   mem2 = remove->mem;
@@ -367,29 +373,33 @@ static GList *adjust_mem_list( GList *memlist, WordA start, WordA end, MemType t
       list2 = list->prev;
       def_mem2 = (struct _def_mem *)list2->data;
 
-      if ( start <= def_mem2->end )
+      // Don't move 0x0 to 0x80 section because that's Memory Mapped
+      
+      if ( def_mem2->start > 0x80 )
 	{
-	  // These sections intersect
-	  if ( (type != def_mem2->type ) || 
-	       ( wait_state != def_mem2->wait_state ) )
-	    {
-	      // Error, different type
-	      printf("Error! mixing different memory section types (start=0x%x)\n",start);
-	    }
-	  // Copy mem from old section to new section
-	  def_mem->start = def_mem2->start;
-	  printf("-combine 1\n");
-	  combine_mem_blocks(list,list2);
 
-	}
-      else if ( ( (start-1) == def_mem2->end ) &&
-		(type == def_mem2->type ) &&
-		( wait_state == def_mem2->wait_state ) )
-	{
-	  // These sections are adjacent and same type.
-	  def_mem->start = def_mem2->start;
-	  printf("-combine 2\n");
-	  combine_mem_blocks(list,list2);
+	  if ( start <= def_mem2->end )
+	    {
+	      // These sections intersect
+	      if ( (type != def_mem2->type ) || 
+	       ( wait_state != def_mem2->wait_state ) )
+		{
+		  // Error, different type
+		  printf("Error! mixing different memory section types (start=0x%x)\n",start);
+		}
+	      // Copy mem from old section to new section
+	      def_mem->start = def_mem2->start;
+	      combine_mem_blocks(list,list2);
+	      
+	    }
+	  else if ( ( (start-1) == def_mem2->end ) &&
+		    (type == def_mem2->type ) &&
+		    ( wait_state == def_mem2->wait_state ) )
+	    {
+	      // These sections are adjacent and same type.
+	      def_mem->start = def_mem2->start;
+	      combine_mem_blocks(list,list2);
+	    }
 	}
     }
   // Check the next section
@@ -409,7 +419,6 @@ static GList *adjust_mem_list( GList *memlist, WordA start, WordA end, MemType t
 	    }
 	  // Copy mem from old section to new section
 	  def_mem->end = def_mem2->end;
-	  printf("-combine 3\n");
 	  combine_mem_blocks(list,list2);
 
 	}
@@ -419,7 +428,6 @@ static GList *adjust_mem_list( GList *memlist, WordA start, WordA end, MemType t
 	{
 	  // These sections are adjacent and same type.
 	  def_mem->end = def_mem2->end;
-	  printf("-combine 4\n");
 	  combine_mem_blocks(list,list2);
 	}
     }

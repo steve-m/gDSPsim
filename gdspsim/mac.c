@@ -87,7 +87,7 @@ static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
 static void read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   if ( pipeP->opcode_subType == 1 )
-    xymem_read_stg1(pipeP,Reg);
+    xymem_read_stg2(pipeP,Reg);
 }
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
@@ -99,9 +99,9 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
       // Y operand is from CB register (3)
       // Accumulate using A or B (s+1)
       // Store in A or B ( d ). Round (r)
-      d = ( pipeP->current_opcode & 0x10000 ) > 16;
-      s = ( pipeP->current_opcode & 0x20000 ) > 17;
-      r = ( pipeP->current_opcode & 0x40000 ) > 18;
+      d = ( pipeP->current_opcode & 0x100 ) > 8;
+      s = ( pipeP->current_opcode & 0x200 ) > 9;
+      r = ( pipeP->current_opcode & 0x400 ) > 10;
       
       multiplier(1,3,s+1,d+(2*r),Reg);
     }

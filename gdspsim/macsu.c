@@ -55,7 +55,7 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   int AorB;
 
-  AorB = (pipeP->current_opcode & 0x10000 ) >> 16;
+  AorB = (pipeP->current_opcode & 0x100 ) >> 8;
 
   // X operand is unsigned DB (3)
   // Y operand is signed CB (3)

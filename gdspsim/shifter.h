@@ -22,6 +22,27 @@
 
 #include "c54_core.h"
 
+
+// mux (input control)
+// 0 = A
+// 1 = B
+// 2 = DB
+// 3 = CB
+// (shift amount control)
+// 0 = T
+// 1 = ASM
+// 2 = Immediate
+
+// output_mux
+// 0 = Store in A
+// 1 = Store in B
+// 2 = Low Bits to EB
+// 3 = High Bits to EB
+
+// SXM sign extension bit
+inline void shifter(Word input_mux, struct _Registers *Reg, Word shift_mux, SWord shift, Word output_mux, Word SXM);
+
+
 // mux (input control)
 // 0 = A
 // 1 = B
@@ -36,14 +57,14 @@
 // 1 = High Bits to EB
 
 // SXM sign extension bit
-void shifter2EB (int input_mux, int shift_mux, int output_mux, int SXM);
+void shifter2EB (int input_mux, int shift_mux, int output_mux, Word SXM);
 // storage_mux 
 // 0, store in A
 // not 0, store in B
 
 // shift, amount to shift
-void shifter2GPreg(int input_mux, int shift, int SXM, struct _Registers *Reg, int storage_mux);
-void shiftWord2GPreg(SWord input, int shift, int SXM, struct _Registers *Reg, int storage_mux);
-void shifter2EBand_Store (int input_mux, int shift_mux, int output_mux, int SXM);
+void shifter2GPreg(int input_mux, int shift, Word SXM, struct _Registers *Reg, Word storage_mux);
+void shiftWord2GPreg(SWord input, int shift, Word SXM, struct _Registers *Reg, Word storage_mux);
+void shifter2store (int input_mux, struct _Registers *Reg, int shift_mux, SWord shift, int output_mux, Word SXM);
 
 #endif //__SHIFTER_H__

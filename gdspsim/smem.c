@@ -22,26 +22,73 @@
 #include <stdio.h>
 #include "memory.h"
 
-// The basic read_stg1 for a smem. Handles 1 or 2 word smem. Places
-// the read address onto DAB.
-void smem_read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
+void mmem_set_EAB(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-  Word DAB;
+  Word EAB;
   
+  //  if ( pipeP->total_words  1 )
+  if ( (pipeP->word_number == 1) && (pipeP->current_opcode & 0x80) )
+    {
+      FIXME();
+
+      EAB = update_smem_2words(pipeP->current_opcode & 0xff , 
+			       Reg->IR , Reg );
+      // Needed for indirect addressing
+      EAB = EAB & 0x7f;
+      Reg->EAB = EAB;
+    }
+  else if ( (pipeP->word_number == 1) && ((pipeP->current_opcode & 0x80)==0) )
+    {
+      // This updates the auxillary registers 
+      EAB = update_smem(pipeP->current_opcode & 0xff , Reg, 2);
+      // Needed for indirect addressing
+      EAB = EAB & 0x7f;
+      Reg->EAB = EAB;
+    }
+}
+
+void smem_set_EAB(struct _PipeLine *pipeP, struct _Registers *Reg)
+{
   if ( pipeP->total_words > 1 )
     {
       // word_number counts down from total_words
       if ( pipeP->word_number == 1 )
 	{
+	  Reg->EAB = update_smem_2words(pipeP->current_opcode & 0xff , 
+					pipeP->storage1 , Reg);
+	  printf("smem_set_EAB EAB=0x%x opcode=0x%x next=0x%x\n",Reg->EAB,pipeP->current_opcode,pipeP->storage1);
+	}
+    }
+  else
+    {
+      // This updates the auxillary registers 
+      Reg->EAB = update_smem(pipeP->current_opcode & 0xff , Reg, CPL(MMR));
+    }
+}
+
+// The basic read_stg1 for a smem. Handles 1 or 2 word smem. Places
+// the read address onto DAB.
+void smem_read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
+{
+  Word DAB;
+  int num_words;
+
+  num_words = num_words_for_smem(pipeP);
+
+  if ( num_words > 1 )
+    {
+      // word_number counts down from total_words
+      if ( (pipeP->total_words - pipeP->word_number) == 1 )
+	{
 	  DAB = update_smem_2words(pipeP->current_opcode & 0xff , 
-				   Reg->IR , Reg);
+				   Reg->IR , Reg );
 	  Reg->DAB = DAB;
 	}
     }
   else
     {
       // This updates the auxillary registers 
-      DAB = update_smem(pipeP->current_opcode & 0xff , Reg);
+      DAB = update_smem(pipeP->current_opcode & 0xff , Reg, CPL(MMR));
       Reg->DAB = DAB;
     }
 }
@@ -51,8 +98,12 @@ void smem_read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
 void smem_read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   int wait_state;
+  int num_words;
 
-  if ( pipeP->word_number == 1 )
+  num_words = num_words_for_smem(pipeP);
+
+  if ( (num_words == 1) ||
+       ( (pipeP->total_words - pipeP->word_number) == 1 ) )
     {
       Reg->DB = read_data_mem(Reg->DAB,&wait_state);
     }
@@ -60,7 +111,7 @@ void smem_read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
 
 void mmem_read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-  Word DAB;
+  WordA DAB;
   
   if ( pipeP->total_words > 1 )
     {
@@ -69,13 +120,15 @@ void mmem_read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
 	{
 	  DAB = update_smem_2words(pipeP->current_opcode & 0xff , 
 				   Reg->IR , Reg);
+	  DAB = DAB & 0x7f; // Force it to page 0, needed for indirect addressing.
 	  Reg->DAB = DAB;
 	}
     }
   else
     {
       // This updates the auxillary registers 
-      DAB = update_smem(pipeP->current_opcode & 0xff , Reg);
+      DAB = update_smem(pipeP->current_opcode & 0xff , Reg, 2);
+      DAB = DAB & 0x7f; // Force it to page 0, needed for indirect addressing.
       Reg->DAB = DAB;
     }
 }
@@ -93,7 +146,11 @@ void mmem_read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
 }
 
 // This updates the auxillary registers and returns the read address
-Word update_smem( int Smem, struct _Registers *Reg)
+// Generally, Ref is 2, for memory mapped registers and the CPL flag otherwise.
+// If Ref is used for direct addressing (Smem<0x80). If Ref = 0, then the
+// DP (data page pointer) times 0x80 is added to the address. If Ref = 1, then
+// SP (stack pointer) is added to the address. If Ref=2, then nothing is added. 
+Word update_smem( int Smem, struct _Registers *Reg, int Ref)
 {
   int mod;
   Word *arfP;
@@ -101,7 +158,14 @@ Word update_smem( int Smem, struct _Registers *Reg)
 
   if ( (Smem & 0x80)==0 )
     {
-      // Indirect or Memory Mapped
+      // direct or Memory Mapped
+      ReadAddress = Smem & 0x7f;
+      if ( Ref == 1 )
+	ReadAddress = ReadAddress + MMR->SP;
+      else if ( Ref == 0 )
+	ReadAddress = ReadAddress + 0x80*(MMR->ST0 & 0x1ff);
+
+      return ReadAddress;
     }
   else
     {
@@ -175,8 +239,6 @@ Word update_smem_2words( int Smem, Word next_word, struct _Registers *Reg)
   Word *arfP;
    int mod;
   Word ReadAddress;
-
-  printf("0x%x\n",Smem);
 
   // Get the particular pointer register
   arfP=get_pointer_reg(Smem & 7,Reg, CMPT(MMR));

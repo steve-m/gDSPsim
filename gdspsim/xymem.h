@@ -27,5 +27,6 @@ void xymem_read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg);
 void xymem_read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg);
 void xmem_read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg);
 void xmem_read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg);
-
+void xmem_set_EAB(struct _PipeLine *pipeP, struct _Registers *Reg);
+void ymem_set_EAB(struct _PipeLine *pipeP, struct _Registers *Reg);
 #endif // __XYMEM_H__

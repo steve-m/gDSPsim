@@ -23,7 +23,8 @@
 #include "c54_core.h"
 
 // The basic read_stg1 for a smem. Handles 1 or 2 word smem. Places
-// the read address onto DAB.
+// the read address onto DAB. It decodes the address and adjusts any
+// pointer registers if needed. 
 void smem_read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg);
 // like above, execept for memory mapped access
 void mmem_read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg);
@@ -34,8 +35,19 @@ void smem_read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg);
 // like above, execept for memory mapped access
 void mmem_read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg);
 
+// Similar to mmem_read_stg1 except it sets the EAB register instead
+// of the DAB
+void mmem_set_EAB(struct _PipeLine *pipeP, struct _Registers *Reg);
+// Similar to smem_read_stg1 except it sets the EAB register instead
+// of the DAB
+void smem_set_EAB(struct _PipeLine *pipeP, struct _Registers *Reg);
+
 // This updates the auxillary registers and returns the read address
-Word update_smem( int Smem, struct _Registers *Reg);
+// Generally, the CPL bit or equal 2 for memory mapped registers.
+// Ref is only used for direct addressing (Smem<0x80). If Ref = 0, then the
+// DP (data page pointer) times 0x80 is added to the address. If Ref = 1, then
+// SP (stack pointer) is added to the address. If Ref=2, then nothing is added. 
+Word update_smem( int Smem, struct _Registers *Reg, int Ref);
 Word update_smem_2words( int Smem, Word next_word, struct _Registers *Reg);
 Word circular_update(Word start, SWord step, Word BK);
 int num_words_for_smem(struct _PipeLine *pipeP);

@@ -25,7 +25,6 @@
 
 static GPtrArray *machine_code(gchar *opcode_text);
 static int set_cycle_number(Word mach_code, int word_num);
-static void read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg);
 static void decode(struct _PipeLine *pipeP, struct _Registers *Reg);
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg);
 
@@ -43,7 +42,7 @@ Instruction_Class DST_Obj =
   NULL, // fetch
   decode, // decode
   NULL, // read_stg1 (access)
-  read_stg2, // read_stg2 (read)
+  smem_set_EAB, // read_stg2 (read)
   execute, // execute
   num_words_for_smem, // number_words 
   set_cycle_number, // set_cycle_number
@@ -63,34 +62,12 @@ static void decode(struct _PipeLine *pipeP, struct _Registers *Reg)
     }
 }
 
-static void read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
-{
-  Word DAB;
-  
-  printf("Read_Stg1 for dst 0x%x\n",pipeP->current_opcode);
-
-  if ( pipeP->total_words > 1 )
-    {
-      // word_number counts down from total_words
-      if ( pipeP->word_number == 1 )
-	{
-	  Reg->EAB = update_smem_2words(pipeP->current_opcode & 0xff , 
-					pipeP->storage1 , Reg);
-	}
-    }
-  else
-    {
-      // This updates the auxillary registers 
-      Reg->EAB = update_smem(pipeP->current_opcode & 0xff , Reg);
-      printf("Read_Stg1 for mar 0x%x DAB=0x%x\n",pipeP->current_opcode,DAB);
-    }
-}
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   Word word2write;
   union _GP_Reg_Union reg_union;
   
-  if ( pipeP->current_opcode & 0x10000 )
+  if ( pipeP->current_opcode & 0x100 )
     {
       reg_union.gp_reg = MMR->B;
     }

@@ -47,6 +47,8 @@ void multiplier(int Xmux, int Ymux, int Amux, int Smux, struct _Registers *Reg)
 {
   gint32 X,Y; // Really need 17-bits
   gint64 Result64;
+  union _GP_Reg_Union gp_reg;
+
   switch (Xmux)
     {
     case 0:
@@ -83,15 +85,30 @@ void multiplier(int Xmux, int Ymux, int Amux, int Smux, struct _Registers *Reg)
   Result64 = X*Y;
 
   // Now add 40 bits to 40 bits
-  if ( Amux )
+  if ( Amux == 1 )
     {
+      // Accumulate using A register
+      gp_reg.gp_reg = MMR->A;
+      Result64 = Result64 + gp_reg.gint64;
     }
+  if ( Amux == 2 )
+    {
+      // Accumulate using B register
+      gp_reg.gp_reg = MMR->B;
+      Result64 = Result64 + gp_reg.gint64;
+    }
+ 
+
+  gp_reg.gint64 = Result64;
 
   if ( Smux )
     {
+      // Store in B register
+      MMR->B = gp_reg.gp_reg;
     }
   else
     {
+      MMR->A = gp_reg.gp_reg;
     }
 }
 

@@ -93,4 +93,13 @@ void xmem_read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
   
   Reg->DB = read_data_mem(Reg->DAB,&wait_state);
 }
+void xmem_set_EAB(struct _PipeLine *pipeP, struct _Registers *Reg)
+{
+  Reg->EAB = update_xymem(pipeP->current_opcode, 1, Reg);
+}
+
+void ymem_set_EAB(struct _PipeLine *pipeP, struct _Registers *Reg)
+{
+  Reg->EAB = update_xymem(pipeP->current_opcode, 0, Reg);
+}
 

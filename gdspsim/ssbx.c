@@ -26,7 +26,7 @@
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg);
 static GPtrArray *machine_code(gchar *opcode_text);
 
-static gchar *mask[]=    { "111101t11011tttt" };
+static gchar *mask[]=    { "111101t1 1011tttt" };
 static gchar *opcode[] = { "SSBX t" };
 static gchar *comment[]= { "$(d)=-$(s)" };
 
@@ -57,7 +57,7 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 
   bit = pipeP->current_opcode & 0xf;
   
-  if ( pipeP->current_opcode & 0x20000 )
+  if ( pipeP->current_opcode & 0x200 )
     MMR->ST1 = MMR->ST1 | (1 << bit);
   else
     MMR->ST0 = MMR->ST0 | (1 << bit);

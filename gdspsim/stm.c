@@ -21,15 +21,16 @@
 #include "hardware.h"
 #include <stdio.h>
 #include "smem.h"
+#include "memory.h"
 #include "instruct_help.h"
 
 static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg);
-static void decode(struct _PipeLine *pipeP, struct _Registers *Reg);
+static void execute(struct _PipeLine *pipeP, struct _Registers *Reg);
 static GPtrArray *machine_code(gchar *opcode_text);
 
-static gchar *mask[]=    { "01110111 aaaaaaaa nnnnnnnn nnnnnnnn" };
-static gchar *opcode[] = { "STM #n,a" };
-static gchar *comment[]= { "$(a)=$(n)" };
+static gchar *mask[]=    { "01110111 mmmmmmmm hhhhhhhh hhhhhhhh" };
+static gchar *opcode[] = { "STM #h,m" };
+static gchar *comment[]= { "$(m)=$(h)" };
 
 /* This definition is global because another routine will make have
  * an array that points to all the different instruction classes.
@@ -39,10 +40,10 @@ Instruction_Class STM_Obj =
   "STM",
   NULL, // prefetch
   NULL, // fetch
-  decode, // decode
-  smem_read_stg1, // read_stg1 (access)
-  smem_read_stg2, // read_stg2 (read)
-  NULL, // execute
+  NULL, // decode
+  read_stg1, // read_stg1 (access)
+  mmem_set_EAB, // read_stg2 (read)
+  execute, // execute
   return_2, // number_words 
   NULL, // set_cycle_number
   1,
@@ -52,24 +53,22 @@ Instruction_Class STM_Obj =
   machine_code
 };
 
-static void decode(struct _PipeLine *pipeP, struct _Registers *Reg)
-{
-  Word *mmr;
-  Word mm_code;
-
-  mm_code = (pipeP->current_opcode & 0xf0)>>4;
-  mmr = get_mmr(mm_code,Reg);
-
-  pipeP->storage1 = *mmr;  
-
-}
 static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-  Word mm_code;
+  // always 2 words
+  if ( pipeP->word_number == 1 )
+    {
+      pipeP->storage1 = Reg->IR;
+    }
+}
 
-  mm_code = pipeP->current_opcode & 0xf;
-  
-  set_mmr(mm_code,pipeP->storage1,Reg);
+static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
+{
+  if ( pipeP->word_number == 1 )
+    {
+      printf("Writing 0x%x to location 0x%x\n",pipeP->storage1,Reg->EAB);
+      write_data_mem(Reg->EAB,pipeP->storage1);
+    }
 }
 
 /* Generates an array of Words that this opcode text generates or NULL

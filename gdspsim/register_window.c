@@ -28,6 +28,9 @@ struct _reg_entries
   GtkWidget *A;
   GtkWidget *B;
   GtkWidget *SP;
+  GtkWidget *ST0;
+  GtkWidget *ST1;
+
   GtkWidget *AR0;
   GtkWidget *AR1;
   GtkWidget *AR2;
@@ -62,6 +65,11 @@ void entry_regCB( GtkWidget *widget,  GP_Reg *reg )
 {
 }
 
+static void destroy_window_CB( GtkWidget *W, gpointer data )
+{
+  registerW=NULL;
+}
+
 static GtkWidget *set_reg_table(const gchar *label_name,int x, int y, GtkTable *table, gpointer user_data)
 {
   GtkWidget *entry,*label;
@@ -94,6 +102,9 @@ void create_register_window(struct _Registers *Registers)
 
   // Create window
   registerW = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+  gtk_signal_connect(GTK_OBJECT(registerW),"destroy",
+		     (GtkSignalFunc)destroy_window_CB,NULL);
+
   gtk_widget_set_name (registerW, "Registers");
   gtk_window_set_title (GTK_WINDOW (registerW),"Registers");
   gtk_container_set_border_width (GTK_CONTAINER (registerW), 0);
@@ -111,6 +122,10 @@ void create_register_window(struct _Registers *Registers)
 				  &MMR->B);
   reg_entries.SP = set_reg_table("SP", 0, 3, GTK_TABLE(table), 
 				  &MMR->SP);
+  reg_entries.ST0 = set_reg_table("ST0", 0, 4, GTK_TABLE(table), 
+				  &MMR->ST0);
+  reg_entries.ST1 = set_reg_table("ST1", 0, 5, GTK_TABLE(table), 
+				  &MMR->ST1);
 
 
   reg_entries.AR0 = set_reg_table("AR0", 2, 0, GTK_TABLE(table), 
@@ -175,6 +190,12 @@ void fill_reg_entries(struct _Registers *Registers)
  
   g_snprintf(temp_str,15,"0x%x",MMR->SP);
   gtk_entry_set_text (GTK_ENTRY(reg_entries.SP),temp_str);
+ 
+  g_snprintf(temp_str,15,"0x%x",MMR->ST0);
+  gtk_entry_set_text (GTK_ENTRY(reg_entries.ST0),temp_str);
+ 
+  g_snprintf(temp_str,15,"0x%x",MMR->ST1);
+  gtk_entry_set_text (GTK_ENTRY(reg_entries.ST1),temp_str);
  
   g_snprintf(temp_str,15,"0x%x",MMR->ar0);
   gtk_entry_set_text (GTK_ENTRY(reg_entries.AR0),temp_str);

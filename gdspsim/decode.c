@@ -19,7 +19,6 @@
 
 #include <glib.h>
 #include <stdio.h>
-//#include "opcode_def.h"
 #include "core_def.h"
 #include "string.h"
 #include <stdlib.h>
@@ -38,32 +37,6 @@ int get_bits(gchar *info, int *word);
 
 Word dm[55];
 
-/* Reads the mask to set the operands */
-void default_pipe_read(struct _PipeLine *pipeP, struct _Registers *Reg)
-{
-  int SubType;
-  Operand_List *operands;
-  gchar *mask;
-
-  SubType = pipeP->opcode_subType;
-  operands = &pipeP->operands;
-  mask = pipeP->opcode_object->mask[SubType];
-
-  while ( *mask )
-    {
-      if ( *mask=='1' || *mask=='0' )
-	{
-	  mask++;
-	}
-      else if ( *mask != ' ' )
-	{
-	  
-	  // OK, we have an operand marker
-	  
-	  mask++;
-	}
-    }
-}
 union u_operands read_op(char info, struct _Registers *Registers, Word bits, Word lk, int *wait_state)
 {
   union u_operands op;
@@ -461,10 +434,9 @@ int check_mask(const char *mask, Word mach_code )
 
   return 1;
 
-  // printf("len=%d  bytes=\n",len,bytes);
 }
 
-gchar *mw_decode(gchar *mask, char info, Word start_code, WordA *location)
+gchar *vw_decode(gchar *mask, char info, Word start_code, WordA *location)
 {
   unsigned int bits;
   gchar *ch;
@@ -476,6 +448,115 @@ gchar *mw_decode(gchar *mask, char info, Word start_code, WordA *location)
     g_snprintf(ch,4,"SP");
   else
     g_snprintf(ch,4,"AR%d",bits);
+  return ch;
+}
+
+gchar *c_decode(gchar *mask, char info, Word start_code, WordA *location)
+{
+  unsigned int bits;
+  gchar *ch;
+
+  bits = bit_extract(info,mask,start_code,location);
+  
+  ch=g_new(gchar,13);
+  *ch='\0';
+
+  if ( bits == 0x0 )
+    {
+      return ch;
+    }
+
+  if ( bits & 0x40 )
+    {
+      // Group 1
+      if ( bits & 0x7 )
+	{
+	  // Group 1, Category A   EQ,NEQ,LT,LEQ,GT,GEQ
+	  // Assume that Category A determines the Condition Register
+	  if ( bits & 0x8 )
+	    g_strcat(ch,"B");
+	  else
+	    g_strcat(ch,"A");
+
+	  switch ( bits & 0x7 )
+	    {
+	    default: 
+	    case 0:
+	    case 1:
+	      g_strcat(ch,"????");
+	      break;
+	    case 2:
+	      g_strcat(ch,"GEQ");
+	      break;
+	    case 3:
+	      g_strcat(ch,"LT");
+	      break;
+	    case 4:
+	      g_strcat(ch,"NEQ");
+	      break;
+	    case 5: 
+	      g_strcat(ch,"EQ");
+	      break;
+	    case 6:
+	      g_strcat(ch,"GT");
+	      break;
+	    case 7:
+	      g_strcat(ch,"LEQ");
+	      break;
+	    }
+	}
+      if ( bits & 0x20 )
+	{
+	  if ( bits & 0x7 )
+	    // 2 conditions
+	    g_strcat(ch,",");
+
+	  // Group 1, Category B
+	  if ( ((bits & 0x7) && (bits & 0x8) ) ||
+	       ((bits & 0x7)==0x0 && (bits & 0x8)==0x0) )
+	    g_strcat(ch,"A");
+	  else
+	    g_strcat(ch,"B");
+
+	  if ( bits & 0x10 )
+	    g_strcat(ch,"OV");
+	  else
+	    g_strcat(ch,"NOV");
+	}
+    }
+  else
+    {
+      // Group 2
+
+      // Category A, TC NTC
+      if ( bits & 0x2 )
+	{
+	  if ( bits & 0x1 )
+	    g_strcat(ch,"BIO");
+	  else
+	    g_strcat(ch,"NBIO");
+	  if ( bits & 0x28 )
+	    // Another condition follows
+	    g_strcat(ch,",");
+	}
+      if ( bits & 0x8 )
+	{
+	  if ( bits & 0x4 )
+	    g_strcat(ch,"C");
+	  else
+	    g_strcat(ch,"NC");
+	  if ( bits & 0x20 )
+	    // Another condition follows
+	    g_strcat(ch,",");
+	}
+      if ( bits & 0x20 )
+	{
+	  if ( bits & 0x10 )
+	    g_strcat(ch,"TC");
+	  else
+	    g_strcat(ch,"NTC");
+	}
+    }
   return ch;
 }
 
@@ -511,8 +592,24 @@ gchar *u_decode(gchar *mask, char info, Word start_code, WordA *location)
   bits = bit_extract(info,mask,start_code,location);
 
   ch = g_new(gchar,8);
-  
+  printf("%d\n",bits);
+
   g_snprintf(ch,8,"%d",bits);
+
+  return ch;
+}
+
+
+gchar *h_decode(gchar *mask, char info, Word start_code, WordA *location)
+{
+  unsigned int bits;
+  gchar *ch;
+
+  bits = bit_extract(info,mask,start_code,location);
+
+  ch = g_new(gchar,8);
+
+  g_snprintf(ch,8,"0x%x",bits);
 
   return ch;
 }
@@ -528,6 +625,67 @@ gchar *n_decode(gchar *mask, char info, Word start_code, WordA *location)
   
   g_snprintf(ch,8,"%d",bits);
 
+  return ch;
+}
+
+gchar *t_decode(gchar *mask, char info, Word start_code, WordA *location)
+{
+  gchar *ch;
+  int bits;
+
+  bits = bit_extract(info,mask,start_code,location);
+
+  switch ( bits )
+    {
+    case 9:
+      ch = g_strdup("OVB");
+      break;
+    case 10:
+      ch = g_strdup("OVA");
+      break;
+    case 11:
+      ch = g_strdup("C");
+      break;
+    case 12:
+      ch = g_strdup("TC");
+      break;
+    case 512+5:
+      ch = g_strdup("CMPT");
+      break;
+    case 512+6:
+      ch = g_strdup("FRCT");
+      break;
+    case 512+7:
+      ch = g_strdup("C16");
+      break;
+    case 512+8:
+      ch = g_strdup("SXM");
+      break;
+    case 512+9:
+      ch = g_strdup("OVM");
+      break;
+    case 512+10:
+      ch = g_strdup("O");
+      break;
+    case 512+11:
+      ch = g_strdup("INTM");
+      break;
+    case 512+12:
+      ch = g_strdup("HM");
+      break;
+    case 512+13:
+      ch = g_strdup("XF");
+      break;
+    case 512+14:
+      ch = g_strdup("CPL");
+      break;
+    case 512+15:
+      ch = g_strdup("BRAF");
+      break;
+    default:
+      ch = g_new(gchar,8);
+      g_snprintf(ch,8,"%d",bits);
+    }
   return ch;
 }
 
@@ -576,6 +734,84 @@ gchar *sd_decode(gchar *mask, char info, Word start_code, WordA *location)
   return ch;
 }
 
+// Decodes memory mapped addressing
+gchar *m_decode(gchar *mask, char info, Word start_code, WordA *location)
+{
+  unsigned int bits;
+  gchar *ch;
+  ch = g_new(gchar,4);
+
+  bits = bit_extract(info,mask,start_code,location);
+
+  switch (bits)
+    {
+    case 0x00:
+      g_snprintf(ch,4,"IMR");
+      return ch;
+    case 0x01:
+      g_snprintf(ch,4,"IFR");
+      return ch;
+    case 0x06:
+      g_snprintf(ch,4,"ST0");
+      return ch;
+    case 0x07:
+      g_snprintf(ch,4,"ST1");
+      return ch;
+    case 0x0e:
+      g_snprintf(ch,4,"T");
+      return ch;
+    case 0x0f:
+      g_snprintf(ch,4,"TRN");
+      return ch;
+    case 0x10:
+      g_snprintf(ch,4,"AR0");
+      return ch;
+    case 0x11:
+      g_snprintf(ch,4,"AR1");
+      return ch;
+    case 0x12:
+      g_snprintf(ch,4,"AR2");
+      return ch;
+    case 0x13:
+      g_snprintf(ch,4,"AR3");
+      return ch;
+    case 0x14:
+      g_snprintf(ch,4,"AR4");
+      return ch;
+    case 0x15:
+      g_snprintf(ch,4,"AR5");
+      return ch;
+    case 0x16:
+      g_snprintf(ch,4,"AR6");
+      return ch;
+    case 0x17:
+      g_snprintf(ch,4,"AR7");
+      return ch;
+    case 0x18:
+      g_snprintf(ch,4,"SP");
+      return ch;
+    case 0x19:
+      g_snprintf(ch,4,"BK");
+      return ch;
+    case 0x1a:
+      g_snprintf(ch,4,"BRC");
+      return ch;
+    case 0x1b:
+      g_snprintf(ch,4,"RSA");
+      return ch;
+    case 0x1c:
+      g_snprintf(ch,4,"REA");
+      return ch;
+    case 0x1d:
+      g_snprintf(ch,4,"XPC");
+      return ch;
+      
+    }
+  // Didn't use allocated string
+  g_free(ch);
+  return h_decode(mask,info,start_code,location);
+}
+
 gchar *a_decode(gchar *mask, char info, Word start_code, WordA *location)
 {
   unsigned int mod,bits,arf;
@@ -596,7 +832,13 @@ gchar *a_decode(gchar *mask, char info, Word start_code, WordA *location)
 
   if ( !(bits & 0x80) )
     {
+#if 0
+      // Decode direct addressing as ARx
       *ind='\0';
+#else
+      // Decode as an unsigned number
+      return u_decode(mask,info,start_code,location);
+#endif
     }
 
   switch ( mod )
@@ -660,21 +902,164 @@ gchar *a_decode(gchar *mask, char info, Word start_code, WordA *location)
       next_loc = *location;
       next_loc++;
       *location = next_loc;
-      g_snprintf(ch,20,"%s(0x%x)",ind,read_program_mem(next_loc,&wait_state) );
+      g_snprintf(ch,20,"%s(%s)",ind,m_decode("hhhhhhhh hhhhhhhh",'h',read_program_mem(next_loc,&wait_state),&next_loc) );
       break;
     }
   
   return ch;
 }
+gchar *b_decode(gchar *mask, char info, Word start_code, WordA *location)
+{
+  unsigned int mod,bits;
+
+  // If it's in the form ARx just decode that and return
+  bits = bit_extract(info,mask,start_code,location);
+  mod = ( bits >> 3 ) & 0xf;
+
+  if ( (bits & 0x80)==0 && mod==0 )
+    return a_decode(mask,info,start_code,location);
+  // This doesn't handle indirect. Return the unsigned integer
+  return u_decode(mask,info,start_code,location);
+}
+
+// Returns 1 if condition is true
+int check_condition(Word bits)
+{
+
+  if ( bits == 0x0 )
+    {
+      return 1;
+    }
+
+  if ( bits & 0x40 )
+    {
+      // Group 1
+      if ( bits & 0x7 )
+	{
+	  union _GP_Reg_Union reg_union;
+
+	  // Group 1, Category A   EQ,NEQ,LT,LEQ,GT,GEQ
+	  // Assume that Category A determines the Condition Register
+	  if ( bits & 0x8 )
+	    reg_union.gp_reg = MMR->B;
+	  else
+	    reg_union.gp_reg = MMR->A;
+
+	  switch ( bits & 0x7 )
+	    {
+	    default: 
+	    case 0:
+	    case 1:
+	      printf("Condition is undefined %s:%d\n",__FILE__,__LINE__);
+	      return 0;
+	    case 2:
+	      if ( reg_union.gint64 < 0 )
+		return 0;
+	      break;
+	    case 3:
+	      if ( reg_union.gint64 >= 0 )
+		return 0;
+	      break;
+	    case 4:
+	      if ( reg_union.gint64 == 0 )
+		return 0;
+	      break;
+	    case 5: 
+	      if ( reg_union.gint64 != 0 )
+		return 0;
+	      break;
+	    case 6:
+	      if ( reg_union.gint64 <= 0 )
+		return 0;
+	      break;
+	    case 7:
+	      if ( reg_union.gint64 > 0 )
+		return 0;
+	      break;
+	    }
+	}
+      if ( bits & 0x20 )
+	{
+	  // Group 1, Category B
+	  if ( ((bits & 0x7) && (bits & 0x8) ) ||
+	       ((bits & 0x7)==0x0 && (bits & 0x8)==0x0) )
+	    {
+	      // Check OVA
+	      if ( (bits & 0x10) && !(MMR->ST0 & 0x400) )
+		return 0;
+	      else if ( !(bits & 0x10) && (MMR->ST0 & 0x400) )
+		return 0;
+	    }	  
+	  else
+	    {
+	      // Check OVB
+	      if ( (bits & 0x10) && !(MMR->ST0 & 0x200) )
+		return 0;
+	      else if ( !(bits & 0x10) && (MMR->ST0 & 0x200) )
+		return 0;
+	    }
+	}
+
+      // Passed all the conditions, must be true
+      return 1;
+    }
+  else
+    {
+      // Group 2
+
+      // Category A, TC NTC
+      if ( bits & 0x2 )
+	{
+	  if ( bits & 0x1 )
+	    FIXME(); // Return 0 if BIO not set
+	  else
+	    FIXME(); // Return 0 if BIO set
+	}
+      if ( bits & 0x8 )
+	{
+	  // Check C
+	  if ( bits & 0x4 )
+	    {
+	      if ( (MMR->ST0 & 0x400) == 0 )
+		return 0;
+	    }
+	  else
+	    {
+	      if ( (MMR->ST0 & 0x400) != 0 )
+		return 0;
+	    }
+	}
+      if ( bits & 0x20 )
+	{
+	  // Check TC
+	  if ( bits & 0x10 )
+	    {
+	      if ( (MMR->ST0 & 0x800) == 0 )
+		return 0;
+	    }
+	  else
+	    {
+	      if ( (MMR->ST0 & 0x800) != 0 )
+		return 0;
+	    }
+	}
+    }
+  // Must be true
+  return 1;
+}
+
+
 Word bit_extract(char info, char *mask, Word mach_code, WordA *location)
 {
   int bit,smallest;
   Word ans;
   int wait_state;
+  WordA current_location;
 
   ans = 0;
   smallest = 0;
   bit = BITS_PER_WORD;
+  current_location = *location;
   while ( *mask )
     {
       if ( *mask !=' ' )
@@ -688,19 +1073,40 @@ Word bit_extract(char info, char *mask, Word mach_code, WordA *location)
 			 __FILE__,__LINE__);
 		}
 	      bit = BITS_PER_WORD-1;
-	      mach_code = read_program_mem(*++location,&wait_state);
+	      current_location = current_location + 1;
+	      mach_code = read_program_mem(current_location,&wait_state);
+	      
 	    }
 	}
       if ( *mask == info )
 	{
 	  ans = ans | (mach_code & (1<<bit));
 	  smallest = bit;
+	  // Only want to increment location if actually used bits
+	  // from that location, otherwise location might get incremented
+	  // too often
+	  *location = current_location;
 	}
       mask++;
     }
   ans = ans >> smallest;
+
   return ans;
 }
+
+SWord signed_5bit_extract(Word mach_code)
+{
+  SWord bits;
+
+  bits = mach_code & 0xf;
+  if ( bits & 0x10 )
+    {
+      // Negative number
+      bits = bits - 16;
+    }
+  return bits;
+}
+
 SWord signed_bit_extract(char info, char *mask, Word mach_code, WordA *location)
 {
   int bit,smallest,largest_bit,sign_bit;
@@ -726,7 +1132,8 @@ SWord signed_bit_extract(char info, char *mask, Word mach_code, WordA *location)
 			 __FILE__,__LINE__);
 		}
 	      bit = BITS_PER_WORD-1;
-	      mach_code = read_program_mem(*++location,&wait_state);
+	      *location = *location + 1;
+	      mach_code = read_program_mem(*location,&wait_state);
 	    }
 	}
       if ( *mask == info )

@@ -24,6 +24,26 @@
 #include "memory.h"
 #include "string.h"
 
+void set_PC(WordA new_pc);
+
+
+struct _symL
+{
+  gchar *name;
+  gint32 value;
+  gint16 type;
+  unsigned char numaux;
+  unsigned char class;
+  gint16 section_num;
+};
+
+// List of the whole symbol table
+GList *symbolL=NULL;
+// List of the symbol table that are labels, sorted on value
+GList *symbol_label=NULL;
+
+WordA start_address=0x0;
+
 #define FILE_SIZE 100000
 GtkWidget *fileWidget=NULL;
 struct _file_info *gdsp_file_nfo;
@@ -106,13 +126,13 @@ void file_ok_sel2( GtkWidget        *w,
   FILE *fp;
   struct _coff_header *header=NULL;
   struct _section_header *section_header=NULL;
-  size_t amount_read = 0;
   int k;
   size_t read_amount;
-  WordA relocate;
+  WordA relocate=0; // Used to load object files
+  unsigned int optional_header_size;
+  struct _optional_header *opt_hdr;
 
   filename = gtk_file_selection_get_filename (GTK_FILE_SELECTION (fs));
-  g_print ("reading %s\n", filename);
 
   // Open file
   fp=fopen(filename,"rb+");
@@ -129,48 +149,54 @@ void file_ok_sel2( GtkWidget        *w,
   if ( size != read_amount )
     file_error(__LINE__,header,section_header);
 
-  printf("read in %d header entries   f_opthdr=0x%x\n",size,header->f_opthdr);
-  amount_read =+ size;
+  //printf("Time: %s\n",ctime((time_t *)&CHAR_TO_UINT32(header->time_stamp)));
 
-  printf("Time: %s\n",ctime(&header->f_timdat));
 
-  // Read in section headers
-  printf("going to read %d sections of size %d\n",header->f_nscns,sizeof(struct _section_header));
+  // Read in Optional header if it exists
+  optional_header_size = CHAR_TO_UINT16(header->num_bytes_opt);
+  if (optional_header_size != 0 )
+    {
+      if (optional_header_size != sizeof(struct _optional_header)) 
+	file_error(__LINE__,header,section_header);
+      
+      opt_hdr = g_new(struct _optional_header,1);
 
-  if ( fseek(fp,read_amount+header->f_opthdr,SEEK_SET) )
-    file_error(__LINE__,header,section_header);
+      size = fread((void *)opt_hdr,sizeof(char),optional_header_size,fp);
+      if ( size != optional_header_size)
+	file_error(__LINE__,header,section_header);
 
-  section_header = g_new(struct _section_header, header->f_nscns);
+      // Set the default view ranges
+      {
+	WordA sa;
+
+	sa = (WordA)CHAR_TO_UINT32(opt_hdr->start_address);
+	set_prog_mem_start_end(sa,sa+0x30);
+	set_PC(sa);
+      }
+    }
+  else
+    {
+      opt_hdr=NULL;
+      relocate=0x80; // To put .obj files in a reasonable location
+      set_prog_mem_start_end(relocate,relocate+0x20 );
+      set_PC(relocate);
+    }
+
+  section_header = g_new(struct _section_header, CHAR_TO_UINT16(header->num_sections));
   
   read_amount=48;
   if ( read_amount > sizeof(struct _section_header) )
     file_error(__LINE__,header,section_header);
 
-  for (k=0;k< header->f_nscns ; k++)
+  for (k=0;k< CHAR_TO_UINT16(header->num_sections) ; k++)
     {
       size = fread((void *)&section_header[k],sizeof(char),
 	       read_amount,fp);
       if ( size != read_amount )
 	file_error(__LINE__,header,section_header);
-
-      amount_read =+ size;
     }
 
-  // Determine if object file or program file by if the
-  // first section is called .vers
-  if ( strncmp(section_header[0].s_name,".vers",6) == 0 )
-    {
-      relocate=0;
-    }
-  else
-    {
-      relocate=0x80;
-      printf("Object File going to relocate to 0x80\n");
-    }
-
- 
-
-  for (k=0;k<header->f_nscns;k++)
+  for (k=0;k<CHAR_TO_UINT16(header->num_sections);k++)
     {
       unsigned long int size;
       size_t read_size;
@@ -178,8 +204,6 @@ void file_ok_sel2( GtkWidget        *w,
 
 
       size = section_header[k].s_size;
-
-      printf("Section name %s padd=0x%lx size=0x%lx flag=0x%lx raw=0x%lx\n",section_header[k].s_name,section_header[k].s_paddr,section_header[k].s_size,section_header[k].s_flags,section_header[k].s_scnptr);
 
       if ( size > 0 )
 	{
@@ -201,15 +225,8 @@ void file_ok_sel2( GtkWidget        *w,
 	      cp_to_mem( buffer, section_header[k].s_paddr+relocate, size, 
 		     PROGRAM_MEM_TYPE | DATA_MEM_TYPE);
 
-	      if ( strncmp(section_header[k].s_name,".text",6) == 0 )
-		{
-		  // Set the default view ranges
-		  set_prog_mem_start_end(section_header[k].s_paddr+relocate,
-					 section_header[k].s_paddr+relocate+size-1);
-		}
 
-	      printf("-----k= %d\n",k);
-  print_mem_list();
+	      //  print_mem_list();
 	    }
 	  else
 	    {
@@ -218,16 +235,107 @@ void file_ok_sel2( GtkWidget        *w,
 	      cp_to_mem( buffer, section_header[k].s_paddr+relocate, size, 
 		     PROGRAM_MEM_TYPE | DATA_MEM_TYPE);
 
-	      printf("-----k= %d\n",k);
-  print_mem_list();
+	      //  print_mem_list();
 	    }
 	  g_free(buffer);
 	}
     }
 
+  if ( CHAR_TO_UINT32(header->num_symbols) > 0 )
+    {
+      struct _symbol_element *sym;
+      unsigned long int size;
+      size_t read_size;
+      gchar *str_table;
+      gint32 str_size;
+      struct _symL *symL;
+      gint32 itemp;
+      int num_last=0;
+      
+      // There is a symbol table
+      printf("symbol=0x%x\n",CHAR_TO_UINT32(header->symbolP));
+      
+      sym = g_new(struct _symbol_element, CHAR_TO_UINT32(header->num_symbols) );
+      
+      if ( fseek(fp,CHAR_TO_UINT32(header->symbolP),SEEK_SET) )
+	file_error(__LINE__,header,section_header);
+      
+      size = sizeof(struct _symbol_element) * CHAR_TO_UINT32(header->num_symbols);
+      read_size = fread((void *)sym,sizeof(char), size,fp);
+      if ( read_size != size )
+	{
+	  file_error(__LINE__,header,section_header);
+	}
+      
+      // Read string table size
+      fread(&str_size, 1, 4, fp);
+      
+      str_table = g_new(gchar,str_size);
+      memset(str_table, 0, 4);
+      
+      read_size = fread(str_table+4, 1, str_size-4, fp);
+      if ( read_size != str_size-4 )
+	file_error(__LINE__,header,section_header);
+      
+      // Move symbol table into linked list
+      for (k=0;k<CHAR_TO_UINT32(header->num_symbols);k++ )
+	{
+
+	  if ( num_last > 0 )
+	    {
+	      num_last--;
+	    }
+	  else
+	    {
+	      symL = g_new(struct _symL,1);
+	      
+	      symL->type = *((gint16 *)&(sym[k].e_type[0]));
+	      
+	      itemp = *((gint32 *)&(sym[k].norl.name[0]));
+	      if ( itemp == 0 ) 
+		{
+		  // label name is in string table
+		  // get offset in string table
+		  itemp = *((gint32 *)&(sym[k].norl.name[4]));
+		  symL->name = g_strdup(str_table+itemp);
+		}
+	      else
+		{
+		  symL->name = g_new(gchar,9);
+		  
+		  memcpy(symL->name,sym[k].norl.name,8);
+		  symL->name[8]=0;
+		}
+
+	      symL->value = *((gint32 *)&(sym[k].e_value[0]));
+	      symL->numaux = sym[k].e_numaux;
+	      symL->class = sym[k].e_sclass;
+	      symL->section_num = *((gint16 *)&(sym[k].e_scnum[0]));
+	      
+	  
+	      // Look for starting address
+	      if ( strcmp(symL->name,"_c_int00") == 0 )
+		{
+		  start_address = symL->value;
+		  printf("found start 0x%x\n",start_address);
+		}
+
+	      num_last = symL->numaux;
+	      
+	      symbolL = g_list_append(symbolL,symL);
+	      
+	      // Extract labels
+	      if ( (symL->numaux==0x0 && symL->class==0x6 && symL->type==0x0004 && symL->section_num > 0 ) ||
+		   (symL->numaux==0x0 && symL->class==0x2 && symL->type==0x0004 && symL->section_num > 0 ) )
+		{
+		  symbol_label = g_list_append(symbol_label,symL);
+		}
+	    }
+	}
+
+    }
   // Debug
-	      printf("-----\n");
-  print_mem_list();
+  //  print_mem_list();
 
   gtk_widget_destroy(fileWidget);
   fileWidget=NULL;
