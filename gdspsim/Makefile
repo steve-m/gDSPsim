@@ -139,7 +139,6 @@ OBJS	= \
 	memory_window.o \
 	multiplier.o \
 	pipeline.o \
-	process_coff.o \
 	readfile.o \
 	register_window.o \
 	shifter.o \
