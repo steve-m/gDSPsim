@@ -177,6 +177,7 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 	? (MULT_ROUND | MULT_SUBTRACT): MULT_SUBTRACT;
       flag = (opcode.bop[3]&0x8) ? (flag | MULT_UNSIGNED_X) : flag;
       flag = (opcode.bop[3]&0x4) ? (flag | MULT_UNSIGNED_Y) : flag;
+      flag = (opcode.bop[3]&0x10) ? (flag | MULT_M40_IS_1) : flag;
       multiplier(MULT_DB,MULT_CB,r,R,flag,Reg);
       if ( opcode.bop[3]&0x2 )
 	{
