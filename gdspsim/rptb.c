@@ -75,15 +75,24 @@ static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
   // If not delayed version, stall for 2 cycles
   if ( (pipeP->current_opcode & 0x200) == 0)
     {
-      if ( pipeP->cycles == 0 )
+      if ( (pipeP->cycles == 0) )
 	Reg->Decode_Again = 2;
     }
 
   // Determine End address
-  if ( pipeP->word_number == 1 )
+
+  if ( ( (pipeP->current_opcode & 0x200) == 0) && (pipeP->cycles==2) )
     {
-      pipeP->storage1 = Reg->IR;
+      pipeP->storage1 = Reg->PB;
+
+      if ( (pipeP->current_opcode & 0x200) == 0) 
+	set_BRAF(MMR,1);
+      Reg->RSA = pipeP->storage2;
+      Reg->REA = pipeP->storage1;
     }
+  if ( ( (pipeP->current_opcode & 0x200) != 0) && ( pipeP->word_number == 1 ) )
+      pipeP->storage1 = Reg->IR;
+
 };
 
 static void read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
@@ -93,13 +102,11 @@ static void read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
 
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-  
-  if ( pipeP->word_number == 1 )
+  if ( ( (pipeP->current_opcode & 0x200) != 0)  && ( pipeP->word_number == 1 ) )
     {
       set_BRAF(MMR,1);
       Reg->RSA = pipeP->storage2;
       Reg->REA = pipeP->storage1;
-      printf("RSA=0x%x REA=0x%x\n",Reg->RSA,Reg->REA);
     }
 }
 
