@@ -109,6 +109,8 @@ extern Instruction_Class RPTB_Obj;
 extern Instruction_Class RSBX_Obj;
 extern Instruction_Class SAT_Obj;
 extern Instruction_Class SFTA_Obj;
+extern Instruction_Class SFTC_Obj;
+extern Instruction_Class SFTL_Obj;
 extern Instruction_Class SSBX_Obj;
 extern Instruction_Class ST_Obj;
 extern Instruction_Class ST_LD_Obj;
@@ -125,7 +127,7 @@ extern Instruction_Class XC_Obj;
 extern Instruction_Class XOR_Obj;
 extern Instruction_Class XORM_Obj;
 
-#define All_Objects_Len  99
+#define All_Objects_Len  101
 static const Instruction_Class *All_Objects[All_Objects_Len]=
 {
   &ABDST_Obj,
@@ -212,6 +214,8 @@ static const Instruction_Class *All_Objects[All_Objects_Len]=
   &RSBX_Obj,
   &SAT_Obj,
   &SFTA_Obj,
+  &SFTC_Obj,
+  &SFTL_Obj,
   &SSBX_Obj,
   &ST_Obj,
   &ST_LD_Obj,

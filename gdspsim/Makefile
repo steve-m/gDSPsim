@@ -111,6 +111,8 @@ OBJS	= \
 	rsbx.o \
 	sat.o \
 	sfta.o \
+	sftc.o \
+	sftl.o \
 	st.o \
 	st_ld.o \
 	sth.o \
