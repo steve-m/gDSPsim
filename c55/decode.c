@@ -799,7 +799,7 @@ void b_decode(gchar *ch, gchar *mask, char info,
 
   bits = bit_extract(info,mask,decode_nfo,NULL,&num_mask,&length);
 
-  if ( length==2 )
+  if ( num_mask==2 )
     {
       // It's a relationship operator
       switch ( bits )
@@ -1151,7 +1151,7 @@ Word bit_extract(char info, char *mask, struct _decoded_opcode *decode_nfo,
 	    ans = ans | 1;
 	  smallest = bit;
 
-	  //	  *num_mask = *num_mask + 1;
+	  *num_mask = *num_mask + 1;
 	  //	  ans = ans | (decode_nfo->mach_code.bop[current_location] & (1<<bit));
 	  //	  smallest = bit;
 	  //          if ( on_word < 0 )
