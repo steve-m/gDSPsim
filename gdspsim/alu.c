@@ -82,21 +82,13 @@ void alu(int Xmux, int Ymux, int Omux, int flag, struct _Registers *Reg)
       break;
     case 2:
       {
-	union _GP_Reg_Union reg_union;
-	reg_union.gint64 = 0;
-	reg_union.gp_reg = MMR->A;
-	X.words.low = reg_union.words.high;
-	if ( reg_union.words.ext & 0x1 )
+	if ( SXM(MMR) )
 	  {
-	    if ( SXM(MMR) )
-	      {
-		// make negative
-		X.gu32.high = 0xffffffff;
-	      }
-	      else
-		{
-		  X.gu32.high = 1;
-		}
+	    X.guint64 = GP_REG17_TO_UINT64(MMR->A);
+	  }
+	else
+	  {
+	    X.guint64 = NS_GP_REG17_TO_UINT64(MMR->A);
 	  }
 	break;
       }
@@ -202,23 +194,23 @@ void alu(int Xmux, int Ymux, int Omux, int flag, struct _Registers *Reg)
 
 
   // Check for overflow and set overflow bit
-  if ( X.gint64 > 0x7fffffff )
+  if ( X.gint64 > max_pos32 )
     {
       if ( Omux==1 )
 	set_OVB(MMR,1);
       else
 	set_OVA(MMR,1);
       if ( OVM(MMR) )
-	X.gint64 = 0x007fffffff;
+	X.gint64 = max_pos32;
     }
-  else if ( X.gint64 < -((gint64)1<<31) )
+  else if ( X.gint64 < max_neg32 )
     {
       if ( Omux==1 )
 	set_OVB(MMR,1);
       else
 	set_OVA(MMR,1);
       if ( OVM(MMR) )
-	X.gint64 = 0xff80000000;
+	X.gint64 = max_neg32;
     }
 
   // Set C bit
