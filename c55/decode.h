@@ -45,6 +45,10 @@ extern "C" {
   void p_decode(gchar *ch, gchar *mask, char info, 
 		struct _decoded_opcode *decode_nfo );
 
+  // extended register
+  void X_decode(gchar *ch, gchar *mask, char info, 
+		struct _decoded_opcode *decode_nfo);
+
   // r R register 2,4 bits
   void rR_decode(gchar *ch, gchar *mask, char info, 
 		struct _decoded_opcode *decode_nfo );
@@ -64,6 +68,10 @@ extern "C" {
   // x y Xmem Ymem addressing
   void xy_decode(gchar *ch, gchar *mask, char info, 
 		 struct _decoded_opcode *decode_nfo );
+
+// Conditional decode
+void b_decode(gchar *ch, gchar *mask, char info, 
+	      struct _decoded_opcode *decode_nfo );
 
   // c Cmem addressing
   void c_decode(gchar *ch, gchar *mask, char info, 
@@ -97,6 +105,14 @@ extern "C" {
   // h hexidecial bits vary
   void h_decode(gchar *ch, gchar *mask, char info, 
 		struct _decoded_opcode *decode_nfo );
+
+  // try to match an address label
+  void l_decode(gchar *ch, gchar *mask, char info, 
+		struct _decoded_opcode *decode_nfo);
+
+  // try to match an address label offset from address
+  void L_decode(gchar *ch, gchar *mask, char info, 
+		struct _decoded_opcode *decode_nfo);
 
   // A unsigned flag, think Abs
   void A_decode(gchar *ch, gchar *mask, char info, 
@@ -152,9 +168,6 @@ extern "C" {
 		       struct _decoded_opcode *decode_nfo, 
 		       int *worn_num, int *num_mask);
 
-  
-  // Returns 1 if condition is true
-  int check_condition(Word bits);
   
 #ifdef __cplusplus
 }
