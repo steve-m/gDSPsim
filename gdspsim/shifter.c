@@ -52,10 +52,16 @@ inline void shifter(Word input_mux, struct _Registers *Reg, Word shift_mux, SWor
   switch ( input_mux )
     {
     case 0:
-      reg.gp_reg = MMR->A;
+      if ( SXM(MMR) )
+	reg.guint64 = GP_REG_2_UINT64(MMR->A);
+      else
+	reg.gp_reg = MMR->A;
       break;
     case 1:
-      reg.gp_reg = MMR->B;
+      if ( SXM(MMR) )
+	reg.guint64 = GP_REG_2_UINT64(MMR->B);
+      else
+	reg.gp_reg = MMR->B;
       break;
     case 2:
       if ( SXM(MMR) )
