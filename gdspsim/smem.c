@@ -25,26 +25,40 @@
 void mmem_set_EAB(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   Word EAB;
-  
-  //  if ( pipeP->total_words  1 )
-  if ( (pipeP->word_number == 1) && (pipeP->current_opcode & 0x80) )
-    {
-      FIXME();
+  int num_words;
 
-      EAB = update_smem_2words(pipeP->current_opcode & 0xff , 
-			       Reg->IR , Reg );
-      // Needed for indirect addressing
-      EAB = EAB & 0x7f;
-      Reg->EAB = EAB;
-    }
-  else if ( (pipeP->word_number == 1) && ((pipeP->current_opcode & 0x80)==0) )
+  // Only update if on last word of Smem
+  if ( pipeP->current_opcode & 0x80 )
     {
-      // This updates the auxillary registers 
-      EAB = update_smem(pipeP->current_opcode & 0xff , Reg, 2);
-      // Needed for indirect addressing
-      EAB = EAB & 0x7f;
+      // Indirect Addressing
+      
+      num_words = num_words_for_smem(pipeP);
+
+     if ( num_words > 1 )
+	{
+	  // word_number counts down from total_words
+	  if ( (pipeP->total_words - pipeP->word_number) == 1 )
+	    {
+	      EAB = update_smem_2words(pipeP->current_opcode & 0xff , 
+				       Reg->IR , Reg );
+	      Reg->EAB = EAB;
+	      Reg->EAB = EAB & 0x7f;
+	    }
+	}
+      else if ( pipeP->total_words == pipeP->word_number )
+	{
+	  // This updates the auxillary registers 
+	  EAB = update_smem(pipeP->current_opcode & 0xff , Reg, CPL(MMR));
+	  Reg->EAB = EAB & 0x7f;
+	}
+    }
+  else if ( pipeP->total_words == pipeP->word_number )
+    {
+      // Direct addressing. Only 1 word for due to Smem
+      EAB = pipeP->current_opcode & 0x7f;
       Reg->EAB = EAB;
     }
+  
 }
 
 void smem_set_EAB(struct _PipeLine *pipeP, struct _Registers *Reg)
@@ -471,7 +485,10 @@ void lmem_set_EAB(struct _PipeLine *pipeP, struct _Registers *Reg)
       if ( (indirect) &&  ( (mod==1) || (mod==2) || (mod==3) ||
 			    (mod==8) || (mod=10) ) )
 	{
-	  Reg->EAB = update_smem(pipeP->current_opcode & 0xff , Reg, CPL(MMR));
+	  if ( pipeP->cycles == 0 )
+	    Reg->EAB = update_smem(pipeP->current_opcode & 0xff , Reg, CPL(MMR));
+	  else if ( pipeP->cycles == 1 )
+	    Reg->EAB = Reg->EAB ^ 1;
 	}
       else
 	{
