@@ -29,8 +29,8 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg);
 
 
 static gchar *mask[]=    { "0101011d aaaaaaaa"};
-static gchar *opcode[] = { "DLD a,s" };
-static gchar *comment[]= { "dbl($(s))=dbl($(a))" };
+static gchar *opcode[] = { "DLD a,d" };
+static gchar *comment[]= { "dbl($(d))=dbl($(a))" };
 
 /* This definition is global because another routine will make have
  * an array that points to all the different instruction classes.
