@@ -506,7 +506,7 @@ void vw_decode(gchar *ch, gchar *mask, char info,
 
 // decodes condition codes
 void c_decode(gchar *ch, gchar *mask, char info, 
-                struct _decoded_opcode *decode_nfo )
+	      struct _decoded_opcode *decode_nfo )
 {
   unsigned int bits;
 
@@ -516,7 +516,7 @@ void c_decode(gchar *ch, gchar *mask, char info,
 
   if ( bits == 0x0 )
     {
-      g_strcat(ch,"UNC");
+      strcat(ch,"UNC");
       return;
     }
 
@@ -528,34 +528,34 @@ void c_decode(gchar *ch, gchar *mask, char info,
 	  // Group 1, Category A   EQ,NEQ,LT,LEQ,GT,GEQ
 	  // Assume that Category A determines the Condition Register
 	  if ( bits & 0x8 )
-	    g_strcat(ch,"B");
+	    strcat(ch,"B");
 	  else
-	    g_strcat(ch,"A");
+	    strcat(ch,"A");
 
 	  switch ( bits & 0x7 )
 	    {
 	    default: 
 	    case 0:
 	    case 1:
-	      g_strcat(ch,"????");
+	      strcat(ch,"????");
 	      break;
 	    case 2:
-	      g_strcat(ch,"GEQ");
+	      strcat(ch,"GEQ");
 	      break;
 	    case 3:
-	      g_strcat(ch,"LT");
+	      strcat(ch,"LT");
 	      break;
 	    case 4:
-	      g_strcat(ch,"NEQ");
+	      strcat(ch,"NEQ");
 	      break;
 	    case 5: 
-	      g_strcat(ch,"EQ");
+	      strcat(ch,"EQ");
 	      break;
 	    case 6:
-	      g_strcat(ch,"GT");
+	      strcat(ch,"GT");
 	      break;
 	    case 7:
-	      g_strcat(ch,"LEQ");
+	      strcat(ch,"LEQ");
 	      break;
 	    }
 	}
@@ -563,19 +563,19 @@ void c_decode(gchar *ch, gchar *mask, char info,
 	{
 	  if ( bits & 0x7 )
 	    // 2 conditions
-	    g_strcat(ch,",");
+	    strcat(ch,",");
 
 	  // Group 1, Category B
 	  if ( ((bits & 0x7) && (bits & 0x8) ) ||
 	       ((bits & 0x7)==0x0 && (bits & 0x8)==0x0) )
-	    g_strcat(ch,"A");
+	    strcat(ch,"A");
 	  else
-	    g_strcat(ch,"B");
+	    strcat(ch,"B");
 
 	  if ( bits & 0x10 )
-	    g_strcat(ch,"OV");
+	    strcat(ch,"OV");
 	  else
-	    g_strcat(ch,"NOV");
+	    strcat(ch,"NOV");
 	}
     }
   else
@@ -586,29 +586,29 @@ void c_decode(gchar *ch, gchar *mask, char info,
       if ( bits & 0x2 )
 	{
 	  if ( bits & 0x1 )
-	    g_strcat(ch,"BIO");
+	    strcat(ch,"BIO");
 	  else
-	    g_strcat(ch,"NBIO");
+	    strcat(ch,"NBIO");
 	  if ( bits & 0x28 )
 	    // Another condition follows
-	    g_strcat(ch,",");
+	    strcat(ch,",");
 	}
       if ( bits & 0x8 )
 	{
 	  if ( bits & 0x4 )
-	    g_strcat(ch,"C");
+	    strcat(ch,"C");
 	  else
-	    g_strcat(ch,"NC");
+	    strcat(ch,"NC");
 	  if ( bits & 0x20 )
 	    // Another condition follows
-	    g_strcat(ch,",");
+	    strcat(ch,",");
 	}
       if ( bits & 0x20 )
 	{
 	  if ( bits & 0x10 )
-	    g_strcat(ch,"TC");
+	    strcat(ch,"TC");
 	  else
-	    g_strcat(ch,"NTC");
+	    strcat(ch,"NTC");
 	}
     }
   return;
