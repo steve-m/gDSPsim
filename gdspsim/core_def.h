@@ -63,14 +63,20 @@ struct _GP_Words
   Word high;
 };
 
+struct _GP32
+{
+  guint32 low;
+  guint32 high;
+};
+
 union _GP_Reg_Union
 {
   GP_Reg gp_reg;
   guint64 guint64;
   gint64 gint64;
   struct _GP_Words words;
+  struct _GP32 gu32;
 };
-
 
 // Used to tell if the opcode tag is used in the notation. 
 #define INCLUDE_OPCODE_IN_DECODE 1
