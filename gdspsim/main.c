@@ -191,7 +191,8 @@ static GtkItemFactoryEntry menu_items[] =
   { "/Simulate/Stop",  "F6",        (GtkItemFactoryCallback)stop_CB, 0, NULL },
   { "/Simulate/Animate",  "F7",        (GtkItemFactoryCallback)animate_CB, 0, NULL },
   { "/Simulate/Restart",  NULL,        (GtkItemFactoryCallback)restart_CB, 0, NULL },
-  { "/Simulate/Connect File", NULL, (GtkItemFactoryCallback)create_fileIO, 0, NULL },
+  { "/Simulate/Connect Input File", NULL, (GtkItemFactoryCallback)create_fileIO, 1, NULL },
+  { "/Simulate/Connect Output File", NULL, (GtkItemFactoryCallback)create_fileIO, 0, NULL },
   { "/_Help",         NULL,         NULL, 0, "<LastBranch>" },
   { "/_Help/About",   NULL,         NULL, 0, NULL },
 };
