@@ -325,7 +325,7 @@ void create_plot_window()
 		     (GtkSignalFunc)destroy_window_CB,plot_windowN);
   
   gtk_window_set_title(GTK_WINDOW(plot_windowN->window), "Plot");
-  gtk_widget_set_usize(plot_windowN->window,550,650);
+  gtk_widget_set_usize(plot_windowN->window,550,350);
   gtk_container_border_width(GTK_CONTAINER(plot_windowN->window),0);
   
   // Set up containers for window
