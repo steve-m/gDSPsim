@@ -42,24 +42,42 @@ OBJS	= \
 	bitt.o \
 	cala.o \
 	call.o \
+	cc.o \
 	cmpl.o \
 	cmpm.o \
 	cmps.o \
 	dadd.o \
 	dadst.o \
+	delay.o \
+	drsub.o \
 	dld.o \
+	dsadt.o \
 	dst.o \
+	dsub.o \
+	dsubt.o \
 	exp.o \
+	fb.o \
+	fbacc.o \
 	fcala.o \
 	fcall.o \
+	firs.o \
 	frame.o \
 	fret.o \
+	frete.o \
+	idle.o \
 	ld.o \
+	ldr.o \
+	ldu.o \
 	ldm.o \
+	ltd.o \
 	mac.o \
 	maca.o \
+	macd.o \
+	macp.o \
 	macsu.o \
 	mar.o \
+	mas.o \
+	masa.o \
 	max.o \
 	min.o \
 	mpy.o \
@@ -76,23 +94,42 @@ OBJS	= \
 	norm.o \
 	or.o \
 	orm.o \
+	popd.o \
+	popm.o \
+	pshd.o \
+	pshm.o \
 	reada.o \
+	ret.o \
+	rete.o \
+	rnd.o \
+	rol.o \
+	roltc.o \
+	ror.o \
 	rpt.o \
 	rptb.o \
 	rsbx.o \
+	sat.o \
 	sfta.o \
+	st.o \
 	st_ld.o \
+	sth.o \
 	ssbx.o \
 	stl.o \
 	stlm.o \
 	stm.o \
 	strcd.o \
+	sub.o \
+	subb.o \
+	subc.o \
+	subs.o \
 	xc.o \
 	xor.o \
 	xorm.o \
+	alu.o \
 	decode.o \
 	decode_window.o \
 	entryCB.o \
+	fileIO.o \
 	find_opcode.o \
 	gtkbox_add.o \
 	hardware.o \
@@ -119,7 +156,7 @@ SRCS	= $(OBJS:%.o=%.c)
 #.c.o:
 #$(OBJS):	$(SRCS) $(DEPS)
 .c.o:
-	$(CC) -Wall -ggdb -I. `pkg-config gtk+-2.0 --cflags`  -c $<
+	$(CC) -Wall -ggdb -I. `pkg-config gtk+ --cflags`  -c $<
 
 all:	$(PROGRAM)
 
@@ -128,7 +165,7 @@ all:	$(PROGRAM)
 #	./make
 
 $(PROGRAM):	$(OBJS)
-		$(CC) -rdynamic `pkg-config gtk+-2.0  --libs` -o $(PROGRAM) $(OBJS)
+		$(CC) -rdynamic `pkg-config gtk+  --libs` -o $(PROGRAM) $(OBJS)
 		@echo "done"
 
 clean:		
