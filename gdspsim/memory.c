@@ -19,7 +19,7 @@
 
 #include "memory.h"
 #include "stdio.h"
-
+#include "memory_window.h"
 
 struct _def_mem
 {
@@ -40,13 +40,13 @@ GList *DataProgMemList=NULL;
  * correct value */
 // This will need to be more complicated soon, that's why it's
 // broken out into a separate file.
-Word read_mem(WordA offset, int *wait_state, MemType type)
+Word read_mem(WordA offset, int *wait_state, MemType type, int *available)
 {
   GList *list;
   struct _def_mem *mem_page;
   Word *mem_element;
 
-
+  *available = 1;
   if ( (type & DATA_MEM_TYPE) || (type & PROGRAM_MEM_TYPE) )
     {
       
@@ -95,7 +95,7 @@ Word read_mem(WordA offset, int *wait_state, MemType type)
     }
 
   *wait_state=0;
-  printf("Memory access violation reading 0x%x of type=%d\n",offset,type);
+  *available = 0; // Hasn't been written too
   
   return 0;
 }
@@ -113,6 +113,8 @@ static int write_mem(WordA offset, Word value, MemType type)
   struct _def_mem *mem_page;
   Word *mem_element;
 
+  // This memory address has been written to
+  set_mem_changed(offset);
   if ( DataProgMemList && 
        ((type & DATA_MEM_TYPE) || (type & PROGRAM_MEM_TYPE) ) )
     {
@@ -165,10 +167,13 @@ static int write_mem(WordA offset, Word value, MemType type)
 	}
     }
 
-
   printf("Memory access violation writing 0x%x of type=%d\n",offset,type);
+  printf("Adding it to accessable memory!\n");
+
+  // This will put this address in avalible memory
+  cp_to_mem(&value,offset,1,type);
     
-  return -1;
+  return 0;
 }
 
 int write_program_mem(WordA offset, Word value)
@@ -182,12 +187,18 @@ int write_data_mem(WordA offset, Word value)
 
 Word read_data_mem(WordA offset, int *wait_state)
 {
-  return read_mem(offset,wait_state,DATA_MEM_TYPE);
+  int available;
+  return read_mem(offset,wait_state,DATA_MEM_TYPE,&available);
+  if ( !available )
+    printf("Warning trying to access invalid memory at address 0x%x\n",offset);
 }
 
 Word read_program_mem(WordA offset, int *wait_state)
 {
-  return read_mem(offset,wait_state,PROGRAM_MEM_TYPE);
+  int available;
+  return read_mem(offset,wait_state,PROGRAM_MEM_TYPE,&available);
+  if ( !available )
+    printf("Warning trying to access invalid memory at address 0x%x\n",offset);
 }
 
 // Debug function to print defined memory
