@@ -47,6 +47,18 @@ extern "C" {
   // r register number 0-3
   void set_k32_reg(int r, DWord value, int sign_extend40);
   
+  // r=0, HI(AC0)=value1
+  //      HI(AC1)=value2
+  // r=2, HI(AC2)=value1
+  //      HI(AC3)=value2
+  void set_k16_pair_HIreg(int r, Word value1, Word value2, int sign_extend);
+
+  // r=0, HI(AC0)=value1
+  //      HI(AC1)=value2
+  // r=2, HI(AC2)=value1
+  //      HI(AC3)=value2
+  void set_k16_pair_LOreg(int r, Word value1, Word value2, int sign_extend);
+
   // r register number 0-15, returns low bits for accumulators
   Word get_k16_reg(int r);
 
