@@ -30,6 +30,7 @@ extern "C"
   /* input_mux (input control)
    *    0-15      Register 0-15
    *    SHFT_DB   DB Register
+   *    SHFT_CB   CB Register
    *
    * shift_mux
    *    0-3       Use Register T0-T3 for shift amount
@@ -42,17 +43,20 @@ extern "C"
    * output_mux
    *    0-15           Register 0-15
    *    SHFT_SHIFTER   Temporary Shifter Register
+   *    SHFT_EB
    *
    */
 
 #define SHFT_DB 16
+#define SHFT_CB 17
 #define SHFT_CONSTANT 8
 #define SHFT_SHIFTER 16
+#define SHFT_EB 17
 
   // Flag defines. Always use these
 
   // Saturation Control, one must be chosen
-#define SHFT_DONT_SATURATE 0x3
+#define SHFT_DONT_SATURATE 0x3 // must be all bits for routine
 #define SHFT_SATURATE 0x1
 #define SHFT_UNSIGNED_SATURATE 0x2
 #define SHFT_USE_SATD_SATA 0x0
@@ -72,6 +76,7 @@ extern "C"
 
 
 #define SHFT_DONT_SET_CARRY 0x80
+#define SHFT_ROUND 0x40 // rounds according to RDM
 
 inline void shifter(Word input_mux, Word shift_mux, SWord shift, 
 		    unsigned int flag, Word output_mux, 

@@ -21,172 +21,148 @@
 #include "decode.h"
 #include "memory.h"
 #include "chip_core.h"
+#include <chip_help.h>
 
-// mux (input control)
-// 0 = AC0
-// 1 = AC1
-// 2 = AC2
-// 3 = AC3
-// 4 = T0
-// 5 = T1
-// 6 = T2
-// 7 = T3
-// 8-15 = ARx
-// 16 = DB
+  /* input_mux (input control)
+   *    0-15      Register 0-15
+   *    SHFT_DB   DB Register
+   *
+   * shift_mux
+   *    0-3       Use Register T0-T3 for shift amount
+   *    SHFT_CONSTANT  Use a Constant passed in shift for shift amount
+   *
+   * shift (for use when SHFT_CONSTANT (above) set)
+   *
+   * flag (See below for defines)
+   *
+   * output_mux
+   *    0-15           Register 0-15
+   *    SHFT_SHIFTER   Temporary Shifter Register
+   *
+   */
 
-// (shift amount control)
-// 0-3 = Tx
-// 4-7 = Tx with rounding
-// 8 = Immediate
-
-// flag
-// bit 0 = Round
-// bit 1 = Unsigned. Turns on saturations and saturates to 00ffffffff
-//                   Unless C54CM=1
-// bit 2 = Saturate. Turn on Saturation regardless of SATD
-
-
-//                      
-// output_mux
-// 0 = AC0
-// 1 = AC1
-// 2 = AC2
-// 3 = AC3
-// 4 = T0
-// 5 = T1
-// 6 = T2
-// 7 = T3
-// 8-15 = ARx
-
-// 16 bit numbers are automatically sign extended
 inline void shifter(Word input_mux, Word shift_mux, SWord shift, 
 		    unsigned int flag, Word output_mux, 
 		    struct _Registers *Reg )
 {
   union _GP_Reg_Union reg;
-  int overflow_bit,overflow,sat=0;
-  guint64 ovrflw_mask;
+  int overflow_bit,overflow,_M40,sat=0;
+  guint64 ovrflw_mask,carry;
 
-  reg.guint64 = 0;
-
-  switch ( input_mux )
+  if ( (flag & SHFT_UNSIGNED) || (SXMD(MMR)==0) )
     {
-    case 0:
-      reg.gp_reg = MMR->AC0;
-      break;
-    case 1:
-      reg.gp_reg = MMR->AC1;
-      break;
-    case 2:
-      reg.gp_reg = MMR->AC2;
-      break;
-    case 3:
-      reg.gp_reg = MMR->AC3;
-      break;
-    case 4:
-      reg.gint64 = (SWord)MMR->T0;
-      break;
-    case 5:
-      reg.gint64 = (SWord)MMR->T1;
-      break;
-    case 6:
-      reg.gint64 = (SWord)MMR->T2;
-      break;
-    case 7:
-      reg.gint64 = (SWord)MMR->T3;
-      break;
-    case 8:
-      reg.gint64 = (SWord)MMR->ar0;
-      break;
-    case 9:
-      reg.gint64 = (SWord)MMR->ar1;
-      break;
-    case 10:
-      reg.gint64 = (SWord)MMR->ar2;
-      break;
-    case 11:
-      reg.gint64 = (SWord)MMR->ar3;
-      break;
-    case 12:
-      reg.gint64 = (SWord)MMR->ar4;
-      break;
-    case 13:
-      reg.gint64 = (SWord)MMR->ar5;
-      break;
-    case 14:
-      reg.gint64 = (SWord)MMR->ar6;
-      break;
-    case 15:
-      reg.gint64 = (SWord)MMR->ar7;
-      break;
-    case 16:
-      if ( SXMD(MMR) )
-	reg.gint64 = (SWord)Reg->DB;
-      else
-	reg.guint64 = Reg->DB;
-    }
-
-  if ( input_mux < 4 )
-    {
-      sat = SATD(MMR);
-      // It's an accumulator
-      if ( (M40(MMR)==0) && (C54CM(MMR)==0) )
+      if ( input_mux < 16 )
 	{
-	  if ( SXMD(MMR) )
-	    {
-	      if ( reg.gp_reg.bgp.byte3 & 0x80 )
-		reg.gp_reg.bgp.byte4 = 0xff;
-	      else
-		reg.gp_reg.bgp.byte4 = 0;
-	    }
-	  else
-	    {
-	      reg.gp_reg.bgp.byte4 = 0;
-	    }
-	  overflow_bit = 31;
+	  reg = get_register(input_mux,0);
 	}
-      else
+      else if ( input_mux == SHFT_DB )
 	{
-	  overflow_bit = 39;
+	  reg.gint64 = Reg->DB;
 	}
     }
   else
     {
-      overflow_bit = 15;
-      sat = SATA(MMR);
+      if ( input_mux < 16 )
+	{
+	  reg = get_register(input_mux,1);
+	}
+      else if ( input_mux == SHFT_DB )
+	{
+	  reg.gint64 = (SWord)Reg->DB;
+	}
     }
 
+  // Set _M40 to 1 or 0 if forced otherwise set to M40
+  _M40 = (flag & (SHFT_M40_IS_1 | SHFT_M40_IS_0)) ? 
+    ( (flag & SHFT_M40_IS_1) ? 1 : 0 ) : M40(MMR);
+
+  // Set overflow_bit to 16 if 16-bit register or (40,32) depending on M40
+  overflow_bit = ( input_mux < 4 ) ? ( (_M40) ? 40 : 32 ) : 16;
+  
   switch ( shift_mux )
     {
     case 0:
-    case 4:
+    // case 4:
       shift = (SWord)MMR->T0;
       break;
     case 1:
-    case 5:
+    // case 5:
       shift = (SWord)MMR->T1;
       break;
     case 2:
-    case 6:
+    // case 6:
       shift = (SWord)MMR->T2;
       break;
     case 3:
-    case 7:
+    // case 7:
       shift = (SWord)MMR->T3;
       break;
     }
 
-  // shift can be from 31 to -16
-  if ( shift > 31 )
-    shift = shift & 0x3f;
-  else if ( shift < -16 )
-    shift = (SWord)((Word)shift | 0xfff0 );
+  // adjust shift amount to allowable limits
+  shift = C54CM(MMR) ? (shift%32) : (shift%16);
+  
+  // set CARRY
+  if ( (flag & SHFT_DONT_SET_CARRY) == 0 )
+    {
+      if ( shift < 0 )
+	{
+	  carry = reg.guint64 & (guint64)1<<(1-shift);
+	}
+      else if ( shift > 0 )
+	{
+	  if ( overflow_bit > shift )
+	    carry = reg.guint64 & ( (guint64)1<<(overflow_bit-shift) );
+	  else
+	    carry = 0;
+	}
+      else
+	{
+	  carry = 0;
+	}
+      if ( carry )
+	{
+	  set_CARRY(MMR,1);
+	}
+      else
+	{
+	  set_CARRY(MMR,0);
+	}
+    }
+
+  switch (flag & SHFT_DONT_SATURATE)
+    {
+    case SHFT_DONT_SATURATE:
+      sat = 0;
+      break;
+    case SHFT_SATURATE:
+      sat = 1;
+      break;
+    case SHFT_UNSIGNED_SATURATE:
+      sat = 1;
+      // fixme
+      break;
+    case SHFT_USE_SATD_SATA:
+      if (input_mux<4)
+	sat = SATD(MMR);
+      else
+	sat = SATA(MMR);
+      break;
+    }
 
 
   // Check for overflow
   if ( shift > 0 )
     {
-      ovrflw_mask =(guint64)(-1) ^ (((guint64)1<<(overflow_bit-shift+1))-1);
+      ovrflw_mask = ((guint64)1<< (overflow_bit-shift) ) - 1;
+
+       if ( ((reg.guint64 | ovrflw_mask) == ovrflw_mask) || 
+	   ((reg.guint64 | ovrflw_mask) == (gint64)-1) )
+	 {
+	 }
+
+
+      ovrflw_mask =(guint64)(-1) ^ (((guint64)1<<(overflow_bit-shift))-1);
       if ( ((reg.guint64 & ovrflw_mask) == 0) || 
 	   ((reg.guint64 & ovrflw_mask) == ovrflw_mask) )
 	{
@@ -197,6 +173,11 @@ inline void shifter(Word input_mux, Word shift_mux, SWord shift,
 	  overflow=1;
 	}
     }
+  else
+    {
+      overflow=0;
+    }
+
 
   if ( shift < 0 )
     {
@@ -230,6 +211,16 @@ inline void shifter(Word input_mux, Word shift_mux, SWord shift,
 	}
     }
 
+  // overflow detection
+  if ( flag & SHFT_SET_ACOV )
+    {
+      if ( input_mux < 4 )
+	{
+	  set_ACOVx(MMR,input_mux);
+	}
+    }
+
+  // saturate
   if ( overflow && sat )
     {
       if ( reg.gint64 > 0 )
@@ -264,57 +255,72 @@ inline void shifter(Word input_mux, Word shift_mux, SWord shift,
 	}
     }
 
-
-  switch ( output_mux )
+  // Set output
+  if ( output_mux < 16 )
     {
-    case 0:
-      MMR->AC0 = reg.gp_reg;
-      break;
-    case 1:
-      MMR->AC1 = reg.gp_reg;
-      break;
-    case 2:
-      MMR->AC2 = reg.gp_reg;
-      break;
-    case 3:
-      MMR->AC3 = reg.gp_reg;
-      break;
-    case 4:
-      MMR->T0 = reg.words.low;
-      break;
-    case 5:
-      MMR->T1 = reg.words.low;
-      break;
-    case 6:
-      MMR->T2 = reg.words.low;
-      break;
-    case 7:
-      MMR->T3 = reg.words.low;
-      break;
-    case 8:
-      MMR->ar0 = reg.words.low;
-      break;
-    case 9:
-      MMR->ar1 = reg.words.low;
-      break;
-    case 10:
-      MMR->ar2 = reg.words.low;
-      break;
-    case 11:
-      MMR->ar3 = reg.words.low;
-      break;
-    case 12:
-      MMR->ar4 = reg.words.low;
-      break;
-    case 13:
-      MMR->ar5 = reg.words.low;
-      break;
-    case 14:
-      MMR->ar6 = reg.words.low;
-      break;
-    case 15:
-      MMR->ar7 = reg.words.low;
-      break;
+      set_register(reg,output_mux);
+    }
+  else if ( output_mux == SHFT_SHIFTER )
+    {
+      Reg->Shifter = reg.gp_reg;
     }
 }
+// mux (input control)
+// 0 = AC0
+// 1 = AC1
+// 2 = AC2
+// 3 = AC3
+// 4 = T0
+// 5 = T1
+// 6 = T2
+// 7 = T3
+// 8-15 = ARx
+// 16 = DB
 
+// (shift amount control)
+// mod 16 if C54CM=1 and mod 32 otherwise
+// 0-3 = Tx
+// 4-7 = Tx with rounding
+// 8 = Immediate
+
+// Bit is shifted out into Carry, it's clear for a shift by 0
+
+// flag
+
+// bit 0 : 0=shift bits 0-31 (sign bit at 31 of source)
+// .     : 1=shift bits 0-39   M40=1 (sign bit at 39 of source)
+// shifted out bit is from either bit above, or bit 0
+
+
+// bit 1  : 1=sign extend from bit 0 (SXMD)
+//       : if bit_0 = 0x0 (M40=0)
+//            if bit_1 = 0x1 ( SXMD )
+//               guard bits are replaced with bit 31 of source
+//            else ( SXMD=0 )
+//               guard bits are cleared
+
+
+// bit 3-2 
+// 00 (0x0) use SATD (accum) or SATA (16 bit reg) for saturation
+// 01 (0x4) don't saturate
+// 10 (0x8) saturate
+// 11 (0xc) saturate to 00ffffffff
+// overflow is detected at bit_0 (M40) above
+
+// bit 5-4
+// round (done with T shift?)
+// round even-odd RDM flag
+// 00 (0x0) dont round
+
+// bit 6
+// 0x40=set ACOVx on overflow using bit set with bit_0 above
+
+// bit 7
+// 0x80=don't shift out to CARRY  SHFT_DONT_SET_CARRY
+
+
+// bit 1 = Round
+// bit 2 = Unsigned. Turns on saturations and saturates to 00ffffffff
+//                   Unless C54CM=1
+// bit 3 = Saturate. Turn on Saturation regardless of SATD
+// bit 4 = Don't set any ACOVx flags (Logical Shift)
