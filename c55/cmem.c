@@ -73,3 +73,10 @@ void cmem_address_stg_b3(struct _PipeLine *pipeP, struct _Registers *Reg)
   Reg->BAB = cmem_decode((int)(b3 & 0x3));
 }
 
+// Sets BB from BAB bus
+void cmem_read_stg(struct _PipeLine *pipeP, struct _Registers *Reg)
+{
+  int wait_state;
+
+  Reg->BB = read_data_mem(Reg->BAB,&wait_state);
+}

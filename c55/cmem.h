@@ -37,6 +37,9 @@ extern "C"
   // Sets the BAB bus for CDP by decoding last 2 bits of 3rd byte.
   void cmem_address_stg_b3(struct _PipeLine *pipeP, struct _Registers *Reg);
 
+  // Sets BB from BAB bus
+  void cmem_read_stg(struct _PipeLine *pipeP, struct _Registers *Reg);
+
 #ifdef __cplusplus
 }
 #endif
