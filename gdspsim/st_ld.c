@@ -88,7 +88,7 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
   int input_mux;
 
   input_mux = pipeP->current_opcode & 0x200 >> 9;
-  shifter(input_mux,NULL,3,0,2,SXM(MMR));
+  shifter(input_mux,NULL,3,0,2);
 
   switch ( pipeP->opcode_subType )
     {

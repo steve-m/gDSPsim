@@ -193,11 +193,11 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 	  return;
 	case 1:
 	  // LD *ARx,TS,A
-	  shifter2GPreg(2,(int)MMR->T,SXM(MMR),Reg,pipeP->current_opcode & 0x100);
+	  shifter(2,Reg,0,0,(pipeP->current_opcode & 0x100)>>8);
 	  return;
 	case 2:
 	  // LD *ARx,16,A
-	  shifter2GPreg(2,16,SXM(MMR),Reg,pipeP->current_opcode & 0x100);
+	  shifter(2,Reg,2,16,(pipeP->current_opcode & 0x100)>>8);
 	  return;
 	case 3:
 	  // LD *ARx,5,A
@@ -207,13 +207,13 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 	      
 	      shift = signed_5bit_extract(pipeP->storage1);
 
-	      shifter2GPreg(2,shift,SXM(MMR),Reg,pipeP->storage1 & 0x100);
+	      shifter(2,Reg,2,shift,(pipeP->storage1 & 0x100)>>8);
 	    }
 	  return;
 	case 4:
 	  // LD *ARx,u,A
-	  shifter2GPreg(2,(int)(pipeP->storage1 & 0xf),
-			SXM(MMR),Reg,pipeP->current_opcode & 0x100);
+	  shifter(2,Reg,2,(int)(pipeP->storage1 & 0xf),
+			(pipeP->current_opcode & 0x100)>>8);
 	  return;
 	case 5:
 	  // LD #n,s
@@ -239,16 +239,37 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 	  }
 
 	case 6:
-	  // LD #n,u,s      
-	  shiftWord2GPreg((SWord)pipeP->storage1,(int)pipeP->current_opcode & 0xf,
-			  1,Reg,pipeP->current_opcode & 0x100);
-	  
-	  return;
+	  {
+	    // LD #n,u,s
+	    int regNum;
+	    regNum = (pipeP->current_opcode&0x100)>>8;
+	    
+	    reg_union.gint64 = (SWord)pipeP->storage1;
+	    if (regNum)
+	    MMR->B = reg_union.gp_reg;
+	    else
+	      MMR->A = reg_union.gp_reg;
+	    
+	    shifter(regNum,Reg,2,pipeP->current_opcode&0xf,regNum);
+	    
+	    return;
+	  }
 	case 7:
-	  // LD #n,16,s
-	  shiftWord2GPreg((SWord)pipeP->storage1,(int)16,
-			  1,Reg,pipeP->current_opcode & 0x100);
-	  return;
+	  {
+	    // LD #n,16,s
+	    int regNum;
+	    regNum = (pipeP->current_opcode&0x100)>>8;
+	    
+	    reg_union.gint64 = (SWord)pipeP->storage1;
+	    if (regNum)
+	      MMR->B = reg_union.gp_reg;
+	    else
+	      MMR->A = reg_union.gp_reg;
+
+	    shifter(regNum,Reg,2,16,regNum);
+	  
+	    return;
+	  }
 	case 8:
 	  // LD s,ASM,d
 	  {
@@ -257,7 +278,7 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 	    
 	    output_mux = pipeP->current_opcode & 0x100 >> 8;
 	    input_mux = pipeP->current_opcode & 0x200 >> 9;
-	    shifter(input_mux,Reg,1,0,output_mux,SXM(MMR));
+	    shifter(input_mux,Reg,1,0,output_mux);
 	    return;
 	  }
 	case 9:
