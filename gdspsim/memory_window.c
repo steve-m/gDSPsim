@@ -43,13 +43,27 @@ struct _mem_window_nfo
   struct _entryCB_nfo *end_nfo;
 };
 
-static GdkColor gdsp_color[2]=
+static GdkColor gdsp_color[4]=
 {
-  {0,0x8000,0x0,0x0},
-  {0,0x0,0x0,0x8000}
+  {0,0x8000,0x0,0x0},         // forground color for written
+  {0,148*256,0,211*256},      // forground color for not allocated
+  {0,0x0,0x8000,0x8000},      // forground color for read
+  {0,238*256,232*256,170*256} // background color for SP
 };
 
 static GdkColormap *gdsp_colormap=NULL;
+
+static Word SP_last;
+
+#define MEM_CHANGED_BLK 5
+struct _mem_changed
+{
+  int valid;
+  WordA changed[MEM_CHANGED_BLK];
+  unsigned int accessed[MEM_CHANGED_BLK][2]; // written, read
+};
+
+GList *head_mem_changed=NULL;
 
 void entry_data_memCB( GtkWidget *widget, WordA offset )
 {
@@ -380,6 +394,7 @@ void create_memory_window()
   gchar *titles[]={"address","value"};
   struct _mem_window_nfo *mem_window;
   struct _entryCB_nfo *entry_start_nfo,*entry_end_nfo;
+  extern GtkAccelGroup *gDSP_keyboard_accel;
 
   // Allocate colors
   if ( gdsp_colormap == NULL )
@@ -396,9 +411,11 @@ void create_memory_window()
 
   gtk_signal_connect(GTK_OBJECT(mem_window->memoryW),"destroy",
 		     (GtkSignalFunc)destroy_window_CB,mem_window);
+  // Attach keyboard accelerations from main window
+  gtk_window_add_accel_group (GTK_WINDOW (mem_window->memoryW), gDSP_keyboard_accel);
 
   gtk_widget_set_name (mem_window->memoryW, "Memory Window");
-  // gtk_widget_set_usize (GTK_WIDGET(memoryW), 300, 200);
+  gtk_widget_set_usize (GTK_WIDGET(mem_window->memoryW), 150, 350);
   gtk_window_set_title (GTK_WINDOW (mem_window->memoryW), "Memory Window");
   gtk_container_set_border_width (GTK_CONTAINER (mem_window->memoryW), 0);
 
@@ -438,10 +455,12 @@ void create_memory_window()
   entry_start_nfo->bits = BITS_PER_ADDRESS;
   entry_start_nfo->CB_func = change_start_address;
   entry_start_nfo->data = mem_window;
-  gtk_box_pack_start (GTK_BOX (hbox), entryTop, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox), entryTop, TRUE, TRUE, 0);
   gtk_entry_set_max_length(GTK_ENTRY(entryTop),7);
 #ifdef GTK2
   gtk_entry_set_width_chars(GTK_ENTRY(entryTop),7);
+#else
+  gtk_widget_set_usize(GTK_WIDGET(entryTop),50,24); 
 #endif
   g_snprintf(temp_str,7,"0x%x",mem_window->start);
   gtk_entry_set_text (GTK_ENTRY(entryTop),temp_str);
@@ -458,10 +477,12 @@ void create_memory_window()
   entry_end_nfo->bits = BITS_PER_ADDRESS;
   entry_end_nfo->CB_func = change_end_address;
   entry_end_nfo->data = mem_window;
-  gtk_box_pack_start (GTK_BOX (hbox), entryBottom, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox), entryBottom, TRUE, TRUE, 0);
   gtk_entry_set_max_length(GTK_ENTRY(entryBottom),7);
 #ifdef GTK2
   gtk_entry_set_width_chars(GTK_ENTRY(entryBottom),7);
+#else
+  gtk_widget_set_usize(GTK_WIDGET(entryBottom),50,24); 
 #endif
   g_snprintf(temp_str,7,"0x%x",mem_window->end);
   gtk_entry_set_text (GTK_ENTRY(entryBottom),temp_str);
@@ -499,15 +520,6 @@ void create_memory_window()
 
 }
 
-#define MEM_CHANGED_BLK 5
-struct _mem_changed
-{
-  int valid;
-  WordA changed[MEM_CHANGED_BLK];
-};
-
-GList *head_mem_changed=NULL;
-
 static void initialize_changed_mem(void)
 {
   if (head_mem_changed==NULL)
@@ -520,20 +532,24 @@ static void initialize_changed_mem(void)
     }
 }
 
-int check_if_changed_set(WordA address)
+// type==0 for written, type==1 for read
+int check_if_changed_set(WordA address, int type)
 {
   GList *list;
   struct _mem_changed *mc;
   int k;
 
   list=head_mem_changed;
-  while (list == NULL)
+  while (list != NULL)
     {
       mc=list->data;
       for (k=0; k<mc->valid; k++)
 	{
 	  if ( address == mc->changed[k] )
-	    return 1;
+	    {
+	      mc->accessed[k][type]++;
+	      return 1;
+	    }
 	}
       list=list->next;
     }
@@ -541,7 +557,7 @@ int check_if_changed_set(WordA address)
 }
      
 
-void set_mem_changed(WordA address)
+void set_mem_changed(WordA address, int type)
 {
   GList *list;
   struct _mem_changed *mc;
@@ -549,7 +565,7 @@ void set_mem_changed(WordA address)
   if ( head_mem_changed == NULL )
     initialize_changed_mem();
 
-  if ( check_if_changed_set(address) )
+  if ( check_if_changed_set(address,type) )
     return;
 
   // Get last in list
@@ -561,7 +577,7 @@ void set_mem_changed(WordA address)
 
   mc=list->data;
 
-  if ( mc->valid == 5 )
+  if ( mc->valid == MEM_CHANGED_BLK )
     {
       // add new link
       mc = g_new(struct _mem_changed,1);
@@ -570,6 +586,9 @@ void set_mem_changed(WordA address)
     }
 
   mc->changed[mc->valid]=address;
+  mc->accessed[mc->valid][type]=1;
+  mc->accessed[mc->valid][type^1]=0;
+    
   mc->valid++;
 }
 
@@ -612,12 +631,40 @@ void update_all_memory_windows(int highlight)
   gchar text_now[7];
   int wait,k,row,available;
   struct _mem_changed *mc;
-  
 
+  SP_last = MMR->SP;
+  
   for (list=all_mem_win_list;list;list=list->next)
     {
       mem_window = list->data;
+      
+      if ( highlight )
+	{
+	  if ( (mem_window->start <= MMR->SP) &&
+	       (mem_window->end   >= MMR->SP) )
+	    {
+	      row = MMR->SP-mem_window->start;
+	      gtk_clist_set_background(mem_window->clist,row,
+				       &gdsp_color[3]);
+	      gtk_clist_set_foreground(mem_window->clist,row,
+				       NULL);
+	    }
+	  SP_last = MMR->SP;
+	}
+      else
+	{
+	  if ( (mem_window->start <= SP_last) &&
+	       (mem_window->end   >= SP_last) )
+	    {
+	      row = SP_last-mem_window->start;
+	      gtk_clist_set_background(mem_window->clist,row,
+				       NULL);
+	      gtk_clist_set_foreground(mem_window->clist,row,
+				       NULL);
+	    }
+	}
 
+       
       for (list2=head_mem_changed;list2;list2=list2->next)
 	{
 	  mc = list2->data;
@@ -631,8 +678,12 @@ void update_all_memory_windows(int highlight)
 		  row = mc->changed[k]-mem_window->start;
 		  if ( highlight )
 		    {
-		      gtk_clist_set_foreground(mem_window->clist,row,
-					       &gdsp_color[0]);
+		      if ( mc->accessed[k][0] >= mc->accessed[k][1] )
+			gtk_clist_set_foreground(mem_window->clist,row,
+						 &gdsp_color[0]);
+		      else
+			gtk_clist_set_foreground(mem_window->clist,row,
+						 &gdsp_color[2]);
 		      g_snprintf(text_now,7,"0x%x",
 				 read_mem(mc->changed[k],
 					  &wait,mem_window->memory_type,

@@ -48,6 +48,7 @@ Word read_mem(WordA offset, int *wait_state, MemType type, int *available)
   Word *mem_element;
 
   *available = 1;
+  set_mem_changed(offset,1);
   if ( (type & DATA_MEM_TYPE) || (type & PROGRAM_MEM_TYPE) )
     {
       
@@ -137,7 +138,7 @@ static int write_mem(WordA offset, Word value, MemType type)
   Word *mem_element;
 
   // This memory address has been written to
-  set_mem_changed(offset);
+  set_mem_changed(offset,0);
   if ( DataProgMemList && 
        ((type & DATA_MEM_TYPE) || (type & PROGRAM_MEM_TYPE) ) )
     {
