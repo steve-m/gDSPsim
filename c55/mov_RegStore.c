@@ -40,18 +40,17 @@ static gchar *mask[]=
   "11101010 ssssssss rrnnnnnn", // MOV HI(ACx << #SHIFTW), Smem
   "11111010 ssssssss vvnnnnnn rrvvv0vF", // MOV [rnd(]HI(ACx << #SHIFTW)[)], Smem
 
-  "11101000 ssssssss rrvvv1uF", // MOV [uns(] [rnd(]HI(saturate(ACx))[))], Smem
-  "11100111 ssssssss rrtt11uF", // MOV [uns(] [rnd(]HI(saturate(ACx << Tx))[))], Smem
-  "11111010 ssssssss uxSHIFTW SSxxx1xF", // MOV [uns(](rnd(]HI(saturate(ACx << #SHIFTW))[))],
-  "11101011 ssssssss xxSS10x0", // MOV ACx, dbl(Lmem)
-  "11101011 ssssssss xxSS10u1", // MOV [uns(]saturate(ACx)[)], dbl(Lmem)
+  "11101000 ssssssss rrvvv1UF", // MOV [uns(] [rnd(]HI(saturate(ACx))[))], Smem
+  "11100111 ssssssss rrtt11UF", // MOV [uns(] [rnd(]HI(saturate(ACx << Tx))[))], Smem
+  "11111010 ssssssss Uvnnnnnn rrvvv1vF", // MOV [uns(](rnd(]HI(saturate(ACx << #SHIFTW))[))],
+  "11101011 ssssssss vvrr10v0", // MOV ACx, dbl(Lmem)
+  "11101011 ssssssss vvrr10F1", // MOV [uns(]saturate(ACx)[)], dbl(Lmem)
 
-  "11101011 ssssssss xxSS1101", // MOV ACx >> #1, dual(Lmem)
-  "11101011 ssssssss xxSS1110", // MOV pair(HI(ACx)), dbl(Lmem)
-  "11101011 ssssssss xxSS1111", // MOV pair(LO(ACx)), dbl(Lmem)
-  "11101011 ssssssss FSSS1100", // MOV pair(TAx), dbl(Lmem)
-  "10000000 XXXMMMYY YMMM10SS", // MOV ACx, Xmem, Ymem
-
+  "11101011 ssssssss vvrr1101", // MOV ACx >> #1, dual(Lmem)
+  "11101011 ssssssss vvrr1110", // MOV pair(HI(ACx)), dbl(Lmem)
+  "11101011 ssssssss vvrr1111", // MOV pair(LO(ACx)), dbl(Lmem)
+  "11101011 ssssssss rrrr1100", // MOV pair(TAx), dbl(Lmem)
+  "10000000 xxxxxxyy yyyy10rr", // MOV ACx, Xmem, Ymem
   };
 
 static gchar *opcode[] = 
@@ -68,7 +67,17 @@ static gchar *opcode[] =
   "'MOV' 'HI'(r<<#n),s",
   "'MOV' F'HI'(r<<#n)G,s",
 
+  "'MOV' UF'HI(saturate'(r))GV,s", // MOV [uns(] [rnd(]HI(saturate(ACx))[))], Smem
+  "'MOV' UF'HI(saturate'(r'<<'t))GV,s", // MOV [uns(] [rnd(]HI(saturate(ACx << Tx))[))], Smem
+ "'MOV' UF'HI(saturate'(r'<<'n))GV,s", // MOV [uns(](rnd(]HI(saturate(ACx << #SHIFTW))[))],
+  "'MOV' r,'dbl'(s)",  // MOV ACx, dbl(Lmem)
+  "'MOV' U'saturate'(r)V,'dbl'(s)", // MOV [uns(]saturate(ACx)[)], dbl(Lmem)
 
+  "'MOV' r'>>#1,dual'(s)", // MOV ACx >> #1, dual(Lmem)
+  "'MOV' 'pair(HI'(r)),'dbl'(s)", // MOV pair(HI(ACx)), dbl(Lmem)
+  "'MOV' 'pair(LO'(r)),'dbl'(s)", // MOV pair(LO(ACx)), dbl(Lmem)
+  "'MOV' 'pair'(r),'dbl'(s)", // MOV pair(TAx), dbl(Lmem)
+  "'MOV' r,x,y", // MOV ACx, Xmem, Ymem
 };
 
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg);
@@ -120,15 +129,19 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
       // MOV ACx << Tx, Smem
       r = opcode.bop[2]>>6;
       t = (opcode.bop[2]>>4)&0x3;
-      shifter(r,t,0,0,r,Reg);
+      flag =  (SHFT_DONT_SATURATE | SHFT_NO_OVERFLOW_DETECTION | 
+	       SHFT_M40_IS_0 | SHFT_SIGN_EXTEND_USING_SXMD);
+      shifter(r,t,0,flag,SHFT_EB,Reg);
       smem_set_EAB_b2(pipeP,Reg);
       return;
     case 6:
       // MOV [rnd(]HI(ACx << Tx)[)], Smem
       r = (opcode.bop[2]>>6)&0x3;
       t = (opcode.bop[2]>>4)&0x3;
-      rnd = opcode.bop[2]&1;
-      shifter(r,t,0,rnd,r,Reg);
+      flag =  (SHFT_DONT_SATURATE | SHFT_NO_OVERFLOW_DETECTION | 
+	       SHFT_M40_IS_0 | SHFT_SIGN_EXTEND_USING_SXMD);
+      flag = (opcode.bop[2]&1) ? (SHFT_ROUND | flag) : flag;
+      shifter(r,t,0,flag,r,Reg);
       smem_set_EAB_b2(pipeP,Reg);
       return;
     case 7:
@@ -230,10 +243,7 @@ static void write_stg(struct _PipeLine *pipeP, struct _Registers *Reg)
     case 6:
       // MOV [rnd(]HI(ACx << Tx)[)], Smem
       r = opcode.bop[2]>>6;
-      if ( opcode.bop[2] & 1 )
-	kword = get_k16_regHI(r,1);
-      else
-	kword = get_k16_regHI(r,1);
+      kword = get_k16_regHI(r,1);
       write_data_mem_long(Reg->EAB,kword);
       break;
     case 7:
