@@ -27,8 +27,8 @@
 
 static gchar *mask[]=
 {
-  "1010rrrr 000uuuu0", // MOV  u,ACr  bug in manual?
-  "1010rrrr 111mmmm0", // MOV -m,ACr  bug in manual?
+  "0011110p uuuurrrr", // MOV  u,r
+  "0011110p mmmmrrrr", // MOV -m,r
   "01110110 nnnnnnnn nnnnnnnn rrrr10xx", //  MOV K16, dst (verified)
   "1010rrrr ssssssss", // MOV Smem, dst (verified)
   "11011111 ssssssss rrrr000U", // MOV [uns(]high_byte(Smem)[)], dst
@@ -53,9 +53,9 @@ static gchar *mask[]=
 
 static gchar *opcode[] = 
 {
-  "'MOV' u,r",
-  "'MOV' m,r",
-  "'MOV' n,r",
+  "'MOV' #u,r",
+  "'MOV' #m,r",
+  "'MOV' #n,r",
   "'MOV' s,r",
   "'MOV' U'high_byte'(s)V,r",  
 
