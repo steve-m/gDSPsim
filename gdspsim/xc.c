@@ -57,7 +57,7 @@ static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
   if ( !check_condition(pipeP->current_opcode & 0xff) )
     {
       // Not true, flush next statements
-      Reg->Flush = Reg->Flush + ((pipeP->current_opcode & 0x200)>9);
+      Reg->Flush = Reg->Flush + ((pipeP->current_opcode & 0x200)>9) + 1;
     }
 }
 
