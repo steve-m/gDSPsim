@@ -198,6 +198,8 @@ $(PROGRAM):	$(OBJS)
 
 install:	$(PROGRAM)
 		install -D --mode=755 $(PROGRAM) $(PREFIX)/bin/$(PROGRAM)
+		install -D --mode=644 stop.xpm $(PREFIX)/share/$(PROGRAM)/stop.xpm
+
 clean:		
 		/bin/rm -f *.o $(PROGRAM)
 

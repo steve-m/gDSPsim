@@ -309,10 +309,9 @@ GtkWidget *create_decode_window()
 		      GTK_SIGNAL_FUNC( click_CB), NULL );
   
   gtk_widget_realize(decodeW);
-  //pixmap = gdk_pixmap_create_from_xpm(decodeW->window,&mask,
-  //				     &style->bg[GTK_STATE_NORMAL],"check.xpm");
+
   pixmap = gdk_pixmap_create_from_xpm(decodeW->window,&mask,
-				      NULL,"stop.xpm");
+                                      NULL,"/usr/share/gdspsim/stop.xpm");
 
   {
     int k;
