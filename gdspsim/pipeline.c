@@ -32,7 +32,8 @@ extern Word *PM;
 
 void default_registers(struct _Registers *Registers);
 int find_opcode(Word *start_code, Word **next_code, GPtrArray *decode_info);
-int set_pipe_decodeP(Word start_code, struct _Registers *Registers, int flags);
+int set_pipe_decodeP(Word start_code, WordA address, 
+                     struct _Registers *Registers, int flags);
 void flush_pipeline(struct _Registers *Registers);
 
 static GArray *breakpoints=NULL;
@@ -115,11 +116,6 @@ void update_view()
   update_all_memory_windows(1);
 }
   
-
-static void pipe_debug(struct _PipeLine *pipeP)
-{
-  printf("0x%x %s  word=%d\n",pipeP->current_opcode,pipeP->opcode_object->name,pipeP->word_number);
-}
 
 // Return 1 if it hits a breakpoint
 // Return 0, otherwise
@@ -216,7 +212,8 @@ int pipeline(struct _Registers *Registers)
 	  else
 	    {
 	      // get new pipe_decodeP
-	      PC_stall = set_pipe_decodeP(Registers->IR,Registers,Registers->fetch_flags);
+	      PC_stall = set_pipe_decodeP(Registers->IR,Registers->PAB_last,
+                                          Registers,Registers->fetch_flags);
 	    }
 
 	  if ( pipe_decodeP->opcode_object->decode )
@@ -258,22 +255,16 @@ int pipeline(struct _Registers *Registers)
 	  if ( PC_stall == 0 )
 	    {
 	      // PAB is loaded with PC
+              Registers->PAB_last = Registers->PAB;
 	      Registers->PAB = Registers->PC;
 	      
 	    }
 	}
       else if ( Registers->Dont_Decode != 0 )
 	{
-	  PC_stall = set_pipe_decodeP(NOP_opcode,Registers,0);
+	  PC_stall = set_pipe_decodeP(NOP_opcode,Registers->PAB,Registers,0);
 	}	  
     }
-
-  
-  //pipe_debug(pipe_executeP);
-  //pipe_debug(pipe_read_stg2P);
-  //pipe_debug(pipe_read_stg1P);
-  //pipe_debug(pipe_decodeP);
-  //printf("\n");
 
   update_pipeline(Registers->PAB);
 
@@ -323,6 +314,7 @@ void default_registers(struct _Registers *Registers)
   MMR->ar7=0;
   Registers->PC = 0;
   Registers->PAB = 0;
+  Registers->PAB_last = 0;
   Registers->PB = 0;
   Registers->IR = 0;
   Registers->DAB = 0;
@@ -344,8 +336,9 @@ void default_registers(struct _Registers *Registers)
 // Returns a PC read stall. Normally zero unless the last
 // instruction was something like a 1 word opcode that takes
 // 2 cycles such as a DST
-int set_pipe_decodeP(Word start_code, struct _Registers *Registers, int flags)
+int set_pipe_decodeP(Word start_code, WordA address, struct _Registers *Registers, int flags)
 {
+  int length;
 
   pipe_decodeP->flags = flags;
   if ( pipe_decodeP->flags )
@@ -368,8 +361,9 @@ int set_pipe_decodeP(Word start_code, struct _Registers *Registers, int flags)
     {
       extern Instruction_Class NOP_Obj;
       
-      pipe_decodeP->opcode_object = find_object(start_code,
-						&pipe_decodeP->opcode_subType);
+      pipe_decodeP->opcode_object = find_object(start_code, address,
+						&pipe_decodeP->opcode_subType,
+                                                &length);
       
       if ( pipe_decodeP->opcode_object == NULL )
 	{
@@ -388,18 +382,18 @@ int set_pipe_decodeP(Word start_code, struct _Registers *Registers, int flags)
 	{
 	  pipe_decodeP->current_opcode = start_code;
 	  pipe_decodeP->cycles=0;
+          pipe_decodeP->word_number = length;
+          pipe_decodeP->total_words = length;
+
+          // Don't need this method any more. 
 	  if ( pipe_decodeP->opcode_object->number_words )
 	    {
-	      pipe_decodeP->word_number = 
-		pipe_decodeP->opcode_object->number_words(pipe_decodeP);
-	      pipe_decodeP->total_words = 
-		pipe_decodeP->word_number;
-	    }
-	  else
-	    {
-	      pipe_decodeP->word_number = 1;
-	      pipe_decodeP->total_words = 1;
-	    }
+              if ( length != 
+                   pipe_decodeP->opcode_object->number_words(pipe_decodeP) )
+                {
+                  printf("Error in number of words\n");
+                }
+            }
 	  
 	  // Determine the number of pipeline cycles this word of the opcode
 	  // takes up. Used for things like DST where 1 word takes 2 cycles
