@@ -28,7 +28,7 @@ static void read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg);
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg);
 static GPtrArray *machine_code(gchar *opcode_text);
 
-static gchar *mask[]=    { "1111 10z1 1uuuuuuu hhhhhhhh hhhhhhhh" };
+static gchar *mask[]=    { "111110z1 1uuuuuuu hhhhhhhh hhhhhhhh" };
 static gchar *opcode[] = { "FCALLz u h" };
 static gchar *comment[]= { "Branch $(z) $(s)" };
 
@@ -55,19 +55,23 @@ Instruction_Class FCALL_Obj =
 
 static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-  if ( pipeP->word_number == 1 )
+  MMR->SP--;
+  if ( pipeP->word_number == 2 )
     {
       if ( (pipeP->current_opcode & 0x200) == 0)
 	{
+	  pipeP->storage2 = Reg->PC;
 	  Reg->Flush = 1;
     	}
-      
-      Reg->PC = Reg->IR;
+      else
+	{
+	  pipeP->storage2 = Reg->PC+2;
+	}
       Reg->XPC = pipeP->current_opcode & 0x7f;
     }
   else
     {
-      pipeP->storage2 = Reg->PC;
+      Reg->PC = Reg->IR;
     }
 }
 static void read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
@@ -77,7 +81,7 @@ static void read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
 
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-  if ( pipeP->word_number == 1 )
+  if ( pipeP->word_number == 2 )
     {
       write_data_mem(Reg->EAB,Reg->XPC);     
     }
