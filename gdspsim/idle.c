@@ -51,7 +51,9 @@ Instruction_Class IDLE_Obj =
 static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   if ( INTM(MMR)==0 )
-    Reg->Dont_Fetch=1;
+    Reg->Decode_Again=1;
+  else
+    Reg->Decode_Again=0;
 }
 
 /* Generates an array of Words that this opcode text generates or NULL
