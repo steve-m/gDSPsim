@@ -115,6 +115,8 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
       r = ( pipeP->current_opcode & 0x400 ) > 10;
       
       multiplier(1,3,s+3,d+(2*r),Reg);
+
+      MMR->T = Reg->DB;
     }
 }
 

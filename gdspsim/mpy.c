@@ -160,11 +160,14 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 	  // T = Xmem
 	  // d = DB * CB + 0
 	  multiplier(1,3,0,d,Reg);
+
+	  MMR->T = Reg->DB;
 	  return;
 	case 2:
 	  // T = Smem
 	  // d = DB * P + 0
 	  multiplier(1,0,0,d,Reg);
+	  MMR->T = Reg->DB;
 	  return;
 	case 3:
 	  // d = T * P + 0
