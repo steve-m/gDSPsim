@@ -407,7 +407,8 @@ typedef unsigned char PWord;
 #define PADDR_TO_ADDR(address)((address)>>1)
 #define PROG_MEM_CONV 1
 
-#define GP_REG17_TO_UINT32(x) ( ((x).bgp.byte4 & 0x1 ) ? ( (guint32)0xffff0000 | ((guint32)(x).wgp.word0) ) : ((guint32)(x).wgp.word0 ) ) 
+// signed
+#define GP_REG17_TO_INT32(x) ( ((x).bgp.byte4 & 0x1 ) ? ( (guint32)0xffff0000 | ((guint32)(x).wgp.word1) ) : ((guint32)(x).wgp.word1 ) ) 
 
 #define max_neg32 -2147483648ll 
 #define max_pos32  2147483647ll
