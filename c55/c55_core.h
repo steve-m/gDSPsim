@@ -262,6 +262,10 @@ extern struct _Registers *Reg;
 // Convenience macros to set status bits
 #define set_ACOV2(Reg,data)((Reg)->ST0_55=((Reg)->ST0_55 & 0x7fff)|((data) & 0x1)<<15)
 #define set_ACOV3(Reg,data)((Reg)->ST0_55=((Reg)->ST0_55 & 0xbfff)|((data) & 0x1)<<14)
+#define set_TC1(Reg,data)((Reg)->ST0_55=((Reg)->ST0_55 & 0xdfff)|((data) & 0x1)<<13)
+#define set_TC2(Reg,data)((Reg)->ST0_55=((Reg)->ST0_55 & 0xefff)|((data) & 0x1)<<12)
+// if x=0, set TC1 otherwise set TC2
+#define set_TCx(Reg,x,data)((Reg)->ST0_55=(x)?((Reg)->ST0_55 & 0xefff)|((data) & 0x1)<<12 : ((Reg)->ST0_55 & 0xdfff)|((data) & 0x1)<<13)
 #define set_ACOV0(Reg,data)((Reg)->ST0_55=((Reg)->ST0_55 & 0xfbff)|((data) & 0x1)<<10)
 #define set_ACOV1(Reg,data)((Reg)->ST0_55=((Reg)->ST0_55 & 0xfdff)|((data) & 0x1)<<9)
 
