@@ -25,4 +25,10 @@
 void create_memory_window();
 void update_all_memory_windows();
 
+// Used to clear what memory has changed
+void clear_mem_changed(void);
+// Used to mark what memory has changed
+void set_mem_changed(WordA address);
+
+
 #endif // __MEMORY_WINDOW_H__
