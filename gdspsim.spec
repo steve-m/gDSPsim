@@ -37,6 +37,8 @@ make clean
 %files
 %{prefix}/bin/gdspsim
 %{prefix}/share/gdspsim/stop.xpm
+%{prefix}/share/gnome/gdspsim/C/gdspsim.html
+
 
 %changelog
 * Mon Jun 24 2002 Kerry Keal <kerry@industrialmusic.com>
