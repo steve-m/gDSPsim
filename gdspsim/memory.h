@@ -69,9 +69,12 @@ int write_data_mem_long(WordP offset, Word value);
 Word read_port_mem(WordP offset, int *wait_state);
 int write_port_mem(WordP offset, Word value);
 
-
-void cp_to_mem(Word *data, WordP start, long int size, MemType type);
-void fill_to_mem(Word fill,  WordP start, long int size, MemType type);
+  /* Creates a chunk of DSP memory and fills it, if data is not NULL.
+   * Normally this called by the function the reads in and processes the
+   * COFF file being analyzed. It is also called to generate memory-mapped
+   * registers and if any memory creation is specified if DSP memory is
+   * accessed that doesn't exist. */
+void create_mem(Word *data, WordP start, long int size, MemType type);
 
 // Gets the min and max of all defined program memory, there may
 // be holes inbetween

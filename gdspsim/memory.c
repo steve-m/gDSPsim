@@ -135,7 +135,7 @@ Word read_mem(WordP offset, int *wait_state, MemType type, int *available)
       if ( add_data_mem_on_read )
 	{
 	  // This will put this address in avalible memory
-	  cp_to_mem(0,offset,1,type);
+	  create_mem(0,offset,1,type);
 	  *wait_state=0;
 	  return 0;
 	}
@@ -230,7 +230,7 @@ int write_mem(WordP offset, Word value, MemType type)
   if ( (type==DATA_MEM_TYPE) && (add_data_mem_on_write) )
     {
       // This will put this address in avalible memory
-      cp_to_mem(&value,offset,1,type);
+      create_mem(&value,offset,1,type);
       return 0;
     }
 
@@ -320,7 +320,7 @@ void print_mem_list(void)
       for (list=DataProgMemList;list;list=list->next)
 	{
 	  def_mem = (struct _def_mem *)list->data;
-	  printf("MemUsed = 0x%x to 0x%x\n",def_mem->start,def_mem->end);
+	  printf("DataProg MemUsed = 0x%x to 0x%x mem=0x%x\n",def_mem->start,def_mem->end,(unsigned int)def_mem->mem);
 	}
     }
   if ( DataMemList )
@@ -328,7 +328,7 @@ void print_mem_list(void)
       for (list=DataMemList;list;list=list->next)
 	{
 	  def_mem = (struct _def_mem *)list->data;
-	  printf("MemUsed = 0x%x to 0x%x\n",def_mem->start,def_mem->end);
+	  printf("Data    MemUsed = 0x%x to 0x%x mem=0x%x\n",def_mem->start,def_mem->end,(unsigned int)def_mem->mem);
 	}
     }
   if ( ProgMemList )
@@ -336,7 +336,7 @@ void print_mem_list(void)
       for (list=ProgMemList;list;list=list->next)
 	{
 	  def_mem = (struct _def_mem *)list->data;
-	  printf("MemUsed = 0x%x to 0x%x\n",def_mem->start,def_mem->end);
+	  printf("Prog     MemUsed = 0x%x to 0x%x mem=0x%x\n",def_mem->start,def_mem->end,(unsigned int)def_mem->mem);
 	}
     }
 
@@ -356,21 +356,26 @@ void get_prog_mem_start_end(WordP *start, WordP *end)
   *end=default_end_view;
 }
 
+/* Creates a node to represent a memory block and inserts it into the
+ * memory list (memlist) at the correct spot. Memory to hold the memory
+ * block data size is allocated if needed. No overlapping memory is 
+ * allocated, so multiple links may be created.
+ */
 static GList *insert_mem_list( GList *memlist, WordP start, WordP end, MemType type, int wait_state)
 {
-  struct _def_mem *def_mem,*def_mem2;
+  struct _def_mem *def_mem,*def_mem2,*def_mem_prev;
   GList *list,*list2;
 
-  // Create a new memory section
-  def_mem = g_new(struct _def_mem,1);
-  def_mem->start=start;
-  def_mem->end=end;
-  def_mem->type=type;
-  def_mem->wait_state=wait_state;
-  def_mem->mem = g_new(Word,end-start+1);
-  
   if ( memlist == NULL )
     {
+      // create link
+      def_mem = g_new(struct _def_mem,1);
+      def_mem->start=start;
+      def_mem->end=end;
+      def_mem->type=type;
+      def_mem->wait_state=wait_state;
+      def_mem->mem = g_new(Word,end-start+1);
+
       list2 = g_list_prepend(NULL, def_mem);
       return list2;
     }
@@ -380,214 +385,249 @@ static GList *insert_mem_list( GList *memlist, WordP start, WordP end, MemType t
     {
       def_mem2 = (struct _def_mem *)list->data;
 
-      if ( start <= def_mem2->start )
+      if ( start == def_mem2->start )
+        {
+          if ( end <= def_mem2->end )
+            {
+              // already allocated
+              return memlist;
+            }
+          else
+            {
+              // partially allocated
+              start = def_mem2->end + 1;
+            }
+        }
+      else if ( start <= def_mem2->start )
 	{
-	  list2 = g_list_prepend(list,def_mem);
-	  return list2;
-	}
-      list2=list;
+          // the new link belongs before this current link
+          if ( list->prev )
+            {
+              def_mem_prev = (struct _def_mem *)list->prev->data;
+
+              if ( (def_mem2->start - def_mem_prev->end) == 1 )
+                {
+                  // no room between current and previous link
+                  if ( end <= def_mem2->end )
+                    {
+                      // already allocated
+                      return memlist;
+                    }
+                  start = def_mem2->end + 1;
+                }
+              else
+                {
+                  // there is room before the current and previous
+                  // link that should be allocated
+
+                  if ( start <= def_mem_prev->end )
+                    {
+                      // some of the block is allocated in previous link
+                      if ( end >= def_mem2->start )
+                        {
+                          // all of the space between the current and
+                          // previous link should be allocated
+
+                          def_mem = g_new(struct _def_mem,1);
+                          def_mem->start=def_mem_prev->end+1;
+                          def_mem->end=def_mem2->start-1;
+                          def_mem->type=type;
+                          def_mem->wait_state=wait_state;
+                          def_mem->mem = g_new(Word,def_mem->end-def_mem->start+1);
+                          
+                          list2 = g_list_prepend(list, def_mem);
+                          
+                          if ( end <= def_mem2->end )
+                            {
+                              // we have allocated enough
+                              return memlist;
+                            }
+                          else
+                            {
+                              // more to allocate
+                              start = def_mem2->end + 1;
+                            }
+                        }
+                      else
+                        {
+                          // some of the block is allocated in previous
+                          // link and there is enough room before the
+                          // current link
+
+                          def_mem = g_new(struct _def_mem,1);
+                          def_mem->start=def_mem_prev->end+1;
+                          def_mem->end=end;
+                          def_mem->type=type;
+                          def_mem->wait_state=wait_state;
+                          def_mem->mem = g_new(Word,def_mem->end-def_mem->start+1);
+                          
+                          list2 = g_list_prepend(list, def_mem);
+                          return memlist;
+                        }
+                    }
+                  else
+                    {
+                      // the desired allocation is after the end of the 
+                      // previous link
+                       if ( end >= def_mem2->start )
+                         {
+                          def_mem = g_new(struct _def_mem,1);
+                          def_mem->start=start;
+                          def_mem->end=def_mem2->start-1;
+                          def_mem->type=type;
+                          def_mem->wait_state=wait_state;
+                          def_mem->mem = g_new(Word,def_mem->end-def_mem->start+1);
+                          
+                          list2 = g_list_prepend(list, def_mem);
+
+                          if ( end <= def_mem2->end )
+                            {
+                              return memlist;
+                            }
+                          else
+                            {
+                              start = def_mem2->end+1;
+                            }
+                         }
+                       else
+                         {
+                           // room for the whole allocation
+                           
+                           def_mem = g_new(struct _def_mem,1);
+                           def_mem->start=start;
+                           def_mem->end=end;
+                           def_mem->type=type;
+                           def_mem->wait_state=wait_state;
+                           def_mem->mem = g_new(Word,def_mem->end-def_mem->start+1);
+                          
+                           list2 = g_list_prepend(list, def_mem);
+                           return memlist;
+                        }
+                    }
+                }
+            }
+          else // if ( list->prev )
+            {
+              // no previous link 
+              if ( end < def_mem2->start )
+                {
+                  // enough room in front
+                  def_mem = g_new(struct _def_mem,1);
+                  def_mem->start=start;
+                  def_mem->end=end;
+                  def_mem->type=type;
+                  def_mem->wait_state=wait_state;
+                  def_mem->mem = g_new(Word,def_mem->end-def_mem->start+1);
+                  
+                  return g_list_prepend(list, def_mem);
+                }
+              else
+                {
+                  // some overlap with current link
+                  def_mem = g_new(struct _def_mem,1);
+                  def_mem->start=start;
+                  def_mem->end=def_mem2->start-1;
+                  def_mem->type=type;
+                  def_mem->wait_state=wait_state;
+                  def_mem->mem = g_new(Word,def_mem->end-def_mem->start+1);
+                  
+                  list2 = g_list_prepend(list, def_mem);
+                  if ( end <= def_mem2->end )
+                    {
+                      return list2;
+                    }
+                  else
+                    {
+                      start = def_mem2->end+1;
+                    }
+                }
+            }
+        }
     }
-  list2 = g_list_append(list2,def_mem);
-  return g_list_last(list2);
-}
 
-// Assume's keep->mem has been allocated but doesn't contain valid data.
-// Re-allocates keep->mem and moves remove->mem into it.
-static void combine_mem_blocks(GList *keepL, GList *removeL)
-{
-  // Copy data from old section to new section
-  Word *mem,*mem2;
-  struct _def_mem *keep, *remove;
-  int k;
+  // if we got here, this must go at the end 
 
-  keep = (struct _def_mem *)keepL->data;
-  remove = (struct _def_mem *)removeL->data;
-
-  keep->mem = g_new(Word,keep->end-keep->start+1);
-  mem = keep->mem;
-  mem = mem + (remove->start - keep->start);
-  mem2 = remove->mem;
-  for (k=0;k<( remove->end - remove->start + 1);k++)
-    {
-      *mem++=*mem2++;
-    }
-  g_free(remove->mem);
-  g_free(remove);
-
-  removeL=g_list_remove_link(removeL,removeL);
-}
-
-static GList *adjust_mem_list( GList *memlist, WordP start, WordP end, MemType type, int wait_state)
-{
-  struct _def_mem *def_mem,*def_mem2;
-  GList *list,*list2;
-
-  // Just create a new section and insert it in the correct spot.
-  list = insert_mem_list( memlist, start, end, type, wait_state);
-  def_mem = (struct _def_mem *)list->data;
-
-  // Now check to see if the adjacent entries can be combined.
-  // and check for errors in overlapping different type sections.
-
-  // Check the previous section
-  if ( list->prev )
-    {
-      list2 = list->prev;
-      def_mem2 = (struct _def_mem *)list2->data;
-
-      // Don't move 0x0 to 0x80 section because that's Memory Mapped
-      
-      if ( def_mem2->start >= 0x80 )
-	{
-
-	  if ( start <= def_mem2->end )
-	    {
-	      // These sections intersect
-	      if ( (type != def_mem2->type ) || 
-	       ( wait_state != def_mem2->wait_state ) )
-		{
-		  // Error, different type
-		  printf("Error! mixing different memory section types (start=0x%x)\n",start);
-		}
-	      // Copy mem from old section to new section
-	      def_mem->start = def_mem2->start;
-	      combine_mem_blocks(list,list2);
-	      
-	    }
-	  else if ( ( (start-1) == def_mem2->end ) &&
-		    (type == def_mem2->type ) &&
-		    ( wait_state == def_mem2->wait_state ) )
-	    {
-	      // These sections are adjacent and same type.
-	      def_mem->start = def_mem2->start;
-	      combine_mem_blocks(list,list2);
-	    }
-	}
-    }
-  // Check the next section
-  if ( list->next )
-    {
-      list2 = list->next;
-      def_mem2 = (struct _def_mem *)list2->data;
-
-      if ( end >= def_mem2->start )
-	{
-	  // These sections intersect
-	  if ( (type != def_mem2->type ) || 
-	       ( wait_state != def_mem2->wait_state ) )
-	    {
-	      // Error, different type
-	      printf("Error! mixing different memory section types (start=0x%x)\n",start);
-	    }
-	  // Copy mem from old section to new section
-	  def_mem->end = def_mem2->end;
-	  combine_mem_blocks(list,list2);
-
-	}
-      else if ( ( (end+1) == def_mem2->start ) &&
-		(type == def_mem2->type ) &&
-		( wait_state == def_mem2->wait_state ) )
-	{
-	  // These sections are adjacent and same type.
-	  def_mem->end = def_mem2->end;
-	  combine_mem_blocks(list,list2);
-	}
-    }
-
-  return list;
-}
+  def_mem = g_new(struct _def_mem,1);
+  def_mem->start=start;
+  def_mem->end=end;
+  def_mem->type=type;
+  def_mem->wait_state=wait_state;
+  def_mem->mem = g_new(Word,def_mem->end-def_mem->start+1);
   
-static void fill_mem_with_data(Word *data, WordP start, int size, struct _def_mem *def_mem)
-{
-  int k;
-  Word *mem;
+  // add to end of list
+  list = g_list_last(memlist);
+  list2 = g_list_append(list, def_mem);
 
-  // Copy new data
-  mem = def_mem->mem + start - def_mem->start;
-  for (k=0;k<size;k++)
-    {
-      *mem++=*data++;
-    }
+  return memlist;
 }
- 
-static void fill_mem_with_const(Word fill, WordP start, int size, struct _def_mem *def_mem)
-{
-  int k;
-  Word *mem;
 
-  // Copy new data
-  mem = def_mem->mem + start - def_mem->start;
-  for (k=0;k<size;k++)
-    {
-      *mem++=fill;
-    }
-}
- 
-void cp_to_mem(Word *data, WordP start, long int size, MemType type)
+// assume's room already allocated and copy the given data into the memlist
+static void fill_mem(GList *memlist, Word *data, WordP start, WordP end)
 {
-  int wait_state=0;
+  struct _def_mem *def_mem;
   GList *list;
+  Word *mem;
+  int k;
 
-  // Setup defined memory list
-  if ( type == ( PROGRAM_MEM_TYPE | DATA_MEM_TYPE ) )
+  for (list=memlist;list;list=list->next)
     {
-      list = adjust_mem_list(DataProgMemList,start,start+size-1,type,
-			     wait_state);
-      fill_mem_with_data(data,start,size,list->data);
-
-      DataProgMemList = g_list_first(list);
+      def_mem = (struct _def_mem *)list->data;
+   
+      if ( (def_mem->start <= start) && (start <= def_mem->end) )
+        {
+          // found a spot
+          if ( end > def_mem->end )
+            {
+              // span's more than 1 link
+              mem = def_mem->mem + start - def_mem->start;
+              for (k=0;k<(def_mem->end-start+1);k++)
+                *mem++ = *data++;
+              start=def_mem->end+1;
+            }
+          else
+            {
+              mem = def_mem->mem + start - def_mem->start;
+              for (k=0;k<(end-start+1);k++)
+                *mem++ = *data++;
+              return;
+            }
+        }
     }
-  if ( type == PROGRAM_MEM_TYPE )
-    {
-      list = adjust_mem_list(ProgMemList,start,start+size-1,type,
-			     wait_state);
-      fill_mem_with_data(data,start,size,list->data);
-
-      ProgMemList = g_list_first(list);
-    }
-  if ( type == DATA_MEM_TYPE )
-    {
-      list = adjust_mem_list(DataMemList,start,start+size-1,type,
-			     wait_state);
-      fill_mem_with_data(data,start,size,list->data);
-
-      DataMemList = g_list_first(list);
-    }
-	   
   return;
 }
-
-void fill_to_mem(Word fill,  WordP start, long int size, MemType type)
+      
+/* Creates a chunk of DSP memory and fills it, if data is not NULL.
+ * Normally this called by the function the reads in and processes the
+ * COFF file being analyzed. It is also called to generate memory-mapped
+ * registers and if any memory creation is specified if DSP memory is
+ * accessed that doesn't exist. */
+void create_mem(Word *data, WordP start, long int size, MemType type)
 {
   int wait_state=0;
-  GList *list;
 
   // Setup defined memory list
   if ( type == ( PROGRAM_MEM_TYPE | DATA_MEM_TYPE ) )
     {
-      list = adjust_mem_list(DataProgMemList,start,start+size-1,type,
-			     wait_state);
-      fill_mem_with_const(fill,start,size,list->data);
-
-      DataProgMemList = g_list_first(list);
+      DataProgMemList = insert_mem_list(DataProgMemList,start,start+size-1,type,
+                                        wait_state);
+      if ( data )
+        fill_mem(DataProgMemList,data,start,start+size-1);
     }
   if ( type == PROGRAM_MEM_TYPE )
     {
-      list = adjust_mem_list(ProgMemList,start,start+size-1,type,
-			     wait_state);
-      fill_mem_with_const(fill,start,size,list->data);
-
-      ProgMemList = g_list_first(list);
+      ProgMemList = insert_mem_list(ProgMemList,start,start+size-1,type,
+                                        wait_state);
+      
+      if ( data )
+        fill_mem(ProgMemList,data,start,start+size-1);
     }
   if ( type == DATA_MEM_TYPE )
     {
-      list = adjust_mem_list(DataMemList,start,start+size-1,type,
-			     wait_state);
-      fill_mem_with_const(fill,start,size,list->data);
-
-      DataMemList = g_list_first(list);
+      DataMemList = insert_mem_list(DataMemList,start,start+size-1,type,
+                                        wait_state);
+      if ( data )
+        fill_mem(DataMemList,data,start,start+size-1);
     }
-	   
   return;
 }
 

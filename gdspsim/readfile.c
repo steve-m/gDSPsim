@@ -23,6 +23,7 @@
 #include "memory.h"
 #include "string.h"
 #include "symbols.h"
+#include <stdlib.h>
 
 void set_program_start(WordP new_pc);
 
@@ -40,29 +41,6 @@ static void destroy( GtkWidget *widget, gpointer   data )
 {
   fileWidget=NULL;
   gtk_widget_destroy(widget);
-}
-
-
-int readfile(const gchar *file,size_t *amount, char **buffer)
-{
-  FILE *fp;
-  
-  *buffer = g_new(char,FILE_SIZE);
-
-  fp=fopen(file,"rb+");
-  if (fp==NULL)
-    {
-      printf("Can't open file: %s\n",file);
-      return -1;
-    }
-
-  *amount = fread(*buffer,sizeof(char),FILE_SIZE,fp);
-
-  if ( *amount == FILE_SIZE )
-    {
-      printf("Warning only read in %d bytes. Need to change FILE_SIZE to a larger value inside file %s\n",FILE_SIZE,__FILE__);
-    }
-  return 0;
 }
 
 static void file_error(int line, struct _coff_header *header, 
@@ -100,12 +78,13 @@ void open_file( const gchar *filename )
   FILE *fp;
   struct _coff_header *header=NULL;
   union _section_header *section_header=NULL;
-  int k;
+  int k,n;
   size_t read_amount;
   WordP relocate=0; // Used to load object files
   unsigned int optional_header_size;
   struct _optional_header *opt_hdr;
   int binutil; // Flag telling whether file is generated from binutil or ti
+  Word *buffer;
 
   // Open file
   fp=fopen(filename,"rb+");
@@ -185,52 +164,65 @@ void open_file( const gchar *filename )
 	file_error(__LINE__,header,section_header);
     }
 
+#define MX_BUFF 0x400
+  buffer=g_new(Word,MX_BUFF);
+    
   for (k=0;k<CHAR_TO_UINT16(header->num_sections);k++)
     {
       unsigned long int size;
       size_t read_size;
-      Word *buffer;
-
-
+        
       size = section_header[k].ti.s_size;
+        
+      // printf("--- size=0x%x  scnptr=0x%x paddr=0x%x name=%s\n",size,section_header[k].ti.s_scnptr,section_header[k].ti.s_paddr,section_header[k].ti.s_name);
 
-      if ( size > 0 )
+      if ( (size > 0) && (section_header[k].ti.s_paddr || *section_header[k].ti.s_name) )
 	{
-		
-	  // There is data to move
+	  int sN;
+	  size_t sz;
+	  sN = (size/MX_BUFF)+1;
+	  
 	  if ( section_header[k].ti.s_scnptr )
 	    {
+	      // There is data to allocate (in blocks of max MX_BUFF) and move.
+	      
 	      // Set position in file to start reading
 	      if ( fseek(fp,section_header[k].ti.s_scnptr,SEEK_SET) )
 		file_error(__LINE__,header,section_header);
-
-	      // Read data from file
-	      buffer=g_new(Word,size);
-	      read_size = fread((void *)buffer,sizeof(Word), size,fp);
-	      if ( read_size != size )
-		file_error(__LINE__,header,section_header);
-
-	      // Put data into internal representation
-              //printf("start--0x%x\n",section_header[k].s_paddr+relocate);
- 	      cp_to_mem( buffer, section_header[k].ti.s_paddr+relocate, size, 
-		     PROGRAM_MEM_TYPE | DATA_MEM_TYPE);
-
-
-	      //  print_mem_list();
+	      
+	      for (n=0;n<sN;n++)
+		{
+		  sz = ( n == (sN-1) ) ? size % MX_BUFF : MX_BUFF;
+		  
+		  // Read data from file
+		  read_size = fread((void *)buffer,sizeof(Word), sz,fp);
+		  if ( read_size != sz )
+		    file_error(__LINE__,header,section_header);
+		  
+		  // Put data into internal representation
+		  create_mem( buffer, 
+			      section_header[k].ti.s_paddr+n*MX_BUFF+relocate,
+			      sz, PROGRAM_MEM_TYPE | DATA_MEM_TYPE);
+		}
 	    }
 	  else
 	    {
-	      // Undefined data
-	      buffer=g_new(Word,size);
-              //printf("start--0x%x\n",section_header[k].s_paddr+relocate);
-	      cp_to_mem( buffer, section_header[k].ti.s_paddr+relocate, size, 
-		     PROGRAM_MEM_TYPE | DATA_MEM_TYPE);
-
-	      //  print_mem_list();
+	      // Undefined data, just allocate in blocks of max MX_BUFF
+	      for (n=0;n<sN;n++)
+		{
+		  sz = ( n == (sN-1) ) ? size % MX_BUFF : MX_BUFF;
+		  
+		  create_mem( NULL,
+			      section_header[k].ti.s_paddr+relocate+n*MX_BUFF,
+			      sz, PROGRAM_MEM_TYPE | DATA_MEM_TYPE);
+		  
+		}
+	      
 	    }
-	  g_free(buffer);
 	}
     }
+  g_free(buffer);
+  
 
   if ( CHAR_TO_UINT32(header->num_symbols) > 0 )
     {

@@ -493,7 +493,7 @@ struct _Registers *pipe_new()
 
   // Setup default values
   // Setup memory mapped registers by setting up memory
-  fill_to_mem(0,0,0x80,PROGRAM_MEM_TYPE | DATA_MEM_TYPE );
+  create_mem(NULL,0,0x80,PROGRAM_MEM_TYPE | DATA_MEM_TYPE );
   set_MMR_ptr();
 
   default_registers(Registers);
