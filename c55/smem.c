@@ -581,6 +581,31 @@ void smem_address_stg_b2(struct _PipeLine *pipeP, struct _Registers *Reg)
     }
 }
  
+// Sets DAB and CAB from Smem decode
+void lmem_address_stg_b2(struct _PipeLine *pipeP, struct _Registers *Reg)
+{
+  Opcode mach_code;
+  unsigned char b2;
+  int p,mod;
+
+  mach_code = pipeP->decode_nfo.mach_code;
+  b2 = mach_code.bop[1];
+
+  if ( b2 & 1 )
+    {
+      p = b2>>5;
+      mod = (b2>>1) & 0xf;
+      Reg->DAB = smem_decode(p,mod,mach_code.bop[2],mach_code.bop[3],mach_code.bop[4]);
+      Reg->CAB = Reg->DAB ^ 1;
+    }
+  else
+    {
+      // SP offset
+      Reg->DAB = MMR->SP + (b2>>1);
+      Reg->CAB = Reg->DAB ^ 1;
+    }
+}
+ 
 void smem_read_stg(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   int wait_state;

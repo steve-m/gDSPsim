@@ -20,14 +20,20 @@
 #ifndef __SMEM_C55_H__
 #define __SMEM_C55_H__
 
+#include <chip_core.h>
+
 #ifdef __cplusplus
-extern "C" {
+extern "C" 
+{
 #endif
 
   // Sets DAB
   void smem_address_stg_b2(struct _PipeLine *pipeP, struct _Registers *Reg);
   
-  // Sets DB
+  // Sets DAB and CAB from Smem decode
+  void lmem_address_stg_b2(struct _PipeLine *pipeP, struct _Registers *Reg);
+  
+  // Sets DB from DAB bus
   void smem_read_stg(struct _PipeLine *pipeP, struct _Registers *Reg);
 
   // Sets DB2 (DWord)
@@ -68,7 +74,7 @@ extern "C" {
    // r register number 0-3, returns 32bits for accumulators
   DWord get_k32_reg(int r);
 
- // p=0-7
+  // p=0-7
   Word *get_pointer_reg(int p);
 
   Word circular_update(Word start, int p, SWord step);
