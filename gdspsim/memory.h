@@ -86,13 +86,9 @@ void print_mem_list(void);
 
 
 // Functions used for file IO
-void set_fileIO_break_on_read(WordA address, MemType type, struct _fileIO *io);
-
-void set_fileIO_break_on_write(WordA address, MemType type, struct _fileIO *io);
-
-void remove_fileIO_break_on_read(struct _fileIO *io);
-
-void remove_fileIO_break_on_write(struct _fileIO *io);
+  void set_fileIO_break_on_memory(struct _fileIO *io);
+  void update_fileIO_break_on_memory(struct _fileIO *io);
+  void remove_fileIO_break_on_memory(struct _fileIO *io);
 
 #ifdef __cplusplus
 }

@@ -619,43 +619,89 @@ int write_port_mem(WordA offset, Word value)
   return write_program_mem(offset,value);
 }
 
-void set_fileIO_break_on_read(WordA address, MemType type, struct _fileIO *io)
+void set_fileIO_break_on_memory(struct _fileIO *io)
 {
   struct _fileIO_break *fIObrk;
+  GList **listS;
 
   fIObrk = g_new(struct _fileIO_break,1);
 
-  fIObrk->address = address;
-  fIObrk->type = type;
+  fIObrk->address = io->address_reached;
+  fIObrk->type = io->mem_type_reached;
   fIObrk->io = io;
-  FileReadBreak = g_list_append(FileReadBreak,fIObrk);
+
+  if ( io->reached_how == MEMORY_WRITE )
+    {
+      listS = &FileWriteBreak;
+    }
+  else if ( io->reached_how == MEMORY_READ )
+    {
+      listS = &FileReadBreak;
+    }
+  else
+    {
+      printf("Programming Error! Bad Call. %s:%d\n",__FILE__,__LINE__);
+    }
+   
+  *listS = g_list_append(*listS,fIObrk);
 }
 
-void set_fileIO_break_on_write(WordA address, MemType type, struct _fileIO *io)
+void update_fileIO_break_on_memory(struct _fileIO *io)
 {
+  GList *list,**listS;
   struct _fileIO_break *fIObrk;
 
-  fIObrk = g_new(struct _fileIO_break,1);
-
-  fIObrk->address = address;
-  fIObrk->type = type;
-  fIObrk->io = io;
-  FileWriteBreak = g_list_append(FileWriteBreak,fIObrk);
-}
-
-
-void remove_fileIO_break_on_read(struct _fileIO *io)
-{
-  GList *list;
-  struct _fileIO_break *fIObrk;
-
-  list = FileReadBreak;
+  if ( io->reached_how == MEMORY_WRITE )
+    {
+      listS = &FileWriteBreak;
+    }
+  else if ( io->reached_how == MEMORY_READ )
+    {
+      listS = &FileReadBreak;
+    }
+  else
+    {
+      printf("Programming Error! Bad Call. %s:%d\n",__FILE__,__LINE__);
+    }
+   
   while (list)
     {
       fIObrk = list->data;
       if ( io == fIObrk->io )
 	{
-	  FileReadBreak = g_list_remove_link(FileReadBreak,list);
+	  fIObrk->address = io->address_reached;
+	  fIObrk->type = io->mem_type_reached;
+	  fIObrk->io = io;
+	}
+      list=list->next;
+    }
+  printf("Programming Error! Bad Call. %s:%d\n",__FILE__,__LINE__);
+}
+    
+void remove_fileIO_break_on_memory(struct _fileIO *io)
+{
+  GList *list,**listS;
+  struct _fileIO_break *fIObrk;
+
+  if ( io->reached_how == MEMORY_WRITE )
+    {
+      listS = &FileWriteBreak;
+    }
+  else if ( io->reached_how == MEMORY_READ )
+    {
+      listS = &FileReadBreak;
+    }
+  else
+    {
+      printf("Programming Error! Bad Call. %s:%d\n",__FILE__,__LINE__);
+    }
+   
+  while (list)
+    {
+      fIObrk = list->data;
+      if ( io == fIObrk->io )
+	{
+	  *listS = g_list_remove_link(*listS,list);
 	  g_free(fIObrk);
 	  return;
 	}
@@ -663,25 +709,3 @@ void remove_fileIO_break_on_read(struct _fileIO *io)
     }
   printf("Programming Error! Bad Call. %s:%d\n",__FILE__,__LINE__);
 }
-
-void remove_fileIO_break_on_write(struct _fileIO *io)
-{
-  GList *list;
-  struct _fileIO_break *fIObrk;
-
-  list = FileWriteBreak;
-  while (list)
-    {
-      fIObrk = list->data;
-      if ( io == fIObrk->io )
-	{
-	  FileWriteBreak = g_list_remove_link(FileWriteBreak,list);
-	  g_free(fIObrk);
-	  return;
-	}
-      list=list->next;
-    }
-  printf("Programming Error! Bad Call. %s:%d\n",__FILE__,__LINE__);
-}
-
-
