@@ -1,7 +1,7 @@
 /*
  * gDSPsim - GNU Digital Signal Processor Simulator
  *
- * Copyright (C) 2001, Kerry Keal, kerry@industrialmusic.com
+ * Copyright (C) 2001-2002, Kerry Keal, kerry@industrialmusic.com
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -20,7 +20,7 @@
 #ifndef __FIND_OPCODE_H__
 #define __FIND_OPCODE_H__
 
-#include "c54_core.h"
+#include "chip_core.h"
 #include "decode.h"
 
 
@@ -30,6 +30,10 @@ struct _decode_opcode
   gchar *machine_code; // if NULL then opcode_text is a symbol
   gchar *opcode_text;
 };
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 // Converts the machine code to it's text representation. Called after
 // find_object()
@@ -45,5 +49,8 @@ int find_object( struct _decoded_opcode *decode_nfo);
 /* Returns an array of strings of decoded opcodes */
 void decoded_opcodes(GPtrArray *textA,WordA start,WordA end, GArray *word2line);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif // __FIND_OPCODE_H__
