@@ -297,12 +297,13 @@ int pipeline(struct _Registers *Registers)
 	  if ( MMR->BRC == 0 )
 	    {
 	      set_BRAF(MMR,0);
+	      Registers->PC = Registers->PC + 1;
 	    }
 	  else
 	    {
 	      MMR->BRC--;
+	      Registers->PC = Registers->RSA;
 	    }
-          Registers->PC = Registers->RSA;
         }
       else
         {
