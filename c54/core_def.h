@@ -104,10 +104,10 @@ union _16_bits
 #define GP_REG_2_UINT64(x) ( ((x).byte4 & 0x80 ) ? ( (guint64)0xffffff0000000000 |((guint64)(x).byte4)<<32|((guint64)(x).byte3)<<24|((guint64)(x).byte2)<<16|((guint64)(x).byte1)<<8|((guint64)(x).byte0)) : (((guint64)(x).byte4)<<32|((guint64)(x).byte3)<<24|((guint64)(x).byte2)<<16|((guint64)(x).byte1)<<8|((guint64)(x).byte0)) )
 
 // Converts GP_Reg bits X[32-16] to UINT64 with sign extension
-#define GP_REG17_TO_UINT64(x) ( ((x).byte4 & 0x1 ) ? ( (guint64)0xffffffff00000000|((guint64)(x).byte3)<<24|((guint64)(x).byte2)<<16) : ((guint64)(x).byte3)<<24|((guint64)(x).byte2)<<16)
+#define GP_REG17_TO_UINT64(x) ( ((x).byte4 & 0x1 ) ? ( (guint64)0xffffffffffff0000 | (((guint64)(x).byte3)<<8) ) | ((guint64)(x).byte2) :( (((guint64)(x).byte3)<<8) | ((guint64)(x).byte2) ) )
 
 // Converts GP_Reg bits X[32-16] to UINT64 without sign extension
-#define NS_GP_REG17_TO_UINT64(x) ( ((guint64)(x).byte4&0x1)<<32|((guint64)(x).byte3)<<24|((guint64)(x).byte2)<<16)
+#define NS_GP_REG17_TO_UINT64(x) ( (((guint64)(x).byte4&0x1)<<16) |  ( (((guint64)(x).byte3)<<8) | ((guint64)(x).byte2) ) )
 
 // Used to tell if the opcode tag is used in the notation. 
 #define INCLUDE_OPCODE_IN_DECODE 1
@@ -124,7 +124,7 @@ union _16_bits
  * B = A + *AR1
  */
 
-#define max_neg32 -2147483648ll
+#define max_neg32 -2147483648ll 
 #define max_pos32  2147483647ll
 
 #define FIXME()(printf("FIXME %s:%d\n",__FILE__,__LINE__))
