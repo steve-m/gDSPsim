@@ -22,7 +22,7 @@
 #include <stdio.h>
 #include "instruct_help.h"
 
-static void decode(struct _PipeLine *pipeP, struct _Registers *Reg);
+static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg);
 static GPtrArray *machine_code(gchar *opcode_text);
 
 static gchar *mask[]=    { "111101zs 11100010" };
@@ -37,8 +37,8 @@ Instruction_Class BACC_Obj =
   "BACC",
   NULL, // prefetch
   NULL, // fetch
-  decode, //NULL, // decode
-  NULL, // read_stg1 (access)
+  NULL, //NULL, // decode
+  read_stg1, // read_stg1 (access)
   NULL, // read_stg2 (read)
   NULL, // execute
   NULL, // number_words 
@@ -50,7 +50,7 @@ Instruction_Class BACC_Obj =
   machine_code
 };
 
-static void decode(struct _PipeLine *pipeP, struct _Registers *Reg)
+static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   union _GP_Reg_Union reg_union; 
 
