@@ -30,9 +30,18 @@ struct _entryCB_nfo
 {
   GtkWidget *entry;
   int bits; // maximum allowed bits
+
+  // a function that the callback functions will call when valid
+  // data is received.
   Entry_Hex_CB_Func CB_func;
-  gchar *text; // validated text that is inside entry widget
-  gpointer data; // pointer passed by to CB_func
+
+  // validated text inside entry widget. this should be set before
+  // connecting this callbacks (entry_addressCB,entry_hexCB,entry_wordCB)
+  // if entered data is bad, then this will replace what the user 
+  // put into the entry widget. The connected callback functions will
+  // reset this if valid user data is entered.
+  gchar *text;
+  gpointer data; // pointer passed to CB_func
 };
 
 #ifdef __cplusplus
@@ -49,7 +58,7 @@ gboolean word_from_file(FILE *file, Word *value);
 // routine to process an entry callback
 void entry_hexCB( GtkWidget *widget, struct _entryCB_nfo *entryCB_nfo );
 // Gets address in hex,num,or text form. If text gets numerical address
-void entry_addressCB( GtkWidget *widget, struct _entryCB_nfo *entryCB_nfo );
+void entry_addressCB( GtkWidget *W, struct _entryCB_nfo *entryCB_nfo );
 void entry_wordCB( GtkWidget *widget, Word *reg );
 // only changes value under mask. mask assumed to have consecutive bits
 void entry_word_maskCB( GtkWidget *widget, Word *reg, Word mask );

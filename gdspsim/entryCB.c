@@ -23,13 +23,6 @@
 #include <ctype.h>
 #include "symbols.h"
 
-// Gets address in hex,num,or text form. If text gets numerical address
-void entry_addressCB( GtkWidget *widget, struct _entryCB_nfo *entryCB_nfo )
-{
-  // FIXME
-  entry_hexCB(widget,entryCB_nfo);
-}
-
 // routine to process an entry callback
 void entry_hexCB( GtkWidget *widget, struct _entryCB_nfo *entryCB_nfo )
 {
@@ -61,6 +54,36 @@ void entry_hexCB( GtkWidget *widget, struct _entryCB_nfo *entryCB_nfo )
 
   g_free(entry_text);
 }
+
+// routine to process an entry callback for an address allowing symbols
+void entry_addressCB( GtkWidget *W, struct _entryCB_nfo *entryCB_nfo )
+{
+  gchar *entry_text;
+  WordA hex_value;
+
+  // entry_text = gtk_entry_get_text(GTK_ENTRY(entryCB_nfo));
+  entry_text = gtk_editable_get_chars(GTK_EDITABLE(entryCB_nfo->entry),0,-1);
+
+  if ( text_to_address(entry_text,&hex_value) )
+    {
+      // valid number
+
+      if ( entryCB_nfo->text )
+	g_free(entryCB_nfo->text);
+
+      entryCB_nfo->text = entry_text;
+
+      if ( entryCB_nfo->CB_func )
+	entryCB_nfo->CB_func( entryCB_nfo->entry, hex_value, entryCB_nfo->data);
+    }
+  else
+    {
+      // invalid number. reset 
+      gtk_entry_set_text (GTK_ENTRY(W),entryCB_nfo->text);
+      g_free(entry_text);
+    }
+}
+
 void entry_wordCB( GtkWidget *widget, Word *reg )
 {
   gchar *entry_text,*textP;
@@ -274,7 +297,7 @@ gboolean word_from_file(FILE *file, Word *value)
   unsigned char str[16];
   unsigned char *strP;
   int start_hex,num;
-
+  
   while ( len < 15 )
     {
       c=fgetc(file);
@@ -311,7 +334,7 @@ gboolean word_from_file(FILE *file, Word *value)
 		  if ( type == 1 )
 		    num = sscanf(str,"0x%x",value);
 		  else
-		num = sscanf(str,"%d",value);
+		    num = sscanf(str,"%d",value);
 		  if (num>0)
 		    return TRUE;
 		  else
