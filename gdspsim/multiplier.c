@@ -21,31 +21,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-struct _bytes
-{
-  unsigned char byte0;
-  unsigned char byte1;
-  unsigned char byte2;
-  unsigned char byte3;
-};
-
-struct _words
-{
-  Word low;
-  Word high;
-};
-
-union _bitconv
-{
-  gint32 i32;
-  guint32 iu32;
-  struct _words words;
-  struct _bytes bytes;
-  
-};
-
-
-
 /* Xmux 0, X operand is from T register, signed
  *      1, X operand is from DB register
  *      2, X operand is from A[32:16] register
@@ -76,64 +51,39 @@ void multiplier(int Xmux, int Ymux, int Amux, int Smux, struct _Registers *Reg)
   gint32 X,Y; // Really need 17-bits
   gint64 Result64;
   union _GP_Reg_Union reg_union;
-  union _bitconv t;
 
   switch (Xmux)
     {
     case 0:
-      X = MMR->T;
+      X = (SWord)MMR->T;
       break;
     case 1:
-      X = Reg->DB;
+      X = (SWord)Reg->DB;
       break;
     case 2:
-      reg_union.gint64 = 0;
-      reg_union.gp_reg = MMR->A;
-      t.words.low = reg_union.words.high; // Set bits 31-16 of A
-      if ( reg_union.gp_reg.byte4 & 0x1 )
-        {
-          t.words.high = 0xffff;
-        }
-      else
-        {
-          t.words.high = 0;
-        }
-      X = t.i32;
+      X = GP_REG17_TO_UINT32(MMR->A);
       break;
     case 3:
       X = Reg->DB;
-      X = abs(X);
       break;
     }
 
   switch (Ymux)
     {
     case 0:
-      Y = Reg->P;
+      Y = (SWord)Reg->P;
       break;
     case 1:
-      Y = Reg->DB;
+      Y = (SWord)Reg->DB;
       break;
     case 2:
-      reg_union.gint64 = 0;
-      reg_union.gp_reg = MMR->A;
-      t.words.low = reg_union.words.high; // Set bits 31-16 of A
-      if ( reg_union.gp_reg.byte4 & 0x1 )
-        {
-          t.words.high = 0xffff;
-        }
-      else
-        {
-          t.words.high = 0;
-        }
-      Y = t.i32;
+      Y = GP_REG17_TO_UINT32(MMR->A);
       break;
     case 3:
-      Y = Reg->CB;
+      Y = (SWord)Reg->CB;
       break;
     case 4:
       Y = Reg->DB;
-      Y = abs(Y);
       break;
     }
 
