@@ -592,7 +592,6 @@ gchar *u_decode(gchar *mask, char info, Word start_code, WordA *location)
   bits = bit_extract(info,mask,start_code,location);
 
   ch = g_new(gchar,8);
-  printf("%d\n",bits);
 
   g_snprintf(ch,8,"%d",bits);
 

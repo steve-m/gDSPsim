@@ -47,7 +47,7 @@ struct _file_info *process_coff(char *buffer, int size)
   nfo->buffer_size = size;
 
 
-  printf("Time: %s\n",ctime((time_t *)&CHAR_TO_UINT16(header->time_stamp)));
+  // printf("Time: %s\n",ctime((time_t *)&CHAR_TO_UINT16(header->time_stamp)));
 
   // get section info
   g_return_val_if_fail(size > CHAR_TO_UINT16(header->num_bytes_opt) + sizeof(struct _coff_header)+2,NULL);
@@ -75,14 +75,3 @@ struct _file_info *process_coff(char *buffer, int size)
     }
   return nfo;
 }
-/*
-(gdb) p *s_header
-$2 = {s_name = ".text\000\000", s_paddr = 128, s_vaddr = 128, s_size = 5519, 
-  s_scnptr = 7832, s_relptr = 0, s_lnnoptr = 25158, s_nreloc = 0, s_nlnno = 0, 
-  s_flags = 647, bogus = "`\000\000\000\000\000\000"}
-
-$3 = {s_name = {0x2e, 0x74, 0x65, 0x78, 0x74, 0x0, 0x0, 0x0}, s_paddr = 0x80, 
-  s_vaddr = 0x80, s_size = 0x158f, s_scnptr = 0x1e98, s_relptr = 0x0, 
-  s_lnnoptr = 0x6246, s_nreloc = 0x0, s_nlnno = 0x0, s_flags = 0x287, bogus = {
-    0x60, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}}
-*/
