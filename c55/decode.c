@@ -20,6 +20,7 @@
 #include "chip_core.h"
 #include "memory.h"
 #include "decode.h"
+#include <symbols.h>
 
 // returns 1, if this mask matches the mach_code and sets the
 // length and other mach_codes if needed in decode_nfo. returns
@@ -51,7 +52,7 @@ int check_mask(const char *mask, struct _decoded_opcode *decode_nfo )
 	  if ( (mach_code & ( 1 << bit )) != 0 ) 
 	    return 0;
 	}
-      else if ( *mask=='p' )
+      else if ( *mask=='s' )
         {
           // mark for special case
           smem=1;
@@ -62,34 +63,61 @@ int check_mask(const char *mask, struct _decoded_opcode *decode_nfo )
 	  bit--;
           if ( bit == -1 )
             {
-              if ( smem )
-                {
-                  // take care of variable length word
-                  if ( mach_code & 0x80 )
-                    {
-#if 0
-                      int mod;
-                      mod = (mach_code & (8+16+32+64) ) >> 3;
-                      if ( mod >= 12 )
-                        {
-                          mach_code = 
-                            read_program_mem(address+length,&wait_state);
-                          decode_nfo->mach_code.bop[length] = mach_code;
-                          length++;
-                          decode_nfo->var_length = 1;
-                        }
-#endif
-                    }
-                  smem=0;
-                }
-
               // Remove any spaces at the end of mask
               while ( (*mask != '\0') && (*mask == ' ') )
                 mask++;
 
               if ( *mask == '\0' )
                 {
+		  int mod,arf,tag;
+
+		  if ( smem )
+		    {
+		      // figure out if need to extend length of smem
+		      tag = decode_nfo->mach_code.bop[length];
+		      
+		      if ( (decode_nfo->mach_code.bop[1] & 1) == 0 )
+			{
+			  if ( tag == 0x98 )
+			    {
+			      // mmap
+			      length++;
+			    }
+			}
+		      else
+			{
+			  arf = decode_nfo->mach_code.bop[1] >> 5;
+			  mod = (decode_nfo->mach_code.bop[1]>>1) & 0xf;
+			  if ( tag == 0x9a )
+			    {
+			      // port() Can this be added on all forms?
+			      // definately for *ARx+
+			      length++;
+			    }
+			  if ( (tag == 0x9d) & ( (mod==1) || (mod==2) ) )
+			    {
+			      length++;
+			    }
+			  else if ( (mod==6) || (mod==7) )
+			    {
+			      length += 2;
+			    }
+			  else if ( mod==8 )
+			    {
+			      if ( (arf==0) || (arf==2) || (arf==6) || (arf==7) )
+				{
+				  length += 2;
+				}
+			      else if ( arf==1 )
+				{
+				  length += 3;
+				}
+			    }
+			}
+		    }
+		
                   decode_nfo->length = length;
+
                   return 1; // found a match
                 }
 
@@ -174,6 +202,69 @@ void n_decode(gchar *ch, gchar *mask, char info,
   g_snprintf(ch,MAX_SUB_OP,"%d",bits);
 
   return;
+}
+
+// extended register
+void X_decode(gchar *ch, gchar *mask, char info, 
+              struct _decoded_opcode *decode_nfo)
+{
+  unsigned int bits;
+  int num_mask;
+  int length;
+
+  bits = bit_extract(info,mask,decode_nfo,NULL,&num_mask,&length);
+
+  switch ( bits )
+    {
+    case 0:
+      g_snprintf(ch,MAX_SUB_OP,"AC0" );
+      break;
+    case 1:
+      g_snprintf(ch,MAX_SUB_OP,"AC1" );
+      break;
+    case 2:
+      g_snprintf(ch,MAX_SUB_OP,"AC2" );
+      break;
+    case 3:
+      g_snprintf(ch,MAX_SUB_OP,"AC3" );
+      break;
+    case 4:
+      g_snprintf(ch,MAX_SUB_OP,"XSP" );
+      break;
+    case 6:
+      g_snprintf(ch,MAX_SUB_OP,"XCDP" );
+      break;
+    case 7:
+      g_snprintf(ch,MAX_SUB_OP,"XDP" );
+      break;
+    case 8:
+      g_snprintf(ch,MAX_SUB_OP,"XAR0" );
+      break;
+    case 9:
+      g_snprintf(ch,MAX_SUB_OP,"XAR1" );
+      break;
+    case 10:
+      g_snprintf(ch,MAX_SUB_OP,"XAR2" );
+      break;
+    case 11:
+      g_snprintf(ch,MAX_SUB_OP,"XAR3" );
+      break;
+    case 12:
+      g_snprintf(ch,MAX_SUB_OP,"XAR4" );
+      break;
+    case 13:
+      g_snprintf(ch,MAX_SUB_OP,"XAR5" );
+      break;
+    case 14:
+      g_snprintf(ch,MAX_SUB_OP,"XAR6" );
+      break;
+    case 15:
+      g_snprintf(ch,MAX_SUB_OP,"XAR7" );
+      break;
+    default:
+      g_snprintf(ch,MAX_SUB_OP,"fixme" );
+      break;
+    }
 }
 
 // extract unsigned decimal number
@@ -264,6 +355,7 @@ void t_decode(gchar *ch, gchar *mask, char info,
 }
 
 // TC0,TC1 flag 1 bit
+// D works too
 void C_decode(gchar *ch, gchar *mask, char info, 
               struct _decoded_opcode *decode_nfo)
 {
@@ -299,6 +391,8 @@ void s_decode(gchar *ch, gchar *mask, char info,
 
   bits = bit_extract(info,mask,decode_nfo,&word_num,&num_mask,&length);
   
+  tag = decode_nfo->mach_code.bop[decode_nfo->length];
+  
   if ( num_mask == 3 )
     {
       g_snprintf(ch,MAX_SUB_OP,"AR%d",bits );
@@ -307,19 +401,31 @@ void s_decode(gchar *ch, gchar *mask, char info,
 
   if ( (bits & 1)==0 )
     {
-      // SP offset
-      g_snprintf(ch,MAX_SUB_OP,"*SP(#%d)",(bits>>1)&0x7f );
-      return;
+      if ( tag == 0x98 )
+	{
+	  // mmap
+	  g_snprintf(ch,MAX_SUB_OP,"mmap(@#%xh)",(bits>>1)&0x7f );
+	  //// decode_nfo->length += 1;
+	  return;
+	}
+      else
+	{
+	  // SP offset
+	  g_snprintf(ch,MAX_SUB_OP,"*SP(#%d)",(bits>>1)&0x7f );
+	  return;
+	}
     }
 
   arf = bits>>5;
   mod = (bits>>1) & 0xf;
   
-  tag = decode_nfo->mach_code.bop[length+1];
-  
   if ( tag == 0x9d )
     {
       extend = 1; // Circular addressing
+    }
+  if ( tag == 0x9a )
+    {
+       g_snprintf(ch,MAX_SUB_OP,"port(" );
     }
 
   switch ( mod )
@@ -331,7 +437,7 @@ void s_decode(gchar *ch, gchar *mask, char info,
       if ( extend == 1 )
 	{
 	  g_snprintf(ch,MAX_SUB_OP,"*AR%d+%%",arf );
-	  decode_nfo->length += 1;
+	  ////decode_nfo->length += 1;
 	}
       else
 	{
@@ -342,7 +448,7 @@ void s_decode(gchar *ch, gchar *mask, char info,
       if ( extend == 1 )
 	{
 	  g_snprintf(ch,MAX_SUB_OP,"*AR%d-%%",arf );
-	  decode_nfo->length += 1;
+	  /////  decode_nfo->length += 1;
 	}
       else
 	{
@@ -362,7 +468,7 @@ void s_decode(gchar *ch, gchar *mask, char info,
       g_snprintf(ch,MAX_SUB_OP,"*AR%d(#%2.2x%2.2xh)",arf,
 		 decode_nfo->mach_code.bop[word_num+1],
 		 decode_nfo->mach_code.bop[word_num+2] );
-      decode_nfo->length += 2;
+      ///// decode_nfo->length += 2;
       break;
     case 7:
       if ( ARLC(MMR,arf) )
@@ -377,7 +483,7 @@ void s_decode(gchar *ch, gchar *mask, char info,
 		     decode_nfo->mach_code.bop[word_num+1],
 		     decode_nfo->mach_code.bop[word_num+2] );
 	}
-      decode_nfo->length += 2;
+      //////  decode_nfo->length += 2;
       break;
     case 8:
       switch (arf)
@@ -386,19 +492,20 @@ void s_decode(gchar *ch, gchar *mask, char info,
 	  g_snprintf(ch,MAX_SUB_OP,"ABS16(#%2.2x%2.2xh)",
 		     decode_nfo->mach_code.bop[length+1],
 		     decode_nfo->mach_code.bop[length+2] );
-	  decode_nfo->length += 2;
+	  ///// decode_nfo->length += 2;
 	  break;
 	case 1:
 	  g_snprintf(ch,MAX_SUB_OP,"*(#%2.2x%2.2x%2.2xh)",
 		     decode_nfo->mach_code.bop[length+1],
 		     decode_nfo->mach_code.bop[length+2],
 		     decode_nfo->mach_code.bop[length+3] );
-	  decode_nfo->length += 3;
+	  //////  decode_nfo->length += 3;
+	  break;
 	case 2:
 	  g_snprintf(ch,MAX_SUB_OP,"port(#%2.2x%2.2xh)",
 		     decode_nfo->mach_code.bop[length+1],
 		     decode_nfo->mach_code.bop[length+2] );
-	  decode_nfo->length += 2;
+	  //////  decode_nfo->length += 2;
 	  break;
 	case 3:
 	  g_snprintf(ch,MAX_SUB_OP,"*CDP");
@@ -413,13 +520,13 @@ void s_decode(gchar *ch, gchar *mask, char info,
 	  g_snprintf(ch,MAX_SUB_OP,"*CDP(#%2.2x%2.2xh)",
 		     decode_nfo->mach_code.bop[length+1],
 		     decode_nfo->mach_code.bop[length+2] );
-	  decode_nfo->length += 2;
+	  //////  decode_nfo->length += 2;
 	  break;
 	case 7:
 	  g_snprintf(ch,MAX_SUB_OP,"*+CDP(#%2.2x%2.2xh)",
 		     decode_nfo->mach_code.bop[length+1],
 		     decode_nfo->mach_code.bop[length+2] );
-	  decode_nfo->length += 2;
+	  /////	  decode_nfo->length += 2;
 	  break;
 	}
       break;
@@ -466,6 +573,11 @@ void s_decode(gchar *ch, gchar *mask, char info,
 	g_snprintf(ch,MAX_SUB_OP,"*(AR%d-T0B)",arf );
       break;
     }
+  if ( tag == 0x9a )
+    {
+       g_snprintf(ch,MAX_SUB_OP,")" );
+    }
+
 }
 // Used to decode TRNx registers
 void T_decode(gchar *ch, gchar *mask, char info, 
@@ -493,6 +605,8 @@ void f_decode(gchar *ch, gchar *mask, char info,
 
   if ( bit )
     g_snprintf(ch,MAX_SUB_OP,"R");
+  else
+    *ch='\0';
 
   return;
 }
@@ -508,6 +622,8 @@ void F_decode(gchar *ch, gchar *mask, char info,
 
   if ( bit )
     g_snprintf(ch,MAX_SUB_OP,"rnd(");
+  else
+    *ch='\0';
 
   return;
 }
@@ -550,6 +666,8 @@ void m4_decode(gchar *ch, gchar *mask, char info,
 
   if ( bit )
     g_snprintf(ch,MAX_SUB_OP,"40");
+  else
+    *ch='\0';
 
   return;
 }
@@ -580,6 +698,8 @@ void A_decode(gchar *ch, gchar *mask, char info,
 
   if ( bit )
     g_snprintf(ch,MAX_SUB_OP,"U");
+  else
+    *ch='\0';
 
   return;
 }
@@ -593,6 +713,8 @@ void U_decode(gchar *ch, gchar *mask, char info,
 
   if ( bit )
     g_snprintf(ch,MAX_SUB_OP,"uns(");
+  else
+    *ch='\0';
 
   return;
 }
@@ -606,6 +728,8 @@ void V_decode(gchar *ch, gchar *mask, char info,
 
   if ( bit )
     g_snprintf(ch,MAX_SUB_OP,")");
+  else
+    *ch='\0';
 
   return;
 }
@@ -623,7 +747,264 @@ void p_decode(gchar *ch, gchar *mask, char info,
   FIXME();
 }
 
-  // c Cmem addressing
+// try to match an address label
+void l_decode(gchar *ch, gchar *mask, char info, 
+              struct _decoded_opcode *decode_nfo)
+{
+  unsigned int bits;
+  int num_mask;
+  int length;
+  gchar *sym_name;
+  
+  bits = bit_extract(info,mask,decode_nfo,NULL,&num_mask,&length);
+  sym_name=get_symbol(bits);
+  if (sym_name)
+    {
+      g_snprintf(ch,MAX_SUB_OP,"%s",sym_name);
+    }
+  else
+    {
+      g_snprintf(ch,MAX_SUB_OP,"%xh",bits);
+    }
+}
+
+// try to match an address label offset from address
+void L_decode(gchar *ch, gchar *mask, char info, 
+              struct _decoded_opcode *decode_nfo)
+{
+  WordA bits;
+  int num_mask;
+  int length;
+  gchar *sym_name;
+  
+  bits = bit_extract(info,mask,decode_nfo,NULL,&num_mask,&length) +
+    decode_nfo->address + decode_nfo->length;
+  sym_name=get_symbol(bits);
+  if (sym_name)
+    {
+      g_snprintf(ch,MAX_SUB_OP,"%s",sym_name);
+    }
+  else
+    {
+      g_snprintf(ch,MAX_SUB_OP,"%xh",bits);
+    }
+}
+
+// Conditional decode
+void b_decode(gchar *ch, gchar *mask, char info, 
+	      struct _decoded_opcode *decode_nfo )
+{
+  int num_mask;
+  int length,top,bits;
+
+  bits = bit_extract(info,mask,decode_nfo,NULL,&num_mask,&length);
+
+  if ( length==2 )
+    {
+      // It's a relationship operator
+      switch ( bits )
+	{
+	case 0:
+	  g_snprintf(ch,MAX_SUB_OP," == " );
+	  break;
+	case 1:
+	  g_snprintf(ch,MAX_SUB_OP," < " );
+	  break;
+	case 2:
+	  g_snprintf(ch,MAX_SUB_OP," >= " );
+	  break;
+	case 3:
+	  g_snprintf(ch,MAX_SUB_OP," != " );
+	  break;
+	}
+      return;
+    }
+
+  top = (bits>>4)&7;
+
+  if ( top < 6 )
+    {
+      switch ( bits & 0xf )
+	{
+	case 0:
+	  g_snprintf(ch,MAX_SUB_OP,"AC0" );
+	  break;
+	case 1:
+	  g_snprintf(ch,MAX_SUB_OP,"AC1" );
+	  break;
+	case 2:
+	  g_snprintf(ch,MAX_SUB_OP,"AC2" );
+	  break;
+	case 3:
+	  g_snprintf(ch,MAX_SUB_OP,"AC3" );
+	  break;
+	case 4:
+	  g_snprintf(ch,MAX_SUB_OP,"T0 " );
+	  break;
+	case 5:
+	  g_snprintf(ch,MAX_SUB_OP,"T1 " );
+	  break;
+	case 6:
+	  g_snprintf(ch,MAX_SUB_OP,"T2 " );
+	  break;
+	case 7:
+	  g_snprintf(ch,MAX_SUB_OP,"T3 " );
+	  break;
+	case 8:
+	  g_snprintf(ch,MAX_SUB_OP,"AR0" );
+	  break;
+	case 9:
+	  g_snprintf(ch,MAX_SUB_OP,"AR1" );
+	  break;
+	case 10:
+	  g_snprintf(ch,MAX_SUB_OP,"AR2" );
+	  break;
+	case 11:
+	  g_snprintf(ch,MAX_SUB_OP,"AR3" );
+	  break;
+	case 12:
+	  g_snprintf(ch,MAX_SUB_OP,"AR4" );
+	  break;
+	case 13:
+	  g_snprintf(ch,MAX_SUB_OP,"AR5" );
+	  break;
+	case 14:
+	  g_snprintf(ch,MAX_SUB_OP,"AR6" );
+	  break;
+	case 15:
+	  g_snprintf(ch,MAX_SUB_OP,"AR7" );
+	  break;
+	}
+      ch=ch+3;
+      switch ( top )
+	{
+	case 0:
+	  g_snprintf(ch,MAX_SUB_OP-3," == #0" );
+	  break;
+	case 1:
+	  g_snprintf(ch,MAX_SUB_OP-3," != #0" );
+	  break;
+	case 2:
+	  g_snprintf(ch,MAX_SUB_OP-3," < #0" );
+	  break;
+	case 3:
+	  g_snprintf(ch,MAX_SUB_OP-3," <= #0" );
+	  break;
+	case 4:
+	  g_snprintf(ch,MAX_SUB_OP-3," > #0" );
+	  break;
+	case 5:
+	  g_snprintf(ch,MAX_SUB_OP-3," >= #0" );
+	  break;
+	}
+      return;
+    }
+  else if ( top == 6 )
+    {
+      switch ( bits & 0xf )
+	{
+	case 0:
+	  g_snprintf(ch,MAX_SUB_OP,"ACOV0" );
+	  break;
+	case 1:
+	  g_snprintf(ch,MAX_SUB_OP,"ACOV1" );
+	  break;
+	case 2:
+	  g_snprintf(ch,MAX_SUB_OP,"ACOV2" );
+	  break;
+	case 3:
+	  g_snprintf(ch,MAX_SUB_OP,"ACOV3" );
+	  break;
+	case 4:
+	  g_snprintf(ch,MAX_SUB_OP,"TC1" );
+	  break;
+	case 5:
+	  g_snprintf(ch,MAX_SUB_OP,"TC2" );
+	  break;
+	case 6:
+	  g_snprintf(ch,MAX_SUB_OP,"CARRY" );
+	  break;
+	case 8:
+	  g_snprintf(ch,MAX_SUB_OP,"TC1 & TC2" );
+	  break;
+	case 9:
+	  g_snprintf(ch,MAX_SUB_OP,"TC1 & !TC2" );
+	  break;
+	case 10:
+	  g_snprintf(ch,MAX_SUB_OP,"!TC1 & TC2" );
+	  break;
+	case 11:
+	  g_snprintf(ch,MAX_SUB_OP,"!TC1 & !TC2" );
+	  break;
+	default:
+	  g_snprintf(ch,MAX_SUB_OP,"fixme_b" );
+	  break;
+	}
+    }
+  else if ( top == 7 )
+    {
+      switch ( bits & 0xf )
+	{
+	case 0:
+	  g_snprintf(ch,MAX_SUB_OP,"!ACOV0" );
+	  break;
+	case 1:
+	  g_snprintf(ch,MAX_SUB_OP,"!ACOV1" );
+	  break;
+	case 2:
+	  g_snprintf(ch,MAX_SUB_OP,"!ACOV2" );
+	  break;
+	case 3:
+	  g_snprintf(ch,MAX_SUB_OP,"!ACOV3" );
+	  break;
+	case 4:
+	  g_snprintf(ch,MAX_SUB_OP,"!TC1" );
+	  break;
+	case 5:
+	  g_snprintf(ch,MAX_SUB_OP,"!TC2" );
+	  break;
+	case 6:
+	  g_snprintf(ch,MAX_SUB_OP,"!CARRY" );
+	  break;
+	case 8:
+	  g_snprintf(ch,MAX_SUB_OP,"TC1 | TC2" );
+	  break;
+	case 9:
+	  g_snprintf(ch,MAX_SUB_OP,"TC1 | !TC2" );
+	  break;
+	case 10:
+	  g_snprintf(ch,MAX_SUB_OP,"!TC1 | TC2" );
+	  break;
+	case 11:
+	  g_snprintf(ch,MAX_SUB_OP,"!TC1 | !TC2" );
+	  break;
+	case 12:
+	  g_snprintf(ch,MAX_SUB_OP,"TC1 ^ TC2" );
+	  break;
+	case 13:
+	  g_snprintf(ch,MAX_SUB_OP,"TC1 ^ !TC2" );
+	  break;
+	case 14:
+	  g_snprintf(ch,MAX_SUB_OP,"!TC1 ^ TC2" );
+	  break;
+	case 15:
+	  g_snprintf(ch,MAX_SUB_OP,"!TC1 ^ !TC2" );
+	  break;
+	default:
+	  g_snprintf(ch,MAX_SUB_OP,"fixme_b" );
+	  break;
+	}
+    }
+  else
+    {
+      g_snprintf(ch,MAX_SUB_OP,"fixme_c" );
+	  
+    }
+}
+ 
+  
+
+// c Cmem addressing
 void c_decode(gchar *ch, gchar *mask, char info, 
 	      struct _decoded_opcode *decode_nfo )
 {
@@ -724,6 +1105,7 @@ gboolean one_bit_extract(char info, char *mask,
 Word bit_extract(char info, char *mask, struct _decoded_opcode *decode_nfo,
                  int *word_num, int *num_mask, int *length)
 {
+  // fixme, can probably get rid of length
   int bit,smallest;
   Word ans;
   int current_location,on_word;
