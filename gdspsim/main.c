@@ -40,7 +40,9 @@ char **decode(unsigned int start, unsigned int end, char *buffer, GPtrArray *opc
 GtkWidget *gdsp_decodeW=NULL;
 extern struct _file_info *gdsp_file_nfo;
 struct _Registers *Registers;
-
+// Used so other windows can have same keyboard accelerations
+GtkAccelGroup *gDSP_keyboard_accel;
+ 
 void set_PC(WordA new_pc)
 {
   Registers->PC=new_pc;
@@ -166,24 +168,15 @@ void get_main_menu( GtkWidget  *window,
 		    GtkWidget **menubar )
 {
   GtkItemFactory *item_factory;
-  GtkAccelGroup *accel_group;
   gint nmenu_items = sizeof (menu_items) / sizeof (menu_items[0]);
   
   
-  //*menubar = gtk_menu_item_new_with_label (menu_items);
+  /* Create place to store keyboard accelerations */
+  gDSP_keyboard_accel = gtk_accel_group_new ();
   
-  accel_group = gtk_accel_group_new ();
-  
-  /* This function initializes the item factory.
-     Param 1: The type of menu - can be GTK_TYPE_MENU_BAR, GTK_TYPE_MENU,
-     or GTK_TYPE_OPTION_MENU.
-     Param 2: The path of the menu.
-     Param 3: A pointer to a gtk_accel_group.  The item factory sets up
-     the accelerator table while generating menus.
-  */
-  
+  /* Create the menu items */
   item_factory = gtk_item_factory_new (GTK_TYPE_MENU_BAR, "<main>", 
-				       accel_group);
+				       gDSP_keyboard_accel);
   
   /* This function generates the menu items. Pass the item factory,
      the number of items in the array, the array itself, and any
@@ -191,8 +184,7 @@ void get_main_menu( GtkWidget  *window,
   gtk_item_factory_create_items (item_factory, nmenu_items, menu_items, NULL);
   
   /* Attach the new accelerator group to the window. */
-  //gtk_accel_group_attach (accel_group, GTK_OBJECT (window));
-  //gtk_accel_group_set_accel_widget(accel_group,window);
+  gtk_window_add_accel_group (GTK_WINDOW (window), gDSP_keyboard_accel);
   
   if (menubar)
     /* Finally, return the actual menu bar created by the item factory. */ 
