@@ -79,11 +79,17 @@ inline void shifter(Word input_mux, struct _Registers *Reg, Word shift_mux, SWor
   if ( SXM(MMR) )
     {
       // Sign extended
-      reg.gint64 = reg.gint64 << shift;
+      if ( shift < 0 )
+	reg.gint64 = reg.gint64 >> -shift;
+      else
+	reg.gint64 = reg.gint64 << shift;
     }
   else
     {
-      reg.guint64 = reg.guint64 << shift;
+      if ( shift < 0 )
+	reg.gint64 = reg.guint64 >> -shift;
+      else
+	reg.gint64 = reg.guint64 << shift;
     }
 
   switch ( output_mux )
@@ -107,72 +113,6 @@ inline void shifter(Word input_mux, struct _Registers *Reg, Word shift_mux, SWor
 // storage_mux 
 // 0, store in A
 // not 0, store in B
-#if 0
-// shift, amount to shift
-void shifter2GPreg(int input_mux, int shift, Word SXM, struct _Registers *Reg, Word storage_mux)
-{
-  union _GP_Reg_Union reg;;
-  
-  reg.guint64 = 0;
-
-  switch ( input_mux )
-    {
-    case 0:
-      reg.gp_reg = MMR->A;
-      break;
-    case 1:
-      reg.gp_reg = MMR->B;
-      break;
-    case 2:
-      reg.words.low = Reg->DB;
-      break;
-    case 3:
-      reg.words.low = Reg->CB;
-      break;
-    }
-
-  if ( SXM )
-    {
-      // Sign extended
-      reg.gint64 = reg.gint64 << shift;
-    }
-  else
-    {
-      reg.guint64 = reg.guint64 << shift;
-    }
-
-
-  if ( storage_mux )
-    MMR->B =reg.gp_reg;
-  else
-    MMR->A =reg.gp_reg;
-  return;
-}
-// shift, amount to shift
-void shiftWord2GPreg(SWord input, int shift, Word SXM, struct _Registers *Reg, Word storage_mux)
-{
-  union _GP_Reg_Union reg;;
-  
-  reg.gint64 = input;
-
-  if ( SXM )
-    {
-      // Sign extended
-      reg.gint64 = reg.gint64 << shift;
-    }
-  else
-    {
-      reg.guint64 = reg.guint64 << shift;
-    }
-
-
-  if ( storage_mux )
-    MMR->B =reg.gp_reg;
-  else
-    MMR->A =reg.gp_reg;
-  return;
-}
-#endif
 // Rotate register. clears guard bits, rotates bit_in in, and returns
 // bit rotated out
 //
