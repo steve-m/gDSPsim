@@ -403,6 +403,8 @@ void default_registers(struct _Registers *Registers)
   MMR->ar5=0;
   MMR->ar6=0;
   MMR->ar7=0;
+  MMR->DP = 0;
+  MMR->DPH = 0;
   Registers->PC = 0;
   Registers->DAB = 0;
   Registers->CAB = 0;
