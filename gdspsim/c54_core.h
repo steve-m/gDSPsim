@@ -102,6 +102,7 @@ extern struct _MMR *MMR;
 
 
 // Convenience macros to read status bits
+#define DP(Reg)(((Reg)->ST0&0x1ff))
 #define C_bit(Reg)((((Reg)->ST0)&0x800)>>11)
 #define TC_bit(Reg)((((Reg)->ST0)&0x1000)>>12)
 #define ARP(Reg)((((Reg)->ST0)&0xe0000)>>13)
