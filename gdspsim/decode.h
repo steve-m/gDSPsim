@@ -36,6 +36,8 @@ gchar *a_decode(gchar *mask, char info, Word start_code, WordA *location);
 // This is used to decode memory mapped registers.
 gchar *b_decode(gchar *mask, char info, Word start_code, WordA *location);
 gchar *c_decode(gchar *mask, char info, Word start_code, WordA *location);
+// Converts 0-7 to ARx, see cmpr.c
+gchar *e_decode(gchar *mask, char info, Word start_code, WordA *location);
 // Decode memory mapped registers, STM #0,AR0 or STM #0,0x60
 gchar *m_decode(gchar *mask, char info, Word start_code, WordA *location);
 // Decodes 9 memory mapped registers MMRx (ARx,SP) MVMM AR2,SP

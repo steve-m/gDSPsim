@@ -615,6 +615,45 @@ gchar *c_decode(gchar *mask, char info, Word start_code, WordA *location)
   return ch;
 }
 
+gchar *e_decode(gchar *mask, char info, Word start_code, WordA *location)
+{
+  unsigned int bits;
+  gchar *ch;
+
+  ch = g_new(gchar,4);
+  
+  bits = bit_extract(info,mask,start_code,location);
+  
+  switch (bits)
+    {
+    default:
+    case 0x0:
+      g_snprintf(ch,4,"AR0");
+      return ch;
+    case 0x1:
+      g_snprintf(ch,4,"AR1");
+      return ch;
+    case 0x2:
+      g_snprintf(ch,4,"AR2");
+      return ch;
+    case 0x3:
+      g_snprintf(ch,4,"AR3");
+      return ch;
+    case 0x4:
+      g_snprintf(ch,4,"AR4");
+      return ch;
+    case 0x5:
+      g_snprintf(ch,4,"AR5");
+      return ch;
+    case 0x6:
+      g_snprintf(ch,4,"AR6");
+      return ch;
+    case 0x7:
+      g_snprintf(ch,4,"AR7");
+      return ch;
+    }
+}
+
 gchar *xy_decode(gchar *mask, char info, Word start_code, WordA *location)
 {
   // See C54_Vol1_CPU_and_Peripherals.pdf -> spru131g.pdf
