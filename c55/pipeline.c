@@ -95,6 +95,7 @@ void reset_view()
 
 void update_view()
 {
+#if 0
   extern int decode_follow_pref;
 
   if ( decode_follow_pref == 0 )
@@ -104,6 +105,7 @@ void update_view()
   else if ( decode_follow_pref == 2 )
     highlight_pipeline(pipe_decodeP->decode_nfo.address);
   else if ( decode_follow_pref == 3 )
+#endif
     highlight_pipeline(Registers->PC);
 
   fill_reg_entries(Registers);
@@ -118,17 +120,72 @@ int pipeline(struct _Registers *Registers)
   int return_val=0;
   int RC_set;
 
-  /* Propagate pipeline pointers */
-  // fixme, need to just switch pointer not all values, have to 
-  // do make changes in setting decode
-  *pipe_write_plusP = *pipe_writeP;
-  *pipe_writeP = *pipe_executeP;
-  *pipe_executeP = *pipe_read_stgP;
-  *pipe_read_stgP = *pipe_access_2P;
-  *pipe_access_2P = *pipe_access_1P;
-  *pipe_access_1P = *pipe_address_stgP;
-  *pipe_address_stgP = *pipe_decodeP;
- 
+
+  WordA PC_old;
+
+    
+  // get new pipe_decodeP
+  set_pipe_decodeP(Registers->PC,
+		   Registers,Registers->fetch_flags);
+    
+  // Clear flag to indicate PC change
+  pipe_decodeP->flags = pipe_decodeP->flags & ~PIPE_PC_CHANGED;
+    
+  if ( pipe_decodeP->opcode_object->decode )
+    pipe_decodeP->opcode_object->decode(pipe_decodeP,Registers);
+
+  // This is where DAB and CAB buses are loaded with the read address
+  // auxiliary registers and SP are also updated
+  if ( pipe_decodeP->opcode_object->address_stg )
+    pipe_decodeP->opcode_object->address_stg(pipe_decodeP,Registers);
+
+  if ( pipe_decodeP->opcode_object->access_1 )
+    pipe_decodeP->opcode_object->access_1(pipe_decodeP,Registers);
+      
+  if ( pipe_decodeP->opcode_object->access_2 )
+    pipe_decodeP->opcode_object->access_2(pipe_decodeP,Registers);
+     
+  // DB is loaded with the first read argument using DAB address
+  // CB is loaded with the second read argument using CAB address
+  // EAB is loaded with the write address
+  if ( pipe_decodeP->opcode_object->read_stg )
+    pipe_decodeP->opcode_object->read_stg(pipe_decodeP,Registers);
+  
+  if ( pipe_decodeP->opcode_object->execute )
+    pipe_decodeP->opcode_object->execute(pipe_decodeP,Registers);
+
+     
+  if ( pipe_decodeP->opcode_object->write )
+    pipe_decodeP->opcode_object->write(pipe_decodeP,Registers);
+
+  if ( pipe_decodeP->opcode_object->write_plus )
+    pipe_decodeP->opcode_object->write_plus(pipe_decodeP,Registers);
+
+  if ( pipe_decodeP->flags & PIPE_PC_CHANGED )
+    {
+      pipe_decodeP->flags &= ~(PIPE_PC_CHANGED);
+    }
+  else if ( C54CM(MMR) && BRAF(MMR) )
+    {
+      // inside a C54x repeat loop
+      
+      Registers->PC += pipe_decodeP->decode_nfo.length;
+
+      if ( Registers->PC == MMR->REA0 )
+	{
+	  if ( MMR->BRC0 )
+	  Registers->PC = MMR->RSA0;
+	}
+    }
+  else
+    {
+      Registers->PC += pipe_decodeP->decode_nfo.length;
+    }
+
+  update_pipeline(Registers->PC);
+
+  return 0;
+#if 0
 
   if ( Registers->Special_Flush )
     {
@@ -321,6 +378,7 @@ int pipeline(struct _Registers *Registers)
 	}
     }
   return return_val;
+#endif
 }
 
 
@@ -360,13 +418,13 @@ void default_registers(struct _Registers *Registers)
   Registers->Dont_Decode = 0;
   Registers->Decode_Again = 0;
   Registers->fetch_flags = 0;
+  Registers->CFCT = 0;
 }
 
 // Reads instruction out of instruction cache starting at address
 void set_pipe_decodeP(WordA address, struct _Registers *Registers, int flags)
 {
   //int length;
-  unsigned char start_code;
 
   pipe_decodeP->flags = flags;
   if ( pipe_decodeP->flags )
@@ -383,19 +441,26 @@ void set_pipe_decodeP(WordA address, struct _Registers *Registers, int flags)
   else
 #endif
     {
-      start_code = read_instruction_cache(address);
-
-      pipe_decodeP->decode_nfo.mach_code.bop[0] = start_code;
+      // quick fix 
+      int kk;
+      for (kk=0;kk<MAX_OP_LEN;kk++)
+	{
+	  pipe_decodeP->decode_nfo.mach_code.bop[kk] =
+	    read_instruction_cache(address+kk);
+	}
       pipe_decodeP->decode_nfo.address = address;
 
       if ( find_object(&pipe_decodeP->decode_nfo) )
 	{
-	  printf("Can't process 0x%x Setting it to NOP\n",start_code);
+      for (kk=0;kk<MAX_OP_LEN;kk++)
+	printf("%2.2x",pipe_decodeP->decode_nfo.mach_code.bop[kk]);
+      printf("   Can't process  Setting it to NOP\n");
 	  
           return set_pipe_decodeP_to_NOP();
 	}
       else
 	{
+	  printf("length=%d\n",pipe_decodeP->decode_nfo.length);
 	  //pipe_decodeP->current_opcode = start_code;
 	  pipe_decodeP->cycles=0;
 	  pipe_decodeP->opcode_subType = pipe_decodeP->decode_nfo.sub_type;
@@ -515,7 +580,7 @@ struct _Registers *pipe_new()
 
   // Setup default values
   // Setup memory mapped registers by setting up memory
-  fill_to_mem(0,0,0x80,PROGRAM_MEM_TYPE | DATA_MEM_TYPE );
+  fill_to_mem(0,0,0x80*2,PROGRAM_MEM_TYPE | DATA_MEM_TYPE );
   set_MMR_ptr();
 
   default_registers(Registers);
@@ -530,8 +595,11 @@ struct _Registers *pipe_new()
   
 unsigned char read_instruction_cache(WordA address)
 {
-  return 0;
+  int wait_state;
+  // temporary, fixme
+  return read_program_mem_long(address,&wait_state);
 }
+
 void set_pipe_decodeP_to_NOP(void)
 {
 }
