@@ -37,9 +37,6 @@
  * Omux 0-15         Output to Register 0-15
  *      ALU_EB       Output to the EB register
  */
-/* 
- * flag bit 0, 0=add 1=Y-X
- */ 
 
 /* Default action:
 ================================================================
@@ -81,6 +78,16 @@ if C54CM=1 then M40 is locally set to 0 when addition
 #define ALU_WITH_CARRY 4
 #define ALU_SUB 1 // Y-X
 
+// Dual 16 bit arithmetic. 
+// Overflow is detected at bit 15 and 31.
+// Carry is extracted at bit 31. Saturation is determined by SATD.
+// if C54CM=1, SATD is local=0 and overflow only detected at bit 31
+// high part is sign extended to 24 bit according to SXMD
+// When use ALU_DBL DB is high bits, CB is low bits
+
+#define ALU_DUAL 16 // ADD or SUB depends on ALU_SUB
+#define ALU_DUAL_ADDSUB 32 // high_bits ADD lowbits SUB
+#define ALU_DUAL_SUBADD 64 // high_bits SUB lowbits ADD
 void alu(int Xmux, int Ymux, int Omux, int flag, struct _Registers *Reg);
 
 #endif // __ALU_H__
