@@ -296,8 +296,9 @@ gboolean word_from_file(FILE *file, Word *value)
   unsigned char ch;
   unsigned char str[16];
   unsigned char *strP;
-  int start_hex,num;
+  int start_hex=0,num;
   
+  strP = str;
   while ( len < 15 )
     {
       c=fgetc(file);
@@ -342,7 +343,7 @@ gboolean word_from_file(FILE *file, Word *value)
 		}
 	      else if ( (ch=='x') || (ch=='X') )
 		{
-		  if ( (*strP == '0' ) && (len==1) )
+		  if ( (len==1) && (str[0] == '0' ) )
 		    {
 		      start_hex=1;
 		      *strP++ = ch;
