@@ -17,7 +17,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-//#define GTK_ENABLE_BROKEN
+// This C file is the interface to a popup window that displays decoded
+// assembly
 
 #include <stdio.h>
 #include "decode_window.h"
@@ -25,18 +26,6 @@
 #include "memory.h"
 #include "entryCB.h"
 #include "pipeline.h"
-
-#if 0
-static gchar *pipe_tag_color[6]=
-{
-  "red", 
-  "#808080", 
-  "#a0a0a0",
-  "#b0b0b0",
-  "#d0d0d0",
-  "blue"
-};
-#endif
 
 static GdkColor pipe_color[6]=
 {
@@ -49,25 +38,12 @@ static GdkColor pipe_color[6]=
 };
 static GdkColormap *colormap;
 
-//#define USE_PIXMAP
-
-
-
-#define COLUMN_OPCODE 3
-#define COLUMN_ADDRESS 1
-#define COLUMN_MACHCODE 2
-#define COLUMN_LABEL 1
-#define COLUMN_BREAK 0
-
-//void entry_hexCB( GtkWidget *widget,  GtkWidget *entryCB_nfo );
-
-// This C file is the interface to a popup window that displays decoded assembly
+// Defines how the decode window follows stepping through code
+int decode_follow_pref=1;
 
 extern GdkFont *gdsp_Decode_Font;
-GtkWidget *decodeW;
-GdkPixmap *pixmap;
-GtkWidget *clist;
-GdkBitmap *mask;
+GdkPixmap *pixmap;  // breakpoint pixmap
+GdkBitmap *mask;  // breakpoint pixmap mask
 
 /* needed prototypes */
 /* Called when step button pressed */
@@ -81,6 +57,7 @@ struct _decode_window_nfo *dwn=NULL;
 
 struct _decode_window_nfo
 {
+  GtkWidget *clist;
   GtkWidget *decodeW;
   WordA start;
   WordA end;
@@ -126,7 +103,7 @@ static void change_end_address(GtkWidget *entry, guint64 address,
 
   insert_text(dwn->start,dwn->end,dwn->word2line);
 
-  highlight_pipeline();
+  highlight_pipeline(0x0);
 }
 
 
@@ -162,7 +139,7 @@ static void change_start_address(GtkWidget *entry, guint64 address,
     g_array_remove_index_fast(dwn->word2line,0);
 
   insert_text(dwn->start,dwn->end,dwn->word2line);
-  highlight_pipeline();
+  highlight_pipeline(0x0);
 }
 
 
@@ -172,18 +149,35 @@ static void click_CB( GtkWidget *W, gint row, gint column, GdkEventButton *event
   if ( column == 0 )
     {
       WordA addr;
-      addr = (WordA)gtk_clist_get_row_data(GTK_CLIST(clist),row);
+      addr = (WordA)gtk_clist_get_row_data(GTK_CLIST(dwn->clist),row);
       // Only allow breakpoints on instructions and not labels
       if ( addr )
 	{
 	  printf("Word 0x%x\n",addr);
 	  if ( toggle_breakpoint(addr) )
-	    gtk_clist_set_pixmap(GTK_CLIST(clist), row, column, pixmap, mask);
+	    gtk_clist_set_pixmap(GTK_CLIST(dwn->clist), row, column, pixmap, mask);
 	  else
-	    gtk_clist_set_text(GTK_CLIST(clist), row, column, NULL);
+	    gtk_clist_set_text(GTK_CLIST(dwn->clist), row, column, NULL);
 	}
     }
 }
+static void radio_CB( GtkWidget *widget, int data )
+{
+  decode_follow_pref = data;
+}
+
+static GtkItemFactoryEntry menu_items[] = 
+{
+  { "/_Preferences",         NULL,         NULL, 0, "<Branch>" },
+  { "/_Preferences/Don't Follow",   NULL, (GtkItemFactoryCallback)radio_CB,   
+    0, "<RadioItem>" },
+  { "/_Preferences/Follow Execute", NULL, (GtkItemFactoryCallback)radio_CB,
+    1, "<RadioItem>" },
+  { "/_Preferences/Follow Decode",  NULL, (GtkItemFactoryCallback)radio_CB, 
+    2, "<RadioItem>" },
+  { "/_Preferences/Follow PC",      NULL, (GtkItemFactoryCallback)radio_CB, 
+    3, "<RadioItem>" }
+};
 
 /*
  * This will be called by the main routine to create a popup window.
@@ -195,7 +189,7 @@ static void click_CB( GtkWidget *W, gint row, gint column, GdkEventButton *event
  * decode_step when pressed.
  */
 
-GtkWidget *create_decode_window()
+void create_decode_window()
 {
   GtkWidget *vbox,*hbox,*scrolledW;
   GPtrArray *textA;
@@ -203,28 +197,42 @@ GtkWidget *create_decode_window()
   WordA start_mem,end_mem;
   gchar temp_str[10];
   struct _entryCB_nfo *entry_start_nfo;
+  GtkWidget *menubar;
   extern GtkAccelGroup *gDSP_keyboard_accel;
+  GtkItemFactory *item_factory;
+  GtkAccelGroup *accel_group;
+  gint nmenu_items;
 
   if ( dwn )
-    return NULL;
+    return;
 
   dwn = g_new(struct _decode_window_nfo,1);
 
-  decodeW = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-  dwn->decodeW = decodeW;
+  dwn->decodeW = gtk_window_new (GTK_WINDOW_TOPLEVEL);
 
-  gtk_widget_set_name (decodeW, "Disassembly");
-  gtk_widget_set_usize (GTK_WIDGET(decodeW), 300, 200);
-  gtk_window_set_title (GTK_WINDOW (decodeW), "Disassebly");
-  gtk_container_set_border_width (GTK_CONTAINER (decodeW), 0);
+  gtk_widget_set_name (dwn->decodeW, "Disassembly");
+  gtk_widget_set_usize (GTK_WIDGET(dwn->decodeW), 300, 200);
+  gtk_window_set_title (GTK_WINDOW (dwn->decodeW), "Disassebly");
+  gtk_container_set_border_width (GTK_CONTAINER (dwn->decodeW), 0);
 
   // Attach keyboard accelerations from main window
-  gtk_window_add_accel_group (GTK_WINDOW (decodeW), gDSP_keyboard_accel);
+  gtk_window_add_accel_group (GTK_WINDOW (dwn->decodeW), gDSP_keyboard_accel);
   
 
   vbox = gtk_vbox_new (FALSE, 0);
-  gtk_container_add (GTK_CONTAINER (decodeW), vbox);
+  gtk_container_add (GTK_CONTAINER (dwn->decodeW), vbox);
   gtk_widget_show (vbox);
+
+  // add preferences menu
+  accel_group = gtk_accel_group_new ();
+  item_factory = gtk_item_factory_new (GTK_TYPE_MENU_BAR, "<main>", 
+				       accel_group);
+  nmenu_items = sizeof (menu_items) / sizeof (menu_items[0]);
+  gtk_item_factory_create_items (item_factory, nmenu_items, menu_items, NULL);
+  gtk_window_add_accel_group (GTK_WINDOW (dwn->decodeW), accel_group);
+  menubar = gtk_item_factory_get_widget (item_factory, "<main>");
+  gtk_box_pack_start (GTK_BOX (vbox), menubar, FALSE, TRUE, 0);
+  gtk_widget_show (menubar);
 
   hbox = gtk_hbox_new (FALSE, 0);
   gtk_box_pack_start (GTK_BOX (vbox), hbox, FALSE, FALSE, 6);
@@ -298,19 +306,19 @@ GtkWidget *create_decode_window()
   {
     gchar *titles[]={"break","address","mach code","opcode"};
 
-    clist = gtk_clist_new_with_titles(4,titles);
+    dwn->clist = gtk_clist_new_with_titles(4,titles);
   }
 
-  gtk_clist_set_selection_mode(GTK_CLIST(clist), GTK_SELECTION_SINGLE);
+  gtk_clist_set_selection_mode(GTK_CLIST(dwn->clist), GTK_SELECTION_SINGLE);
   
   insert_text(start_mem,end_mem,dwn->word2line);
 
-  gtk_signal_connect( GTK_OBJECT(clist),"select_row", 
+  gtk_signal_connect( GTK_OBJECT(dwn->clist),"select_row", 
 		      GTK_SIGNAL_FUNC( click_CB), NULL );
   
-  gtk_widget_realize(decodeW);
+  gtk_widget_realize(dwn->decodeW);
 
-  pixmap = gdk_pixmap_create_from_xpm(decodeW->window,&mask,
+  pixmap = gdk_pixmap_create_from_xpm(dwn->decodeW->window,&mask,
                                       NULL,"/usr/share/gdspsim/stop.xpm");
 
   {
@@ -323,14 +331,14 @@ GtkWidget *create_decode_window()
       }
   }
 
-  gtk_container_add(GTK_CONTAINER(scrolledW),clist);
+  gtk_container_add(GTK_CONTAINER(scrolledW),dwn->clist);
 
 
-  gtk_widget_show(clist);
+  gtk_widget_show(dwn->clist);
 
 
-  gtk_widget_show(decodeW);
-  return decodeW;
+  gtk_widget_show(dwn->decodeW);
+  return;
 
 }
 
@@ -354,19 +362,19 @@ void unhighlight_pipeline()
 {
   int k;
 
-  gtk_clist_freeze(GTK_CLIST(clist));
+  gtk_clist_freeze(GTK_CLIST(dwn->clist));
   for (k=0;k<6;k++)
     {
       if ( pipe[cntr]>0 )
 	{
 	  // unhighlight
-	  gtk_clist_set_background(GTK_CLIST(clist),pipe[k],NULL);
+	  gtk_clist_set_background(GTK_CLIST(dwn->clist),pipe[k],NULL);
 	}
     }
-  gtk_clist_thaw(GTK_CLIST(clist));
+  gtk_clist_thaw(GTK_CLIST(dwn->clist));
 }
 
-void highlight_pipeline()
+void highlight_pipeline(WordA follow)
 {
 
   int lineNo,k,tcntr;
@@ -379,6 +387,16 @@ void highlight_pipeline()
     {
       // no decode window yet
       return;
+    }
+
+  if ( follow )
+    {
+      if ( (dwn->start <= follow) && (follow <= dwn->end) )
+	{
+	  int row;
+	  row = g_array_index(dwn->word2line,int,follow-dwn->start);
+	  gtk_clist_moveto(GTK_CLIST(dwn->clist),row,0,0.5,0.5);
+	}
     }
 
   // Redo the lines
@@ -395,14 +413,14 @@ void highlight_pipeline()
 	}
     }
 
-  gtk_clist_freeze(GTK_CLIST(clist));
+  gtk_clist_freeze(GTK_CLIST(dwn->clist));
   
   tcntr = cntr;
   for (k=0;k<6;k++)
     {
       if ( pipe[tcntr]>0 && (pipe[tcntr] != last_line ) )
 	{
-	  gtk_clist_set_background(GTK_CLIST(clist),pipe[tcntr],
+	  gtk_clist_set_background(GTK_CLIST(dwn->clist),pipe[tcntr],
 				   &pipe_color[k]);
 	}
       // Make sure paint the leading color
@@ -413,7 +431,7 @@ void highlight_pipeline()
 	tcntr=5;
     }
   
-  gtk_clist_thaw(GTK_CLIST(clist));
+  gtk_clist_thaw(GTK_CLIST(dwn->clist));
   
 }
 /* 
@@ -434,10 +452,10 @@ static void insert_text(WordA start_mem, WordA end_mem, GArray *word2line)
   int offset=0;
   int width;
 
-  gtk_clist_freeze(GTK_CLIST(clist));
+  gtk_clist_freeze(GTK_CLIST(dwn->clist));
 
   // remove old items
-  gtk_clist_clear(GTK_CLIST(clist));
+  gtk_clist_clear(GTK_CLIST(dwn->clist));
 
   // Poplate model with data
   textA = g_ptr_array_new();
@@ -459,10 +477,10 @@ static void insert_text(WordA start_mem, WordA end_mem, GArray *word2line)
 	  data[2]=op->machine_code;
 	  data[3]=op->opcode_text;
 
-	  row = gtk_clist_append(GTK_CLIST(clist),data);
+	  row = gtk_clist_append(GTK_CLIST(dwn->clist),data);
 
 	  // g_warning(row!=k,"warning");
-	  gtk_clist_set_row_data(GTK_CLIST(clist),row,(gpointer)(offset+dwn->start));
+	  gtk_clist_set_row_data(GTK_CLIST(dwn->clist),row,(gpointer)(offset+dwn->start));
 
 	  g_free(op->machine_code);
 	}
@@ -475,8 +493,8 @@ static void insert_text(WordA start_mem, WordA end_mem, GArray *word2line)
 	  data[2]=NULL;
 	  data[3]=NULL;
 
-	  row = gtk_clist_append(GTK_CLIST(clist),data);
-	  gtk_clist_set_row_data(GTK_CLIST(clist),row,NULL);
+	  row = gtk_clist_append(GTK_CLIST(dwn->clist),data);
+	  gtk_clist_set_row_data(GTK_CLIST(dwn->clist),row,NULL);
 
 	  //	  g_warning(row!=k,"warning");
 
@@ -486,20 +504,20 @@ static void insert_text(WordA start_mem, WordA end_mem, GArray *word2line)
       g_free(op);
     }
 
-  width = gtk_clist_optimal_column_width(GTK_CLIST(clist),1);
-  gtk_clist_set_column_width(GTK_CLIST(clist),1,width);
+  width = gtk_clist_optimal_column_width(GTK_CLIST(dwn->clist),1);
+  gtk_clist_set_column_width(GTK_CLIST(dwn->clist),1,width);
 
-  width = gtk_clist_optimal_column_width(GTK_CLIST(clist),2);
-  gtk_clist_set_column_width(GTK_CLIST(clist),2,width);
+  width = gtk_clist_optimal_column_width(GTK_CLIST(dwn->clist),2);
+  gtk_clist_set_column_width(GTK_CLIST(dwn->clist),2,width);
 
-  width = gtk_clist_optimal_column_width(GTK_CLIST(clist),3);
-  gtk_clist_set_column_width(GTK_CLIST(clist),3,width);
+  width = gtk_clist_optimal_column_width(GTK_CLIST(dwn->clist),3);
+  gtk_clist_set_column_width(GTK_CLIST(dwn->clist),3,width);
 
   // set size for pixmaps
   // gtk_clist_set_column_width(GTK_CLIST(clist),0,16);
-  gtk_clist_set_row_height(GTK_CLIST(clist),16);
+  gtk_clist_set_row_height(GTK_CLIST(dwn->clist),16);
 
-  gtk_clist_thaw(GTK_CLIST(clist));
+  gtk_clist_thaw(GTK_CLIST(dwn->clist));
 
   g_ptr_array_free(textA,FALSE);  
 }

@@ -33,7 +33,6 @@
 char **decode(unsigned int start, unsigned int end, char *buffer, GPtrArray *opcodes_info);
 
 
-GtkWidget *gdsp_decodeW=NULL;
 extern struct _file_info *gdsp_file_nfo;
 struct _Registers *Registers;
 // Used so other windows can have same keyboard accelerations
@@ -165,9 +164,7 @@ static void memory_CB( GtkWidget *widget,  gpointer   data )
 
 static void decode_CB( GtkWidget *widget,  gpointer   data )
 {
-  GtkWidget *decodeW;
-
-  decodeW = create_decode_window();
+  create_decode_window();
 }
 // #include "opcode_def.h"
 static GtkItemFactoryEntry menu_items[] = 

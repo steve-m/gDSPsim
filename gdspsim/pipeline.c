@@ -111,7 +111,17 @@ void reset_view()
 
 void update_view()
 {
-  highlight_pipeline();
+  extern int decode_follow_pref;
+
+  if ( decode_follow_pref == 0 )
+    highlight_pipeline(0);
+  else if ( decode_follow_pref == 1 )
+    highlight_pipeline(pipe_executeP->decode_nfo.address);
+  else if ( decode_follow_pref == 2 )
+    highlight_pipeline(pipe_decodeP->decode_nfo.address);
+  else if ( decode_follow_pref == 3 )
+    highlight_pipeline(Registers->PC);
+
   fill_reg_entries(Registers);
   update_all_memory_windows(1);
 }

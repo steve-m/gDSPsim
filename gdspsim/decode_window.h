@@ -23,10 +23,10 @@
 #include <gtk/gtk.h>
 #include "c54_core.h"
 
-GtkWidget *create_decode_window();
+void create_decode_window();
 void set_decode_index_max_range(unsigned long int lower_index, unsigned long int upper_index);
 void unhighlight_pipeline();
-void highlight_pipeline();
+void highlight_pipeline(WordA follow);
 void update_pipeline(WordA prefetch);
 // Convert a line number to the corresponding word
 WordA line2word(GArray *word2line, int line, WordA start);
