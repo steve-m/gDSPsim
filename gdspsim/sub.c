@@ -225,9 +225,9 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 	case 6: // SUB  #lk [, SHFT], src [, dst ]
 	  {
 	    SWord shift;
+	    int regNum;
 	    	    
 	    shift = pipeP->current_opcode & 0xf;
-	    int regNum;
 	    regNum = (pipeP->current_opcode&0x100)>>8;
 	    
 	    reg_union.gint64 = (SWord)pipeP->storage1;

@@ -19,6 +19,7 @@
 
 #include "c54_core.h"
 #include <stdio.h>
+#include "alu.h"
 
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg);
 static GPtrArray *machine_code(gchar *opcode_text);
@@ -51,14 +52,17 @@ Instruction_Class RND_Obj =
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   int s,d;
-  
-  Reg->Shifter = 0x8000;
+  union _GP_Reg_Union reg_union;
+
+  reg_union.gint64 = 0;
+  reg_union.words.low = 0x8000;
+  Reg->Shifter = reg_union.gp_reg;
   
   // X is shifter register 0
   // Y is A or B register s
   // O is A or B register d
-  s = (current_opcode & 0x100) >> 8;
-  d = (current_opcode & 0x100) >> 9;
+  s = (pipeP->current_opcode & 0x100) >> 8;
+  d = (pipeP->current_opcode & 0x100) >> 9;
   
   alu(0,s,d,0,Reg);
 }
