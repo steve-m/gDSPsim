@@ -25,12 +25,10 @@
 #include <chip_help.h>
 #include <alu.h>
 
-// this is taken from AND , the opcodes are correct, just needs to be merged.
-
 static gchar *mask[]=
 {
-       // "0001100p uuuuuuuu RRRRrrrr", // ADD k8, src, dst
-  //   "0001 0000 00rr 00qq 0011 0000", // ADD r<<#-16,q
+  // "0001100p uuuuuuuu RRRRrrrr", // ADD k8, src, dst
+  // "0001 0000 00rr 00qq 0011 0000", // ADD r<<#-16,q
 
   "0010001p rrrrRRRR", // ADD src, dst   (fixme? maybe 0010010p)
   "0100000p uuuuRRRR", // ADD k4, dst
@@ -52,13 +50,9 @@ static gchar *mask[]=
  
   "11110111 ssssssss hhhhhhhh hhhhhhhh", // ADD k16, Smem
 
-
-
-
-
-  // 11101110 AAAAAAAI SSDD000x    ADD dual(Lmem), [ACx,] ACy
-  // 11101110 AAAAAAAI ssDD100x    ADD dual(Lmem), Tx, ACx
-
+  // Dual 16-bit arithmetic
+  "11101110 ssssssss rrRR000v", // ADD dual(Lmem), [ACx,] ACy
+  "11101110 ssssssss ttRR100v", // ADD dual(Lmem), Tx, ACx
 
 };
 
@@ -75,7 +69,7 @@ static gchar *opcode[] =
   "'ADD' h<<#u,r,R", // ADD k16 << #SHFT, [ACx,] ACy
   "'ADD' s<<t,r,R",  // ADD Smem << Tx, [ACx,] ACy
   "'ADD' s<<#16,r,R",  // ADD Smem << #16, [ACx,] ACy
-  "'ADD' ",  //
+
   "'ADD' UsV,'CARRY',r,R",  // ADD [uns(]Smem[)], CARRY, [ACx,] ACy
   "'ADD' UsV,r,R",  // ADD [uns(]Smem[)], [ACx,] ACy
   "'ADD' UsV<<#n,r,R",  // ADD [uns(]Smem[)] << #SHIFTW, [ACx,] ACy
@@ -83,6 +77,10 @@ static gchar *opcode[] =
   "'ADD' x,y,R",  // ADD Xmem, Ymem, ACx
 
   "'ADD' u,s", //ADD k16, Smem
+
+  // Dual 16-bit arithmetic
+  "'ADD' 'dual'(s),r,R", // ADD dual(Lmem), [ACx,] ACy
+  "'ADD' 'dual'(s),t,R", // ADD dual(Lmem), Tx, ACx
 };
 
 static void address_stg(struct _PipeLine *pipeP, struct _Registers *Reg);
@@ -101,24 +99,54 @@ Instruction_Class ADD_Obj =
   execute, // execute
   write_stg, // write 
   NULL, // write_plus
-  8,
+  18,
   mask,
   opcode,
 };
 
 static void address_stg(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-  if ( pipeP->opcode_subType == 3 )
+  switch ( pipeP->opcode_subType )
     {
+    case 3:
+    case 8:
+    case 9:
+    case 10:
+    case 11:
+    case 12:
+      smem_address_stg_b2(pipeP,Reg);
+      break;
+    case 13:
+      lmem_address_stg_b2(pipeP,Reg);
+      break;
+    case 14:
+      xymem_address_stg_b2(pipeP,Reg);
+      break;
+    case 15:
       smem_address_stg_b2(pipeP,Reg);
       pipeP->storage2 = Reg->DAB;
+      break;
     }
 }
 
 static void read_stg(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-  if ( pipeP->opcode_subType == 3 )
-    smem_read_stg(pipeP,Reg);
+  switch ( pipeP->opcode_subType )
+    {
+    case 3:
+    case 8:
+    case 9:
+    case 10:
+    case 11:
+    case 12:
+    case 15:
+      smem_read_stg(pipeP,Reg);
+      break;
+    case 13:
+    case 14:
+      xymem_read_stg(pipeP,Reg);
+      break;
+    }
 }
 
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
@@ -127,11 +155,9 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
   Opcode opcode;
   SWord n;
   union _GP_Reg_Union reg_union;
-  // union _GP_Reg_Union reg_union2;
   Word kword;
 
   opcode = pipeP->decode_nfo.mach_code;
-
   
   switch ( pipeP->opcode_subType )
     {
@@ -144,7 +170,7 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 
     case 1:
       // ADD k4, dst
-      R = opcode.bop[2]&0xf;
+      R = opcode.bop[1]&0xf;
       BYTES_TO_GP_REG(Reg->Shifter,0,0,(opcode.bop[1]>>4)&0xf);
       alu(ALU_SHIFTER, R, R, 0, Reg);
       return;
@@ -169,22 +195,25 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
       R = (opcode.bop[1]>>6)&0x3;
       r = (opcode.bop[1]>>4)&0x3;
       t = (opcode.bop[1]>>2)&0x3;
-      flag = C54CM(MMR) ? 0x5 : M40(MMR) | (SXMD(MMR)<<1) | 0x40;
+      flag = C54CM(MMR) 
+	? (SHFT_DONT_SATURATE | SHFT_NO_OVERFLOW_DETECTION | 
+	   SHFT_M40_IS_1 | SHFT_SIGN_EXTEND_USING_SXMD)
+	: (SHFT_USE_SATD_SATA | SHFT_SIGN_EXTEND_USING_SXMD | 
+	   SHFT_USE_M40 | SHFT_SET_ACOV);
       shifter(r, t, 0, flag, SHFT_SHIFTER, Reg);
       alu(ALU_SHIFTER, R, R, 0, Reg);
       return;
 
     case 5:
       // ADD ACx << #SHIFTW[, ACy]
-
-      // affected by C54CM,M40,SATD,SXMD
       R = (opcode.bop[1]>>6)&0x3;
       r = (opcode.bop[1]>>4)&0x3;
       n = (int)SIGN6BIT_TO_UINT(opcode.bop[2]&0x3f);
-      flag = C54CM(MMR) ? (SHFT_M40_IS_1 | SHFT_DONT_SATURATE | 
-			   SHFT_NO_OVERFLOW_DETECTION) : 
-                          (SHFT_USE_M40 | SHFT_SIGN_EXTEND_USING_SXMD | 
-		           SHFT_USE_SATD_SATA | SHFT_SET_ACOV);
+      flag = C54CM(MMR) 
+	? (SHFT_DONT_SATURATE | SHFT_NO_OVERFLOW_DETECTION | 
+	   SHFT_M40_IS_1 | SHFT_SIGN_EXTEND_USING_SXMD)
+	: (SHFT_USE_SATD_SATA | SHFT_SIGN_EXTEND_USING_SXMD | 
+	   SHFT_USE_M40 | SHFT_SET_ACOV);
       shifter(r, SHFT_CONSTANT, n, flag, SHFT_SHIFTER, Reg);
       alu(ALU_SHIFTER, R, R, 0, Reg);
       return;
@@ -211,9 +240,9 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
       
     case 8:
       // ADD Smem << Tx, [ACx,] ACy
-      R = (opcode.bop[3]>>4)&0x3;
-      r = (opcode.bop[3]>>6)&0x3;
-      t = (opcode.bop[3]>>2)&0x3;
+      R = (opcode.bop[2]>>4)&0x3;
+      r = (opcode.bop[2]>>6)&0x3;
+      t = (opcode.bop[2]>>2)&0x3;
       flag = C54CM(MMR) ? (0xc5) : (M40(MMR) | 0xc4);
       shifter(SHFT_DB, t, 0, flag, SHFT_SHIFTER, Reg);
       alu(ALU_SHIFTER, R, R, 0, Reg);
@@ -221,8 +250,8 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 
     case 9:
       // ADD Smem << #16, [ACx,] ACy
-      R = (opcode.bop[3]>>4)&0x3;
-      r = (opcode.bop[3]>>6)&0x3;
+      R = (opcode.bop[2]>>4)&0x3;
+      r = (opcode.bop[2]>>6)&0x3;
       flag = C54CM(MMR) ? (0xc5) : (M40(MMR) | 0xc4);
       shifter(SHFT_DB, SHFT_CONSTANT, 16, flag, SHFT_SHIFTER, Reg);
       alu(ALU_SHIFTER, R, R, 0, Reg);
@@ -230,17 +259,17 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 
     case 10:
       // ADD [uns(]Smem[)], CARRY, [ACx,] ACy
-      R = (opcode.bop[3]>>4)&0x3;
-      r = (opcode.bop[3]>>6)&0x3;
-      flag = (opcode.bop[3]&1) ? (ALU_UNSIGNED_X | ALU_WITH_CARRY) : ALU_WITH_CARRY;
+      R = (opcode.bop[2]>>4)&0x3;
+      r = (opcode.bop[2]>>6)&0x3;
+      flag = (opcode.bop[2]&1) ? (ALU_UNSIGNED_X | ALU_WITH_CARRY) : ALU_WITH_CARRY;
       alu(ALU_DB, r, R, flag, Reg);
       return;
 
     case 11:
       // ADD [uns(]Smem[)], [ACx,] ACy
-      R = (opcode.bop[3]>>4)&0x3;
-      r = (opcode.bop[3]>>6)&0x3;
-      flag = (opcode.bop[3]&1) ? ALU_UNSIGNED_X : 0;
+      R = (opcode.bop[2]>>4)&0x3;
+      r = (opcode.bop[2]>>6)&0x3;
+      flag = (opcode.bop[2]&1) ? ALU_UNSIGNED_X : 0;
       alu(ALU_DB, r, R, flag, Reg);
       return;
 
@@ -249,8 +278,13 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
       R = (opcode.bop[3]>>4)&0x3;
       r = (opcode.bop[3]>>6)&0x3;
       shift = (int)SIGN6BIT_TO_UINT(opcode.bop[3]&0x3f);
-      flag = (opcode.bop[2]&0x80) ? SHFT_UNSIGNED : SHFT_SIGN_EXTEND_USING_SXMD;
+      flag = C54CM(MMR) 
+	? (SHFT_DONT_SATURATE | SHFT_NO_OVERFLOW_DETECTION | 
+	   SHFT_M40_IS_1 | SHFT_SIGN_EXTEND_USING_SXMD)
+	: (SHFT_USE_SATD_SATA | SHFT_SIGN_EXTEND_USING_SXMD | 
+	   SHFT_USE_M40 | SHFT_SET_ACOV);
       shifter(SHFT_DB, SHFT_CONSTANT, shift, flag, SHFT_SHIFTER, Reg);
+      flag = (opcode.bop[2]&0x80) ? ALU_UNSIGNED_X : 0;
       alu(ALU_SHIFTER, r, R, flag, Reg);
       return;
 
@@ -275,15 +309,27 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
       Reg->EAB = pipeP->storage2;
       //smem_set_EAB_b2(pipeP,Reg);
       return;
+
+    case 16:
+      // ADD dual(Lmem), [ACx,] ACy
+      R = (opcode.bop[2]>>4)&0x3;
+      r = (opcode.bop[2]>>6)&0x3;
+      alu(ALU_DBL, r, R, ALU_DUAL, Reg);
+      return;
+   
+    case 17:
+      // ADD dual(Lmem), Tx, ACx
+      R = (opcode.bop[2]>>4)&0x3;
+      r = ((opcode.bop[2]>>6)&0x3)+4;
+      alu(ALU_DBL, r, R, ALU_DUAL, Reg);
+      return;
     }
 }
-
 
 static void write_stg(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-  if ( pipeP->opcode_subType == 7 )
+  if ( pipeP->opcode_subType == 15 )
     {
-      write_data_mem_long(Reg->EAB,pipeP->storage1);
+      write_data_mem_long(Reg->EAB,Reg->EB);
     }
 }
-
