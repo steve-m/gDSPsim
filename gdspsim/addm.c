@@ -93,7 +93,7 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
       // Add Reg->DB to pipeP->storage1 and store in Reg->EAB
       // temporarily move pipeP->storage1 to Reg->CB
       CB = Reg->CB;
-      CB = pipeP->storage1;
+      Reg->CB = pipeP->storage1;
       alu(0,3,2,0,Reg);
       Reg->CB = CB;
     }
