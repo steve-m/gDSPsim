@@ -64,7 +64,7 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
     reg_union.gp_reg = MMR->A;
 
   if ( reg_union.gint64 == 0 )
-    MMR->T = 0;
+    MMR->T = 0x1e;
   else
     {
       if ( reg_union.gint64 < 0 )
@@ -78,7 +78,7 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 	    {
 	      bit = 38;
 	      MMR->T=-8;
-	      while ( (reg_union.gint64 & (1<<bit)) == 1 )
+	      while ( (reg_union.gint64 & ((gint64)1<<bit)) == 1 )
 		{
 		  bit--;
 		  (MMR->T)++;
@@ -89,7 +89,7 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 	{
 	  bit = 38;
 	  MMR->T=-8;
-	  while ( (reg_union.gint64 & (1<<bit)) == 0 )
+	  while ( (reg_union.gint64 & ((gint64)1<<bit)) == 0 )
 	    {
 	      bit--;
 	      (MMR->T)++;
