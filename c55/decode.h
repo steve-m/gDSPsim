@@ -101,10 +101,10 @@ extern "C" {
   // A unsigned flag, think Abs
   void A_decode(gchar *ch, gchar *mask, char info, 
 		struct _decoded_opcode *decode_nfo );
-  // U unsigned wrapper start uns(
+  // U (H works too) unsigned wrapper start uns(
   void U_decode(gchar *ch, gchar *mask, char info, 
 		struct _decoded_opcode *decode_nfo );
-  // V unsigned wrapper end )
+  // V (I works too) unsigned wrapper end )
   void V_decode(gchar *ch, gchar *mask, char info, 
 		struct _decoded_opcode *decode_nfo );
 
@@ -112,6 +112,10 @@ extern "C" {
   void t3_decode(gchar *ch, gchar *mask, char info, 
 		 struct _decoded_opcode *decode_nfo );
   
+  // 4 applies 40 when set
+  void m4_decode(gchar *ch, gchar *mask, char info, 
+	       struct _decoded_opcode *decode_nfo);
+
   // 1=TC2 0=CARRY (used for rol,ror)
   void zZ_decode(gchar *ch, gchar *mask, char info, 
 		 struct _decoded_opcode *decode_nfo );

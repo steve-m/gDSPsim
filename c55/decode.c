@@ -540,6 +540,20 @@ void t3_decode(gchar *ch, gchar *mask, char info,
   return;
 }
 
+  // 4 applies 40 when set
+void m4_decode(gchar *ch, gchar *mask, char info, 
+              struct _decoded_opcode *decode_nfo)
+{
+  gboolean bit;
+
+  bit = one_bit_extract(info,mask,decode_nfo);
+
+  if ( bit )
+    g_snprintf(ch,MAX_SUB_OP,"40");
+
+  return;
+}
+
 // 1=TC2 0=CARRY (used for rol,ror)
 void zZ_decode(gchar *ch, gchar *mask, char info, 
               struct _decoded_opcode *decode_nfo)
@@ -569,7 +583,7 @@ void A_decode(gchar *ch, gchar *mask, char info,
 
   return;
 }
-  // U unsigned wrapper start uns(
+  // U (H works too) unsigned wrapper start uns(
 void U_decode(gchar *ch, gchar *mask, char info, 
               struct _decoded_opcode *decode_nfo)
 {
@@ -582,7 +596,7 @@ void U_decode(gchar *ch, gchar *mask, char info,
 
   return;
 }
-  // V unsigned wrapper end )
+  // V (I works too) unsigned wrapper end )
 void V_decode(gchar *ch, gchar *mask, char info, 
               struct _decoded_opcode *decode_nfo)
 {
