@@ -23,7 +23,8 @@
 #include <chip_core.h>
 
 #ifdef __cplusplus
-extern "C" {
+extern "C" 
+{
 #endif
 
 /* Xmux 0, X operand is from T register, signed

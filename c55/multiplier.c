@@ -20,6 +20,7 @@
 #include <multiplier.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <chip_help.h>
 
 
 /* Xmux 0-3 ACx[32:16]
