@@ -20,7 +20,6 @@
 #include <stdio.h>
 #include "decode_window.h"
 #include "c54_core.h"
-#include "process_coff.h"
 #include "find_opcode.h"
 #include "memory.h"
 #include "entryCB.h"

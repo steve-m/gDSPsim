@@ -21,7 +21,6 @@
 
 #include <stdio.h>
 #include "decode_window.h"
-#include "process_coff.h"
 #include "find_opcode.h"
 #include "memory.h"
 #include "entryCB.h"
