@@ -96,6 +96,7 @@ struct _Registers
   int Dont_Fetch; // Set to non zero to not run any more fetch
   int fetch_flags; // Used to step breakpoints amoung other things
   int Decode_Again; // Decode Again
+  WordA PAB_last;
 };
 
 extern struct _MMR *MMR;
