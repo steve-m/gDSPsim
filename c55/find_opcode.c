@@ -49,19 +49,31 @@ static const Instruction_Class *All_Objects[All_Objects_Len]=
   &SUB_Obj,
 };
 
-#define NUM_MASK_CODE 8
+#define NUM_MASK_CODE 20
 static Decode_Func mask_function[NUM_MASK_CODE]=
 {
+  t3_decode,
+  A_decode,
+  F_decode,
+  G_decode,
+  rR_decode,
+  T_decode,
+  U_decode,
+  V_decode,
+  c_decode,
+  f_decode,
   h_decode,
   m_decode,
   n_decode,
   p_decode,
-  r_decode,
-  r_decode,
+  rR_decode,
   t_decode,
   u_decode,
+  v_decode,
+  xy_decode,
+  xy_decode,
 };
-static gchar mask_code[NUM_MASK_CODE]={"hmnpqrtu"};
+static gchar mask_code[NUM_MASK_CODE]={"3AFGRTUVcfhmnprtuvxy"};
 
 
 // Sets class,sub_type,length,mach_code1,mach_code2 of decode_nfo. 
@@ -113,56 +125,56 @@ void mach_code_to_text( struct _decoded_opcode *decode_nfo,
       mask = decode_nfo->class->mask[decode_nfo->sub_type];
       while ( *opcode )
         {
-          if ( *opcode == '(' )
-            {
-              // Check to see if it's (opt*), and if so ignored it.
-              size_t sub_len;
-              sub_len = strlen(opcode);
-              if ( sub_len >= 4 )
-                {
-                  if ( strncmp(opcode,"(opt",4) == 0 )
-                    {
-                      opcode = opcode + 4;
-                      while ( *opcode && *opcode != ')' )
-                        opcode++;
-                      if ( *opcode )
-                        opcode++;
-                    }
-                }
-            }
-          found_code=0;
-	  for (k=0;k<NUM_MASK_CODE;k++)
+	  if ( *opcode == '\'' )
 	    {
-	      if ( mask_code[k] == *opcode )
+	      opcode++;
+	      while ( *opcode && *opcode!='\'' )
 		{
-		  info = *opcode;
-		  mask_function[k](ch,mask,info,decode_nfo);
-	  
-		  // Copy ch to ansP
-		  chP = ch;
-		  while ( *chP && (len < MAX_OP_STR_LEN) )
+		  // Quoted text
+		  if ( len < MAX_OP_STR_LEN )
 		    {
+		      *ansP++ = *opcode++;
 		      len++;
-		      *ansP++ = *chP++;
 		    }
-		  
-		  // done with this masking marker
-		  while ( *opcode == info )
-		    {
-		      opcode++;
-		    }
-		  found_code=1;
-		  break; // Break out of for loop
 		}
 	    }
-	  
-	  if ( !found_code )
+	  else
 	    {
-	      // OK, it's not a marker and should just be copied
-	      if ( len < MAX_OP_STR_LEN )
+	      // Look through all the markers
+	      found_code=0;
+	      for (k=0;k<NUM_MASK_CODE;k++)
 		{
-		  *ansP++ = *opcode++;
-		  len++;
+		  if ( mask_code[k] == *opcode )
+		    {
+		      info = *opcode;
+		      mask_function[k](ch,mask,info,decode_nfo);
+	  
+		      // Copy ch to ansP
+		      chP = ch;
+		      while ( *chP && (len < MAX_OP_STR_LEN) )
+			{
+			  len++;
+			  *ansP++ = *chP++;
+			}
+		  
+		      // done with this masking marker
+		      while ( *opcode == info )
+			{
+			  opcode++;
+			}
+		      found_code=1;
+		      break; // Break out of for loop
+		    }
+		}
+	  
+	      if ( !found_code )
+		{
+		  // OK, it's not a marker and should just be copied
+		  if ( len < MAX_OP_STR_LEN )
+		    {
+		      *ansP++ = *opcode++;
+		      len++;
+		    }
 		}
 	    }
 	}
