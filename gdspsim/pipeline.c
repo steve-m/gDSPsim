@@ -349,6 +349,7 @@ void set_pipe_decodeP(Word start_code, WordA address, struct _Registers *Registe
 
   if ( pipe_decodeP->word_number > 1 )
     {
+      pipe_decodeP->cycles++;
       *pipe_decodeP = *pipe_decodeP;
       pipe_decodeP->word_number--;
       return;
@@ -370,7 +371,7 @@ void set_pipe_decodeP(Word start_code, WordA address, struct _Registers *Registe
 	  pipe_decodeP->current_opcode = start_code;
 	  pipe_decodeP->opcode_object = &NOP_Obj;
 	  pipe_decodeP->opcode_subType=0;
-	  pipe_decodeP->cycles=1;
+	  pipe_decodeP->cycles=0;
 	  pipe_decodeP->word_number = 1;
 	  pipe_decodeP->total_words = 1;
 	}
@@ -405,25 +406,25 @@ void flush_pipeline(struct _Registers *Registers)
   pipe_decodeP->current_opcode = NOP_opcode;
   pipe_decodeP->opcode_object = &NOP_Obj;
   pipe_decodeP->opcode_subType=0;
-  pipe_decodeP->cycles=1;
+  pipe_decodeP->cycles=0;
   pipe_decodeP->word_number = 1;
 
   pipe_read_stg1P->current_opcode = NOP_opcode;
   pipe_read_stg1P->opcode_object = &NOP_Obj;
   pipe_read_stg1P->opcode_subType=0;
-  pipe_read_stg1P->cycles=1;
+  pipe_read_stg1P->cycles=0;
   pipe_read_stg1P->word_number = 1;
 
   pipe_read_stg2P->current_opcode = NOP_opcode;
   pipe_read_stg2P->opcode_object = &NOP_Obj;
   pipe_read_stg2P->opcode_subType=0;
-  pipe_read_stg2P->cycles=1;
+  pipe_read_stg2P->cycles=0;
   pipe_read_stg2P->word_number = 1;
 
   pipe_executeP->current_opcode = NOP_opcode;
   pipe_executeP->opcode_object = &NOP_Obj;
   pipe_executeP->opcode_subType=0;
-  pipe_executeP->cycles=1;
+  pipe_executeP->cycles=0;
   pipe_executeP->word_number = 1;
 
   Registers->PB = NOP_opcode;
