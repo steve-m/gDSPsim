@@ -1,7 +1,7 @@
 /*
  * gDSPsim - GNU Digital Signal Processor Simulator
  *
- * Copyright (C) 2001, Kerry Keal, kerry@industrialmusic.com
+ * Copyright (C) 2001-2002, Kerry Keal, kerry@industrialmusic.com
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -20,6 +20,10 @@
 #ifndef __PIPELINE_H__
 #define __PIPELINE_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Should be called once to setup
 struct _Registers *pipe_new();
 
@@ -36,6 +40,10 @@ void default_registers(struct _Registers *Registers);
 
 // Return 1 if breakpoint set, 0 if breakpoint removed
 int toggle_breakpoint(WordA bp);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //__PIPELINE_H__
 
