@@ -208,9 +208,17 @@ int pipeline(struct _Registers *Registers)
 	      Registers->fetch_flags |= 0x2;
 	    }
 
-	  // get new pipe_decodeP
-	  PC_stall = set_pipe_decodeP(Registers->IR,Registers,Registers->fetch_flags);
-	  
+	  if ( Registers->Decode_Again )
+	    {
+	      Registers->Decode_Again--;
+	      pipe_decodeP->cycles++;
+	    }
+	  else
+	    {
+	      // get new pipe_decodeP
+	      PC_stall = set_pipe_decodeP(Registers->IR,Registers,Registers->fetch_flags);
+	    }
+
 	  if ( pipe_decodeP->opcode_object->decode )
 	    pipe_decodeP->opcode_object->decode(pipe_decodeP,Registers);
 	  
@@ -330,6 +338,7 @@ void default_registers(struct _Registers *Registers)
   Registers->Special_Flush = 0;
   Registers->RC_first_pass = 0;
   Registers->Dont_Decode = 0;
+  Registers->Decode_Again = 0;
 }
 
 // Returns a PC read stall. Normally zero unless the last
