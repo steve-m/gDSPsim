@@ -141,7 +141,7 @@ void multiplier(int Xmux, int Ymux, int Amux, int Smux, struct _Registers *Reg)
   Result64 = X*Y;
 
   if ( FRCT(MMR) )
-    Result64 = Result64 >> 1;
+    Result64 = Result64 << 1;
 
   // Now add 40 bits to 40 bits
   if ( Amux == 1 )
