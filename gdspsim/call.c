@@ -61,7 +61,7 @@ static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
       if ( (pipeP->current_opcode & 0x200) == 0)
 	{
 	  pipeP->storage2 = Reg->PC;
-	  Reg->Flush = 1;
+	  Reg->Flush = Reg->Flush + 2;
     	}
       else
 	{

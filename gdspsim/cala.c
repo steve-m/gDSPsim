@@ -63,7 +63,7 @@ static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
   else
     {
       write_data_mem(MMR->SP,Reg->PC+1);
-      Reg->Flush = 1;
+      Reg->Flush = Reg->Flush + 2;
     }
 
   MMR->SP--;
