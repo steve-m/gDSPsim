@@ -60,7 +60,7 @@ static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
   // needs work
   smem_read_stg1(pipeP,Reg);
   FIXME();
-  if ( Reg->RC_first_pass )
+  if ( Reg->RC_first_pass && pipeP->word_number == 1)
     {
       Reg->EAB =  Reg->IR;
     }
@@ -74,7 +74,12 @@ static void read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
 
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-  write_program_mem(Reg->EAB,Reg->DB);
+  if ( pipeP->word_number == 1 )
+    {
+      write_program_mem(Reg->EAB,Reg->DB);
+      if ( Reg->RC )
+	Reg->EAB = Reg->EAB + 1;
+    }
 }
 
 /* Generates an array of Words that this opcode text generates or NULL
