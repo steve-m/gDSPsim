@@ -30,6 +30,7 @@
  *      1, Y operand is from DB register
  *      2, Y operand is from A[32:16] register
  *      3, Y operand is from CB register
+ *      4, Y operand is from DB register, unsigned
  * Amux 0, Accumulate using 0
  *      1, Accumulate using A
  *      2, Accumulate using B
