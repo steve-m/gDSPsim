@@ -23,6 +23,7 @@
 #ifndef __C55_CORE_H__
 #define __C55_CORE_H__
 // We want to deal with the proper bit length words.
+typedef guint8 WordP; // least amount of memory accessable
 typedef guint16 Word;
 typedef guint32 DWord;
 typedef gint16 SWord;
@@ -62,6 +63,7 @@ union _GP_Reg
   struct _byte_GP_Reg bgp;
   struct _word_GP_Reg wgp;
   DWord dword;
+  WordA worda;
 };
 
 typedef union _GP_Reg GP_Reg;
@@ -236,9 +238,14 @@ struct _MMR
 extern struct _MMR *MMR;
 extern struct _Registers *Reg;
 
+#define ACOV2(Reg)((((Reg)->ST0_55)&0x8000)>>15)
+#define ACOV3(Reg)((((Reg)->ST0_55)&0x4000)>>14)
 #define TC1(Reg)((((Reg)->ST0_55)&0x2000)>>13)
 #define TC2(Reg)((((Reg)->ST0_55)&0x1000)>>12)
+#define TCx(Reg,x)( (x) ? TC2((Reg)) : TC1((Reg)) )
 #define CARRY(Reg)((((Reg)->ST0_55)&0x800)>>11)
+#define ACOV0(Reg)((((Reg)->ST0_55)&0x400)>>10)
+#define ACOV1(Reg)((((Reg)->ST0_55)&0x200)>>9)
 
 // Convenience macros to read status bits
 #define BRAF(Reg)((((Reg)->ST1_55)&0x8000)>>15)
@@ -305,6 +312,17 @@ struct _Registers
   WordA Lmem1;
   WordA Lmem2;
 
+  Word CFCT; // repeat flags
+
+  Word AR0H;
+  Word AR1H;
+  Word AR2H;
+  Word AR3H;
+  Word AR4H;
+  Word AR5H;
+  Word AR6H;
+  Word AR7H;
+
   // admin
   int Special_Flush; // Used to inialize the pipeline
   int Flush; // set =1 to flush pipeline, done in read_stg1 stage
@@ -344,6 +362,9 @@ struct _PipeLine
   Word storage1; // Just a place to store something that might be needed
   Word storage2; // in processing an opcode
   int flags; // bit 0 = break point set
+#define PIPE_PC_CHANGED 2
+#define PIPE_SKIP_NEXT_INSTR 4 // skips next instruction starting at address stage
+#define PIPE_SKIP_NEXT_EXECUTE 8 // skips next execute stage
 };
 
 /* This defines the class structure for each instruction */
@@ -387,6 +408,8 @@ typedef struct _Instruction_Class Instruction_Class;
 //#define SWORD_2_GP_REG(g,s)( (g).byte0=(s).byte
 #define SIGN6BIT_TO_UINT(x)( ((x) & 0x20) ? ( ( (unsigned int)(-1) ^ 0x3f)  | ((x)&0x3f)) : ((x)&0x3f) ) 
 
+#define K8_TO_GP_REG(gp,value)( { (gp).dword = (char)value;  (gp).bgp.byte4 = (value & 0x80) ? 0xff : 0; } )
+
 // Set type GP_Reg (gp) equal to msb<<8 | lsb, sign extending if desired
 #define BYTES_TO_GP_REG(gp,sign_extend,msb,lsb)({ (gp).bgp.byte0 = (lsb); (gp).bgp.byte1 = (msb); (gp).wgp.word1 = ( (sign_extend) && (msb&0x80) ) ? 0xffff : 0x0;  (gp).bgp.byte4 = ( (sign_extend) && (msb&0x80) ) ? 0xff : 0x0;  }) 
 
@@ -397,12 +420,17 @@ typedef struct _Instruction_Class Instruction_Class;
 // convert with sign extention
 #define GP_REG_TO_INT64(gp)( (gp).bgp.byte4 & 0x80 ? (gint64)((guint64)(0xffffff0000000000) | GP_REG_TO_UINT64(gp)) : (gint64)GP_REG_TO_UINT64(gp) )
 
+// sign extend lower 32 bits of gp reg to int64
+#define GP_REG32_TO_INT64(gp)( (gint64)(gp).dword )
+// convert lower 32 bits of gp reg to uint64
+#define GP_REG32_TO_UINT64(gp)( (guint64)(gp).dword )
+
 #define ENTRY_CHAR_WIDTH 8
 #define ENTRY_CHAR_HEIGHT 24
 
 // method to get memory page
 #define PAGE()((MMR->DP)<<16)
-typedef unsigned char PWord;
+//typedef unsigned char PWord;
 #define WORD_TO_PWORD(wrd,address)(((address)&0x1)?(((wrd)>>8)&0xff):((wrd)&0xff))
 #define PADDR_TO_ADDR(address)((address)>>1)
 #define PROG_MEM_CONV 1
