@@ -1058,6 +1058,8 @@ int check_condition(Word bits)
 		return 0;
 	      else if ( !(bits & 0x10) && (MMR->ST0 & 0x400) )
 		return 0;
+	      // Clear OVA
+	      set_OVA(MMR,0);
 	    }	  
 	  else
 	    {
@@ -1066,6 +1068,8 @@ int check_condition(Word bits)
 		return 0;
 	      else if ( !(bits & 0x10) && (MMR->ST0 & 0x200) )
 		return 0;
+	      // Clear OVB
+	      set_OVB(MMR,0);
 	    }
 	}
 
