@@ -19,7 +19,6 @@
 
 #include <stdio.h>
 #include "readfile.h"
-#include "process_coff.h"
 #include <time.h>
 #include "memory.h"
 #include "string.h"
@@ -66,32 +65,8 @@ int readfile(const gchar *file,size_t *amount, char **buffer)
   return 0;
 }
 
-void file_ok_sel( GtkWidget        *w,
-		  GtkFileSelection *fs )
-{
-  const gchar *filename;
-  int error;
-  char *buffer;
-  size_t size;
-
-
-  filename = gtk_file_selection_get_filename (GTK_FILE_SELECTION (fs));
-  g_print ("reading %s\n", filename);
-
-  error = readfile(filename,&size,&buffer);
-
-  if ( !error )
-    {
-      gdsp_file_nfo = process_coff(buffer,size);
-      gdsp_file_nfo->filename = g_strdup(filename);
-
-      gtk_widget_destroy(fileWidget);
-      fileWidget=NULL;
-    }
-}
-
 static void file_error(int line, struct _coff_header *header, 
-		       struct _section_header *section_header)
+		       union _section_header *section_header)
 {
   
   printf("Error reading file in  %s:%d\n",__FILE__,line);
@@ -124,12 +99,13 @@ void open_file( const gchar *filename )
   size_t size;
   FILE *fp;
   struct _coff_header *header=NULL;
-  struct _section_header *section_header=NULL;
+  union _section_header *section_header=NULL;
   int k;
   size_t read_amount;
   WordA relocate=0; // Used to load object files
   unsigned int optional_header_size;
   struct _optional_header *opt_hdr;
+  int binutil; // Flag telling whether file is generated from binutil or ti
 
   // Open file
   fp=fopen(filename,"rb+");
@@ -147,7 +123,14 @@ void open_file( const gchar *filename )
     file_error(__LINE__,header,section_header);
 
   //printf("Time: %s\n",ctime((time_t *)&CHAR_TO_UINT32(header->time_stamp)));
+  printf("version_id = 0x%x\n",CHAR_TO_UINT16(header->version_id));
+  printf("flags = 0x%x\n",CHAR_TO_UINT16(header->flags));
+  printf("target_id = 0x%x\n",CHAR_TO_UINT16(header->target_id));
 
+  if ( CHAR_TO_UINT16(header->version_id) == 0xc1 )
+    binutil = 1;
+  else
+    binutil = 0;
 
   // Read in Optional header if it exists
   optional_header_size = CHAR_TO_UINT16(header->num_bytes_opt);
@@ -180,11 +163,19 @@ void open_file( const gchar *filename )
       set_PC(relocate);
     }
 
-  section_header = g_new(struct _section_header, CHAR_TO_UINT16(header->num_sections));
   
-  read_amount=48;
-  if ( read_amount > sizeof(struct _section_header) )
-    file_error(__LINE__,header,section_header);
+  section_header = g_new(union _section_header, 
+			 CHAR_TO_UINT16(header->num_sections));
+  if ( binutil )
+    {
+      read_amount = sizeof(struct _section_header_binutil);
+    }
+  else
+    {
+      read_amount = sizeof(struct _section_header_ti);
+    }
+
+  //  read_amount=48;
 
   for (k=0;k< CHAR_TO_UINT16(header->num_sections) ; k++)
     {
@@ -201,16 +192,16 @@ void open_file( const gchar *filename )
       Word *buffer;
 
 
-      size = section_header[k].s_size;
+      size = section_header[k].ti.s_size;
 
       if ( size > 0 )
 	{
 		
 	  // There is data to move
-	  if ( section_header[k].s_scnptr )
+	  if ( section_header[k].ti.s_scnptr )
 	    {
 	      // Set position in file to start reading
-	      if ( fseek(fp,section_header[k].s_scnptr,SEEK_SET) )
+	      if ( fseek(fp,section_header[k].ti.s_scnptr,SEEK_SET) )
 		file_error(__LINE__,header,section_header);
 
 	      // Read data from file
@@ -221,7 +212,7 @@ void open_file( const gchar *filename )
 
 	      // Put data into internal representation
               //printf("start--0x%x\n",section_header[k].s_paddr+relocate);
-	      cp_to_mem( buffer, section_header[k].s_paddr+relocate, size, 
+	      cp_to_mem( buffer, section_header[k].ti.s_paddr+relocate, size, 
 		     PROGRAM_MEM_TYPE | DATA_MEM_TYPE);
 
 
@@ -232,7 +223,7 @@ void open_file( const gchar *filename )
 	      // Undefined data
 	      buffer=g_new(Word,size);
               //printf("start--0x%x\n",section_header[k].s_paddr+relocate);
-	      cp_to_mem( buffer, section_header[k].s_paddr+relocate, size, 
+	      cp_to_mem( buffer, section_header[k].ti.s_paddr+relocate, size, 
 		     PROGRAM_MEM_TYPE | DATA_MEM_TYPE);
 
 	      //  print_mem_list();
