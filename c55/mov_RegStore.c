@@ -125,7 +125,7 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
       return;
     case 6:
       // MOV [rnd(]HI(ACx << Tx)[)], Smem
-      r = opcode.bop[2]>>6;
+      r = (opcode.bop[2]>>6)&0x3;
       t = (opcode.bop[2]>>4)&0x3;
       rnd = opcode.bop[2]&1;
       shifter(r,t,0,rnd,r,Reg);
