@@ -88,7 +88,7 @@ void smem_read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
 	  Reg->DAB = DAB;
 	}
     }
-  else if ( pipeP->word_number == 1 )
+  else if ( pipeP->total_words == pipeP->word_number )
     {
       // This updates the auxillary registers 
       DAB = update_smem(pipeP->current_opcode & 0xff , Reg, CPL(MMR));
@@ -105,7 +105,7 @@ void smem_read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
 
   num_words = num_words_for_smem(pipeP);
 
-  if ( (num_words == 1) ||
+  if ( ( (num_words == 1) &&  ( pipeP->total_words == pipeP->word_number ) ) ||
        ( (pipeP->total_words - pipeP->word_number) == 1 ) )
     {
       Reg->DB = read_data_mem(Reg->DAB,&wait_state);
