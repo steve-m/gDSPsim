@@ -80,7 +80,9 @@ static GtkWidget *set_reg_table(const gchar *label_name,int x, int y, GtkTable *
   gtk_widget_show(label);
 
   entry = gtk_entry_new();
+#ifdef GTK2
   gtk_entry_set_width_chars(GTK_ENTRY(entry),13);
+#endif
   gtk_entry_set_max_length(GTK_ENTRY(entry),13);
   gtk_table_attach (table, entry, x+1, x+2, y, y+1,
 		    0,0,0,0);
@@ -96,6 +98,7 @@ static GtkWidget *set_reg_table(const gchar *label_name,int x, int y, GtkTable *
 void create_register_window(struct _Registers *Registers)
 {
   GtkWidget *table;
+  extern GtkAccelGroup *gDSP_keyboard_accel;
 
   if ( registerW )
     return;
@@ -105,6 +108,9 @@ void create_register_window(struct _Registers *Registers)
   gtk_signal_connect(GTK_OBJECT(registerW),"destroy",
 		     (GtkSignalFunc)destroy_window_CB,NULL);
 
+  // Attach keyboard accelerations from main window
+  gtk_window_add_accel_group (GTK_WINDOW (registerW), gDSP_keyboard_accel);
+  
   gtk_widget_set_name (registerW, "Registers");
   gtk_window_set_title (GTK_WINDOW (registerW),"Registers");
   gtk_container_set_border_width (GTK_CONTAINER (registerW), 0);
@@ -159,7 +165,6 @@ void create_register_window(struct _Registers *Registers)
 				  &Registers->CB);
   reg_entries.EAB  = set_reg_table("EAB",  4, 6, GTK_TABLE(table), 
 				  &Registers->EAB);
-
 
 
   fill_reg_entries(Registers);

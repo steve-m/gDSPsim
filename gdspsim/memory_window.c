@@ -103,7 +103,9 @@ static GtkWidget *mem_view_new(WordA mem, MemType memtype)
   label = gtk_label_new(text);
 
   entry = gtk_entry_new();
+#ifdef GTK2
   gtk_entry_set_width_chars(GTK_ENTRY(entry),13);
+#endif
   gtk_entry_set_max_length(GTK_ENTRY(entry),13);
   
   g_snprintf(text,7,"0x%x",read_mem(mem,&wait,memtype));
@@ -263,9 +265,13 @@ void create_memory_window()
 
   memtype_button = gtk_button_new();
   mem_window->label_data = gtk_label_new("Data");
+#ifdef GTK2
   g_object_ref(mem_window->label_data);
+#endif
   mem_window->label_prog = gtk_label_new("Prog");
+#ifdef GTK2
   g_object_ref(mem_window->label_prog);
+#endif
   gtk_container_add (GTK_CONTAINER (memtype_button), mem_window->label_data);
   gtk_widget_show(mem_window->label_data);
   gtk_box_pack_start (GTK_BOX (vbox), memtype_button, FALSE, FALSE, 0);
@@ -291,7 +297,9 @@ void create_memory_window()
   entry_start_nfo->data = mem_window;
   gtk_box_pack_start (GTK_BOX (hbox), entryTop, FALSE, FALSE, 0);
   gtk_entry_set_max_length(GTK_ENTRY(entryTop),7);
+#ifdef GTK2
   gtk_entry_set_width_chars(GTK_ENTRY(entryTop),7);
+#endif
   g_snprintf(temp_str,7,"0x%x",mem_window->start);
   gtk_entry_set_text (GTK_ENTRY(entryTop),temp_str);
   gtk_signal_connect(GTK_OBJECT(entryTop), "activate",
@@ -309,7 +317,9 @@ void create_memory_window()
   entry_end_nfo->data = mem_window;
   gtk_box_pack_start (GTK_BOX (hbox), entryBottom, FALSE, FALSE, 0);
   gtk_entry_set_max_length(GTK_ENTRY(entryBottom),7);
+#ifdef GTK2
   gtk_entry_set_width_chars(GTK_ENTRY(entryBottom),7);
+#endif
   g_snprintf(temp_str,7,"0x%x",mem_window->end);
   gtk_entry_set_text (GTK_ENTRY(entryBottom),temp_str);
   gtk_signal_connect(GTK_OBJECT(entryBottom), "activate",
