@@ -75,6 +75,15 @@ struct _MMR
   Word RSA; // 1B - Block Repeat Start Address
   Word REA; // 1C - Block Repeat End Address
   Word PMST; // 1D - Processor Mode Status Register
+             // 15-7 : IPTR
+             //  6   : MP/MC'
+             //  5   : OVLY
+             //  4   : AVIS
+             //  3   : DROM
+             //  2   : CLKOFF
+             //  1   : SMUL
+             //  0   : SST
+
   Word XPC; // 1E - Program counter extension;
   Word reserved5; // 1F
 };
@@ -142,6 +151,8 @@ extern struct _MMR *MMR;
 #define XF(Reg)((((Reg)->ST1)&0x2000)>>13)
 #define CPL(Reg)((((Reg)->ST1)&0x4000)>>14)
 #define BRAF(Reg)((((Reg)->ST1)&0x8000)>>15)
+
+#define SST(Reg)(((Reg)->PMST)&0x1)
 
 // Convenience macros to set status bits
 #define set_DP(Reg,data)((Reg)->ST0=((Reg)->ST0 & 0xfe00)|((data) & 0x1ff))
