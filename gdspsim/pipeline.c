@@ -32,9 +32,10 @@ extern Word *PM;
 
 void default_registers(struct _Registers *Registers);
 int find_opcode(Word *start_code, Word **next_code, GPtrArray *decode_info);
-int set_pipe_decodeP(Word start_code, struct _Registers *Registers);
+int set_pipe_decodeP(Word start_code, struct _Registers *Registers, int flags);
 void flush_pipeline(struct _Registers *Registers);
 
+static GArray *breakpoints=NULL;
 static struct _PipeLine *pipe_decodeP=NULL;
 static struct _PipeLine *pipe_read_stg1P=NULL;
 static struct _PipeLine *pipe_read_stg2P=NULL;
@@ -66,16 +67,26 @@ static struct _PipeLine *pipe_executeP=NULL;
  * execute   
  */
 
+void set_breakpoint(WordA bp)
+{
+  g_return_if_fail(breakpoints);
+  
+  g_array_append_val(breakpoints,bp);
+}
+
 static void pipe_debug(struct _PipeLine *pipeP)
 {
   printf("0x%x %s  word=%d\n",pipeP->current_opcode,pipeP->opcode_object->name,pipeP->word_number);
 }
 
-void pipeline(struct _Registers *Registers)
+// Return 1 if it hits a breakpoint
+// Return 0, otherwise
+int pipeline(struct _Registers *Registers)
 {
   int wait_state;
   int PC_stall=0;
   extern Word NOP_opcode;
+  int return_val=0;
 
   /* Propagate pipeline pointers */
   // fixme, need to just switch pointer not all values, have to 
@@ -103,6 +114,11 @@ void pipeline(struct _Registers *Registers)
     }
   else
     {
+      if ( pipe_executeP->flags & 0x2 )
+	{
+	  printf("found breakpoint on execute\n");
+	  return_val = 1;
+	}
       
       if ( pipe_executeP->opcode_object->execute )
 	pipe_executeP->opcode_object->execute(pipe_executeP,Registers);
@@ -132,8 +148,14 @@ void pipeline(struct _Registers *Registers)
 
 	  // IR is loaded with contents of PB and IR is decoded
 	  Registers->IR = Registers->PB;
+	  if (Registers->fetch_flags & 0x1)
+	    {
+	      Registers->fetch_flags &= MAX_WORD - 1;
+	      Registers->fetch_flags |= 0x2;
+	    }
+
 	  // get new pipe_decodeP
-	  PC_stall = set_pipe_decodeP(Registers->IR,Registers);
+	  PC_stall = set_pipe_decodeP(Registers->IR,Registers,Registers->fetch_flags);
 	  
 	  if ( pipe_decodeP->opcode_object->decode )
 	    pipe_decodeP->opcode_object->decode(pipe_decodeP,Registers);
@@ -151,7 +173,22 @@ void pipeline(struct _Registers *Registers)
 	  else
 	    {
 	      if ( PC_stall == 0 )
-		Registers->PB = read_program_mem(Registers->PAB,&wait_state);
+		{
+		  int k;
+		  Registers->PB = read_program_mem(Registers->PAB,&wait_state);
+	
+		  // Look for breakpoint
+		  Registers->fetch_flags = 0;
+		  for (k=0;k<breakpoints->len;k++)
+		    {
+		      if ( g_array_index(breakpoints,WordA,k) == Registers->PAB )
+			{
+		     
+			  Registers->fetch_flags |= 1;
+			}
+		    }
+		}
+		  
 	    }
       
     
@@ -165,7 +202,7 @@ void pipeline(struct _Registers *Registers)
 	}
       else if ( Registers->Dont_Decode != 0 )
 	{
-	  PC_stall = set_pipe_decodeP(NOP_opcode,Registers);
+	  PC_stall = set_pipe_decodeP(NOP_opcode,Registers,0);
 	}	  
     }
 
@@ -185,27 +222,27 @@ void pipeline(struct _Registers *Registers)
     {
       Registers->Flush = 0;
     }
-
-      if ( Registers->Dont_Decode == 0 && 
-	   ( ( Registers->RC == 0 ) || Registers->RC_first_pass ) ) 
-	{
-	  Registers->PC = Registers->PC + 1;
-
-	  if ( Registers->RC_first_pass )
-	    Registers->RC_first_pass = 0;
-	}
-      else
-	{
-	  if ( Registers->Dont_Decode )
-	    {
-	      Registers->Dont_Decode--;
-	    }
-	  if ( Registers->RC )
-	    {
-	      Registers->RC--;
-	    }
-	}
   
+  if ( Registers->Dont_Decode == 0 && 
+       ( ( Registers->RC == 0 ) || Registers->RC_first_pass ) ) 
+    {
+      Registers->PC = Registers->PC + 1;
+
+      if ( Registers->RC_first_pass )
+	Registers->RC_first_pass = 0;
+    }
+  else
+    {
+      if ( Registers->Dont_Decode )
+	{
+	  Registers->Dont_Decode--;
+	}
+      if ( Registers->RC )
+	{
+	  Registers->RC--;
+	}
+    }
+  return return_val;
 }
 
 
@@ -251,8 +288,12 @@ void default_registers(struct _Registers *Registers)
 // Returns a PC read stall. Normally zero unless the last
 // instruction was something like a 1 word opcode that takes
 // 2 cycles such as a DST
-int set_pipe_decodeP(Word start_code, struct _Registers *Registers)
+int set_pipe_decodeP(Word start_code, struct _Registers *Registers, int flags)
 {
+
+  pipe_decodeP->flags = flags;
+  if ( pipe_decodeP->flags )
+    printf("decodeP->flags=%d\n",flags);
 
   if ( pipe_decodeP->word_number > 1 )
     {
@@ -386,6 +427,9 @@ struct _Registers *pipe_new()
   default_registers(Registers);
 
   Registers->Special_Flush = 1;
+
+  if ( breakpoints == NULL )
+    breakpoints = g_array_new(FALSE,FALSE,sizeof(WordA));
 
   return Registers;
 }
