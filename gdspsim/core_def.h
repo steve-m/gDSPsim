@@ -36,7 +36,7 @@
 // We want to deal with the proper bit length words.
 typedef guint16 Word;
 typedef gint16 SWord;
-typedef guint16 WordA; //type of variable used for addressing Words.
+typedef guint32 WordA; //type of variable used for addressing Words.
 
 //typedef struct _Word Word;
 struct _Word
