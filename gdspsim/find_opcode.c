@@ -309,8 +309,10 @@ static Decode_Func mask_function[NUM_MASK_CODE]=
 static gchar mask_code[NUM_MASK_CODE]={"bcdhmnprstuvwxyz"};
 
 
-// Returns pointer to object type given opcode and sets subtype
-const Instruction_Class *find_object(Word mach_code, int *subtype)
+// Returns pointer to object type given opcode and sets subtype and number
+// of words it takes up.
+const Instruction_Class *find_object(Word mach_code, WordA address,
+                                     int *subtype, int *length)
 {
   const Instruction_Class *object;
   int k,n;
@@ -319,7 +321,8 @@ const Instruction_Class *find_object(Word mach_code, int *subtype)
     {
       for (n=0;n<All_Objects[k]->size;n++)
 	{
-	  if ( check_mask(All_Objects[k]->mask[n],mach_code) )
+          *length = check_mask(All_Objects[k]->mask[n],mach_code,address);
+	  if ( *length )
 	    {
       	      object = All_Objects[k];
 	      *subtype=n;
@@ -332,183 +335,12 @@ const Instruction_Class *find_object(Word mach_code, int *subtype)
   return NULL;
 }
 
-#if 0
-gchar *mach_code_to_text_old(Word mach_code, const Instruction_Class *classP, 
-			 int subtype, WordA *location)
-{
-#define MAX_OP_LEN 80
-  gchar *opcode,*ch,*chP,ans[MAX_OP_LEN],*ansP,*mask,head[30],*ans2,*ans2P,*headP,*a_ch;
-  int len;
-  gchar info;
-  WordA passed_location;
 
-  passed_location = *location;
-  ansP = ans;
-  len = 1; // count null termination.
-
-  if (classP==NULL)
-    {
-      g_snprintf(ans,MAX_OP_LEN,"0x%.4x 0x%.4x        Undefined",*location,mach_code);
-      return g_strdup(ans);
-    }
-
-  // Some opcodes may be 2 or 3 words depending on how the 'a'
-  // tag decodes. So figure out that first.
-  opcode = classP->opcode[subtype];
-  mask = classP->mask[subtype];
-  a_ch=NULL;
-  while ( *opcode )
-    {
-      if ( *opcode == 'a' )
-	{
-	  a_ch = a_decode(mask,'a',mach_code,location);
-
-	  while ( *opcode == 'a' )
-	    {
-	      opcode++;
-	    }
-	}
-      else
-	opcode++;
-    }
-
-  opcode = classP->opcode[subtype];
-  while ( *opcode )
-    {
-      if ( *opcode == '(' )
-	{
-	  // Check to see if it's (opt*), and if so ignored it.
-	  size_t sub_len;
-	  sub_len = strlen(opcode);
-	  if ( sub_len >= 4 )
-	    {
-	      if ( strncmp(opcode,"(opt",4) == 0 )
-		{
-		  opcode = opcode + 4;
-		  while ( *opcode && *opcode != ')' )
-		    opcode++;
-		  if ( *opcode )
-		    opcode++;
-		}
-	      else
-		{
-		  // OK, it's not a marker and should just be copied
-		  if ( len < MAX_OP_LEN )
-		    {
-		      *ansP++ = *opcode++;
-		      len++;
-		    }
-		}
-	    }
-	}
-      else if ( *opcode == 'a' )
-	{
-	  // Already processed some of this
-	  // Copy ch to ansP
-	  chP = a_ch;
-	  while ( *chP && (len < MAX_OP_LEN) )
-	    {
-	      len++;
-	      *ansP++ = *chP++;
-	    }
-	  
-	  // done with this masking marker
-	  while ( *opcode == 'a' )
-	    {
-	      opcode++;
-	    }
-	}
-      else
-	{
-	  int k;
-	  int found_code=0;
-
-	  for (k=0;k<NUM_MASK_CODE;k++)
-	    {
-	      if ( mask_code[k] == *opcode )
-		{
-		  info = *opcode;
-		  ch = mask_function[k](mask,info,mach_code,location);
-		  
-		  // Copy ch to ansP
-		  chP = ch;
-		  while ( *chP && (len < MAX_OP_LEN) )
-		    {
-		      len++;
-		      *ansP++ = *chP++;
-		    }
-		  g_free( ch );
-		  
-		  // done with this masking marker
-		  while ( *opcode == info )
-		    {
-		      opcode++;
-		    }
-		  found_code=1;
-		  break; // Break out of for loop
-		}
-	    }
-	  
-	  if ( !found_code )
-	    {
-	      // OK, it's not a marker and should just be copied
-	      if ( len < MAX_OP_LEN )
-		{
-		  *ansP++ = *opcode++;
-		  len++;
-		}
-	    }
-	}
-    }
-  *ansP = '\0';
-
-  if ( a_ch )
-    g_free(a_ch);
-
-  if ( passed_location == *location )
-    {
-      g_snprintf(head,MAX_OP_LEN,"0x%.4x 0x%.4x        ",passed_location,mach_code);
-    }
-  else if ( passed_location+1 == *location )
-    {
-      Word mach_code2;
-      int wait_state;
-      mach_code2 = read_program_mem(*location, &wait_state);
-      g_snprintf(head,MAX_OP_LEN,"0x%.4x 0x%.4x 0x%.4x ",passed_location,mach_code,
-		 mach_code2);
-    }
-  else
-    {
-      Word mach_code2,mach_code3;
-      int wait_state;
-
-      mach_code2 = read_program_mem(passed_location+1,&wait_state);
-      mach_code3 = read_program_mem(passed_location+2,&wait_state);
-
-      g_snprintf(head,MAX_OP_LEN,"0x%.4x 0x%.4x 0x%.4x 0x%.4x ",passed_location,mach_code,mach_code2,mach_code3);
-    }
-
-  ans2 = g_new(gchar,len+30);
-  ans2P = ans2;
-  headP = head;
-  while ( *headP )
-    {
-      *ans2P++=*headP++;
-    }
-  ansP = ans;
-  while ( *ansP )
-    {
-      *ans2P++=*ansP++;
-    }
-  *ans2P = '\0';
-
-  return ans2;
-
-}
-#endif
-
-struct _decode_opcode *mach_code_to_text(Word mach_code, const Instruction_Class *classP, 
-			 int subtype, WordA *location)
+// This function can be cleaned up using length info.
+struct _decode_opcode *mach_code_to_text(Word mach_code, 
+                                         const Instruction_Class *classP, 
+                                         int subtype, WordA *location, 
+                                         int length)
 {
 #define MAX_OP_LEN 80
   gchar *opcode,*ch,*chP,ans[MAX_OP_LEN],*ansP,*mask,*a_ch;
@@ -543,6 +375,7 @@ struct _decode_opcode *mach_code_to_text(Word mach_code, const Instruction_Class
       if ( *opcode == 'a' )
 	{
 	  a_ch = a_decode(mask,'a',mach_code,location);
+          *location = passed_location;
 
 	  while ( *opcode == 'a' )
 	    {
@@ -610,7 +443,8 @@ struct _decode_opcode *mach_code_to_text(Word mach_code, const Instruction_Class
 		{
 		  info = *opcode;
 		  ch = mask_function[k](mask,info,mach_code,location);
-		  
+	          *location = passed_location;
+	  
 		  // Copy ch to ansP
 		  chP = ch;
 		  while ( *chP && (len < MAX_OP_LEN) )
@@ -646,12 +480,12 @@ struct _decode_opcode *mach_code_to_text(Word mach_code, const Instruction_Class
   if ( a_ch )
     g_free(a_ch);
 
-  if ( passed_location == *location )
+  if ( length == 1 )
     {
       op->address = g_strdup_printf("0x%.4x",passed_location);
       op->machine_code = g_strdup_printf("0x%.4x",mach_code);
     }
-  else if ( passed_location+1 == *location )
+  else if ( length == 2 )
     {
       Word mach_code2;
       int wait_state;
@@ -672,6 +506,7 @@ struct _decode_opcode *mach_code_to_text(Word mach_code, const Instruction_Class
 
   op->opcode_text = g_strdup(ans);
 
+  *location = *location + (length-1);
   return op;
 
 }
@@ -686,19 +521,22 @@ void decoded_opcodes(GPtrArray *textA,WordA start,WordA end, GArray *word2line)
   int line_no=0;
   WordA pre_start,k;
   struct _decode_opcode *op;
+  int length;
 
   while (start < end)
     {
       mach_code = read_program_mem(start,&wait_state);
 
-      instructO = find_object(mach_code,&subtype);
+      instructO = find_object(mach_code,start,&subtype,&length);
+
+      // have length now. FIXME better?
 
       if ( instructO )
 	{
 	  pre_start=start;
 
 	  // op freed in insert_text
-	  op = mach_code_to_text(mach_code,instructO,subtype,&start);
+	  op = mach_code_to_text(mach_code,instructO,subtype,&start,length);
 	  
 	  // Used to match word location to line number
 	  for(k=pre_start;k<start+1;k++)
