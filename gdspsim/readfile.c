@@ -24,7 +24,7 @@
 #include "string.h"
 #include "symbols.h"
 
-void set_PC(WordA new_pc);
+void set_program_start(WordA new_pc);
 
 
 // List of the whole symbol table
@@ -152,7 +152,7 @@ void open_file( const gchar *filename )
 
 	sa = (WordA)CHAR_TO_UINT32(opt_hdr->start_address);
 	set_prog_mem_start_end(sa,sa+0x30);
-	set_PC(sa);
+	set_program_start(sa);
       }
     }
   else
@@ -160,7 +160,7 @@ void open_file( const gchar *filename )
       opt_hdr=NULL;
       relocate=0x80; // To put .obj files in a reasonable location
       set_prog_mem_start_end(relocate,relocate+0x20 );
-      set_PC(relocate);
+      set_program_start(relocate);
     }
 
   
