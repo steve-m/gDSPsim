@@ -113,6 +113,7 @@ extern struct _MMR *MMR;
 #define FRCT(Reg)((((Reg)->ST1)&0x80)>>6)
 #define C16(Reg)((((Reg)->ST1)&0x80)>>7)
 #define SXM(Reg)((((Reg)->ST1)&0x100)>>8)
+#define OVM(Reg)((((Reg)->ST1)&0x100)>>9)
 #define INTM(Reg)((((Reg)->ST1)&0x800)>>11)
 #define CPL(Reg)((((Reg)->ST1)&0x4000)>>14)
 #define BRAF(Reg)((((Reg)->ST1)&0x8000)>>15)
