@@ -54,7 +54,7 @@ Instruction_Class MPYK_Obj =
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   Opcode mach_code;
-  int r,R,rnd;
+  int r,R,flag;
 
   mach_code = pipeP->decode_nfo.mach_code;
 
@@ -63,18 +63,18 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
     case 0:
       r=(mach_code.bop[2]&0xc0)>>6;
       R=(mach_code.bop[2]&0x30)>>4;
-      rnd = (mach_code.bop[2]&0x1)<<2;
+      flag = (mach_code.bop[2]&0x1) ? MULT_ROUND : 0;
 
       Reg->P = (SWord)((char)(mach_code.bop[1]));
-      multiplier(7,r,8,R+rnd,Reg);
+      multiplier(MULT_P,r,MULT_NO_MAC,R,flag,Reg);
       break;
     case 1:
       r=(mach_code.bop[3]&0xc0)>>6;
       R=(mach_code.bop[3]&0x30)>>4;
-      rnd = (mach_code.bop[3]&0x1)<<2;
+      flag = (mach_code.bop[3]&0x1) ? MULT_ROUND : 0;
 
       Reg->P = mach_code.bop[1]<<8 | mach_code.bop[2];
-      multiplier(7,r,8,R+rnd,Reg);
+      multiplier(MULT_P,r,MULT_NO_MAC,R,flag,Reg);
       break;
     }
 }
