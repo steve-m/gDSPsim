@@ -111,7 +111,7 @@ union _GP_Reg_Union
   struct _GP32 gu32;
   struct _GPi32 gi32;
   WordA address;
-};;
+};
 
 struct _MMR
 {

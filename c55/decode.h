@@ -122,10 +122,13 @@ extern "C" {
   // It will read more program memory if needed.
   SWord signed_bit_extract(char info, char *mask,
 			   struct _decoded_opcode *decode_nfo );
+
   SWord decode_signed_bit_extract(char info, char *mask, 
 				  struct _decoded_opcode *decode_nfo);
+
   // Extracts the 5 least signifigants bits, with the 5th bit being the sign. 
   SWord signed_5bit_extract(Word mach_code);
+
   // Extracts the unsigned number from data by matching info to the mask.
   // Also returns the word number that the first match occured. num_mask
   // is the number of char info in string mask.
