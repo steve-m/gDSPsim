@@ -212,7 +212,7 @@ Word update_smem( int Smem, struct _Registers *Reg, int Ref)
 	  return *arfP;
 	case 4:
 	  ReadAddress = *arfP;
-	  *arfP = bit_reversal(*arfP,(SWord)-1,MMR->ar0);
+	  *arfP = bit_reversal(*arfP,MMR->ar0,(SWord)-1);
 	  return ReadAddress;
 	case 5:
 	  ReadAddress = *arfP;
@@ -224,7 +224,7 @@ Word update_smem( int Smem, struct _Registers *Reg, int Ref)
 	  return ReadAddress;
 	case 7:
 	  ReadAddress = *arfP;
-	  *arfP = bit_reversal(*arfP,1,MMR->ar0);
+	  *arfP = bit_reversal(*arfP,MMR->ar0,1);
 	  return ReadAddress;
 	case 8:
 	  ReadAddress = *arfP;
@@ -411,21 +411,26 @@ void lmem_read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
       // This updates the auxillary registers 
       // mods 1,2,3,8,10 gets update_smem twice
       // mod 0 doesnt matter
-      L1 = update_smem(pipeP->current_opcode & 0xff , Reg, CPL(MMR));
-      Reg->Lmem1 = L1;
       
-      indirect = ( pipeP->current_opcode & 0x80 );
-      mod = ( ( pipeP->current_opcode & 0xff ) & (0x78) ) >> 3;
+      if ( pipeP->total_words == pipeP->word_number )
+	{
+	  indirect = ( pipeP->current_opcode & 0x80 );
+	  mod = (pipeP->current_opcode & (8+16+32+64) ) >> 3;
 
-      if ( (indirect) &&  ( (mod==1) || (mod==2) || (mod==3) ||
-			    (mod==8) || (mod=10) ) )
-	{
+	  L1 = update_smem(pipeP->current_opcode & 0xff , Reg, CPL(MMR));
+	  Reg->Lmem1 = L1;
+
+	  if ( (indirect) &&  ( (mod==1) || (mod==2) || (mod==3) ||
+				(mod==8) || (mod=10) ) )
+	    {
+	      L2 = update_smem(pipeP->current_opcode & 0xff , Reg, CPL(MMR));
+	      Reg->Lmem2 = L2;
+	    }
+	  else
+	    {
+	      Reg->Lmem2 = L1 ^ 1;
+	    }
 	}
-      else
-	{
-	  L2 = update_smem(pipeP->current_opcode & 0xff , Reg, CPL(MMR));
-	}
-      Reg->Lmem2 = L1 ^ 1;
     }
 }
 
