@@ -23,6 +23,7 @@
 #include "string.h"
 #include "memory.h"
 #include "find_opcode.h"
+#include "symbols.h"
 
 extern Instruction_Class ABDST_Obj;
 extern Instruction_Class ABS_Obj;
@@ -39,9 +40,16 @@ extern Instruction_Class BC_Obj;
 extern Instruction_Class BIT_Obj;
 extern Instruction_Class BITF_Obj;
 extern Instruction_Class BITT_Obj;
+extern Instruction_Class CALA_Obj;
+extern Instruction_Class CALL_Obj;
+extern Instruction_Class CMPL_Obj;
+extern Instruction_Class CMPM_Obj;
+extern Instruction_Class CMPS_Obj;
 extern Instruction_Class DADD_Obj;
+extern Instruction_Class DADST_Obj;
 extern Instruction_Class DLD_Obj;
 extern Instruction_Class DST_Obj;
+extern Instruction_Class EXP_Obj;
 extern Instruction_Class FCALA_Obj;
 extern Instruction_Class FCALL_Obj;
 extern Instruction_Class FRAME_Obj;
@@ -49,15 +57,25 @@ extern Instruction_Class FRET_Obj;
 extern Instruction_Class LD_Obj;
 extern Instruction_Class LDM_Obj;
 extern Instruction_Class MAC_Obj;
+extern Instruction_Class MACA_Obj;
 extern Instruction_Class MACSU_Obj;
 extern Instruction_Class MAR_Obj;
+extern Instruction_Class MAX_Obj;
+extern Instruction_Class MIN_Obj;
+extern Instruction_Class MPY_Obj;
+extern Instruction_Class MPYA_Obj;
+extern Instruction_Class MPYU_Obj;
 extern Instruction_Class MVDD_Obj;
 extern Instruction_Class MVDK_Obj;
+extern Instruction_Class MVDM_Obj;
 extern Instruction_Class MVDP_Obj;
+extern Instruction_Class MVMD_Obj;
 extern Instruction_Class MVMM_Obj;
 extern Instruction_Class NEG_Obj;
 extern Instruction_Class NOP_Obj;
+extern Instruction_Class NORM_Obj;
 extern Instruction_Class OR_Obj;
+extern Instruction_Class ORM_Obj;
 extern Instruction_Class READA_Obj;
 extern Instruction_Class RPT_Obj;
 extern Instruction_Class RPTB_Obj;
@@ -68,8 +86,11 @@ extern Instruction_Class ST_LD_Obj;
 extern Instruction_Class STL_Obj;
 extern Instruction_Class STLM_Obj;
 extern Instruction_Class STM_Obj;
+extern Instruction_Class STRCD_Obj;
+extern Instruction_Class XOR_Obj;
+extern Instruction_Class XORM_Obj;
 
-#define All_Objects_Len  44
+#define All_Objects_Len  64
 static const Instruction_Class *All_Objects[All_Objects_Len]=
 {
   &ABDST_Obj,
@@ -87,9 +108,16 @@ static const Instruction_Class *All_Objects[All_Objects_Len]=
   &BIT_Obj,
   &BITF_Obj,
   &BITT_Obj,
+  &CALA_Obj,
+  &CALL_Obj,
+  &CMPL_Obj,
+  &CMPM_Obj,
+  &CMPS_Obj,
   &DADD_Obj,
+  &DADST_Obj,
   &DLD_Obj,
   &DST_Obj,
+  &EXP_Obj,
   &FCALA_Obj,
   &FCALL_Obj,
   &FRAME_Obj,
@@ -97,15 +125,25 @@ static const Instruction_Class *All_Objects[All_Objects_Len]=
   &LD_Obj,
   &LDM_Obj,
   &MAC_Obj,
+  &MACA_Obj,
   &MACSU_Obj,
   &MAR_Obj,
+  &MAX_Obj,
+  &MIN_Obj,
+  &MPY_Obj,
+  &MPYA_Obj,
+  &MPYU_Obj,
   &MVDD_Obj,
   &MVDK_Obj,
+  &MVDM_Obj,
   &MVDP_Obj,
+  &MVMD_Obj,
   &MVMM_Obj,
   &NEG_Obj,
   &NOP_Obj,
+  &NORM_Obj,
   &OR_Obj,
+  &ORM_Obj,
   &READA_Obj,
   &RPT_Obj,
   &RPTB_Obj,
@@ -116,6 +154,9 @@ static const Instruction_Class *All_Objects[All_Objects_Len]=
   &STL_Obj,
   &STLM_Obj,
   &STM_Obj,
+  &STRCD_Obj,
+  &XOR_Obj,
+  &XORM_Obj,
 };
 
 typedef gchar *(*Decode_Func)(gchar *mask, gchar info, Word start_code, WordA *location);
@@ -365,8 +406,17 @@ void decoded_opcodes(GPtrArray *textA,WordA start,WordA end, GArray *word2line)
 	  
 	  // Used to mach word location to line number
 	  for(k=pre_start;k<start+1;k++)
-	    g_array_append_val(word2line,line_no);
-	  
+	    {
+	      gchar *sym_name;
+
+	      sym_name=get_symbol(k);
+	      if (sym_name)
+		{
+		  line_no++;
+		  g_ptr_array_add(textA,sym_name);
+		}
+	      g_array_append_val(word2line,line_no);
+	    }
 	}
       else
 	{
