@@ -41,3 +41,22 @@ gchar *get_symbol(WordA address)
     }
   return NULL;
 }
+
+gboolean get_address_from_symbol(WordA *address, gchar const *symbol)
+{
+  GList *list;
+  struct _symL *symL;
+
+  for (list=symbol_label;list;list=list->next)
+    {
+      symL = list->data;
+
+      if ( strcmp(symL->name,symbol) == 0 )
+	{
+	  *address = (WordA)symL->value;
+	  return TRUE;
+	}
+    }
+  return FALSE;
+}
+  

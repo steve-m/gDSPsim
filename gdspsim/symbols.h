@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-#include "c54_core.h"
+#include "chip_core.h"
 
 #ifndef __SYMBOL_H__
 #define __SYMBOL_H__
@@ -32,7 +32,17 @@ struct _symL
   gint16 section_num;
 };
 
-/* Returns a symbol if it exists, must NOT be freed by caller */
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* Returns a symbol if it exists, MUST be freed by caller */
 gchar *get_symbol(WordA address);
+
+gboolean get_address_from_symbol(WordA *address, gchar const *symbol);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // __SYMBOL_H__
