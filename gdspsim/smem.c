@@ -406,7 +406,7 @@ void lmem_read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
       L1 = update_smem(pipeP->current_opcode & 0xff , Reg, CPL(MMR));
       Reg->Lmem1 = L1;
       L2 = update_smem(pipeP->current_opcode & 0xff , Reg, CPL(MMR));
-      Reg->Lmem2 = L2;
+      Reg->Lmem2 = L1+1;
     }
 }
 
@@ -425,8 +425,8 @@ void lmem_read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
       L1 = read_data_mem(Reg->Lmem1,&wait_state);
       L2 = read_data_mem(Reg->Lmem2,&wait_state);
       reg_union.gint64 = 0;
-      reg_union.words.low = L1;
-      reg_union.words.high = L2;
+      reg_union.words.low = L2;
+      reg_union.words.high = L1;
       
       Reg->Shifter = reg_union.gp_reg;
     }
