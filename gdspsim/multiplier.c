@@ -27,11 +27,14 @@
  *      1, Y operand is from DB register
  *      2, Y operand is from A[32:16] register
  *      3, Y operand is from CB register
+ *      4, Y operand is from DB register, unsigned
  * Amux 0, Accumulate using 0
  *      1, Accumulate using A
  *      2, Accumulate using B
  * Smux 0, Store in A register
  *      1, Store in B register
+ *      2, Store in A register with Rounding
+ *      3, Store in B register with Rounding
  */
 
 #include "multiplier.h"
@@ -78,6 +81,10 @@ void multiplier(int Xmux, int Ymux, int Amux, int Smux, struct _Registers *Reg)
       break;
     case 3:
       Y = Reg->CB;
+      break;
+    case 4:
+      Y = Reg->DB;
+      Y = abs(Y);
       break;
     }
 
