@@ -62,10 +62,11 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 
   opcode = pipeP->decode_nfo.mach_code;
 
-  flag = C54CM(MMR) ? (SHFT_M40_IS_1 | SHFT_DONT_SATURATE | 
-		       SHFT_NO_OVERFLOW_DETECTION) : 
-                      (SHFT_USE_M40 | SHFT_SIGN_EXTEND_USING_SXMD | 
-		       SHFT_USE_SATD_SATA | SHFT_SET_ACOV);
+  flag = C54CM(MMR) 
+    ? (SHFT_DONT_SATURATE | SHFT_NO_OVERFLOW_DETECTION | 
+       SHFT_M40_IS_1 | SHFT_SIGN_EXTEND_USING_SXMD)
+    : (SHFT_USE_SATD_SATA | SHFT_SIGN_EXTEND_USING_SXMD | 
+       SHFT_USE_M40 | SHFT_SET_ACOV);
     
   switch ( pipeP->opcode_subType )
     {
