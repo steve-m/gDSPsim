@@ -30,7 +30,7 @@ static gchar *mask[]=
   // "0001100p uuuuuuuu RRRRrrrr", // ADD k8, src, dst
   // "0001 0000 00rr 00qq 0011 0000", // ADD r<<#-16,q
 
-  "0010001p rrrrRRRR", // ADD src, dst   (fixme? maybe 0010010p)
+  "0010010p rrrrRRRR", // ADD src, dst   (fixme? maybe 0010010p)
   "0100000p uuuuRRRR", // ADD k4, dst
   "01111011 uuuuuuuu uuuuuuuu RRRRrrrr", // ADD k16, src, dst
   "11010110 ssssssss RRRRrrrr", // ADD Smem, src, dst
