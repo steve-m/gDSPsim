@@ -112,7 +112,7 @@ void multiplier(int Xmux, int Ymux, int Amux, int Smux, struct _Registers *Reg)
       gp_reg.gp_reg = MMR->A;
       Result64 = gp_reg.gint64 - Result64;
     }
-  else if ( Amux == 2 )
+  else if ( Amux == 4 )
     {
       // Accumulate using B register
       gp_reg.gp_reg = MMR->B;
