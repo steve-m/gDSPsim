@@ -69,6 +69,12 @@ struct _GP32
   guint32 high;
 };
 
+struct _GPi32
+{
+  gint32 low;
+  gint32 high;
+};
+
 union _GP_Reg_Union
 {
   GP_Reg gp_reg;
@@ -76,6 +82,8 @@ union _GP_Reg_Union
   gint64 gint64;
   struct _GP_Words words;
   struct _GP32 gu32;
+  struct _GPi32 gi32;
+  WordA address;
 };
 
 // Used to tell if the opcode tag is used in the notation. 
