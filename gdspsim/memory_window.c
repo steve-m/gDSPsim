@@ -1,7 +1,7 @@
 /*
  * gDSPsim - GNU Digital Signal Processor Simulator
  *
- * Copyright (C) 2001, Kerry Keal, kerry@industrialmusic.com
+ * Copyright (C) 2001-2002, Kerry Keal, kerry@industrialmusic.com
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -18,14 +18,14 @@
 */
 
 #include <stdio.h>
-#include "decode_window.h"
-#include "c54_core.h"
-#include "find_opcode.h"
-#include "memory.h"
-#include "entryCB.h"
-#include "gtkbox_add.h"
+#include <decode_window.h>
+#include <chip_core.h>
+#include <find_opcode.h>
+#include <memory.h>
+#include <entryCB.h>
+#include <gtkbox_add.h>
 #include <string.h>
-#include "memory_window.h"
+#include <memory_window.h>
 
 extern GdkFont *gdsp_Decode_Font;
 GList *all_mem_win_list=NULL;
