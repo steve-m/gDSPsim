@@ -83,7 +83,7 @@ static void display_plot(struct _plot_window_nfo *pnfo)
 	{
 	  wrd = read_data_mem_long(pnfo->address+2*k,&wait_state);
 	  wrd2 = read_data_mem_long(pnfo->address+2*k+1,&wait_state);
-	  wrd32 = (guint32)wrd |  ((guint32)wrd2)<<16;
+	  wrd32 = (guint32)wrd2 |  ((guint32)wrd)<<16;
 	  pnfo->xdata[k] = (gdouble)k;
 	  switch (pnfo->type)
 	    {
@@ -139,6 +139,14 @@ static void lengthCB(GtkWidget *entry, guint64 num,
 
   pwn = data;
   pwn->length = num;
+  display_plot(pwn);
+}
+
+static void updateCB(GtkWidget *entry, gpointer data)
+{
+  struct _plot_window_nfo *pwn;
+
+  pwn = data;
   display_plot(pwn);
 }
 
@@ -299,7 +307,7 @@ static void set_menu( GtkBox *boxW, struct _plot_window_nfo *pnfo)
 
 void create_plot_window()
 {
-  GtkWidget *scrollW;
+  GtkWidget *scrollW,*buttonW;
   GtkWidget *active_plot;
   GtkWidget *canvas,*hbox,*vbox,*lab,*entryW;
   gint page_width, page_height;
@@ -343,7 +351,7 @@ void create_plot_window()
   entryW = gtk_entry_new();
   gtk_widget_show(entryW);
   gtk_box_pack_start(GTK_BOX (hbox), entryW, FALSE, FALSE, 2);
-  gtk_entry_set_max_length(GTK_ENTRY(entryW),7);
+  gtk_entry_set_max_length(GTK_ENTRY(entryW),64);
   gtk_editable_set_editable(GTK_EDITABLE(entryW),TRUE);
   
 
@@ -378,10 +386,20 @@ void create_plot_window()
 
   plot_windowN->lengthN.entry  = entryW;
   plot_windowN->lengthN.bits = BITS_PER_PROGRAM_ACCESS;
-  plot_windowN->lengthN.data = lengthCB;
+  plot_windowN->lengthN.CB_func = lengthCB;
+  plot_windowN->lengthN.data = plot_windowN;
   plot_windowN->lengthN.text = g_strdup_printf("0x%x",plot_windowN->length);
   gtk_entry_set_text(GTK_ENTRY(entryW),plot_windowN->lengthN.text);
  
+  // Update Button
+  buttonW = gtk_button_new_with_label("Update");
+  gtk_widget_show(buttonW);
+  gtk_box_pack_start(GTK_BOX (hbox), buttonW, FALSE, FALSE, 2);
+  gtk_signal_connect(GTK_OBJECT(buttonW), "pressed",
+		     GTK_SIGNAL_FUNC(updateCB),
+		     plot_windowN);
+  
+
   scrollW=gtk_scrolled_window_new(NULL, NULL);
   gtk_container_border_width(GTK_CONTAINER(scrollW),0);
   gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrollW),
