@@ -32,13 +32,14 @@ Word read_data_mem(WordA offset, int *wait_state);
 
 Word read_program_mem(WordA offset, int *wait_state);
 
-Word read_mem(WordA offset, int *wait_state, MemType type);
+// available = 1, if it is available
+// available = 0, if it is not (not been written too)
+Word read_mem(WordA offset, int *wait_state, MemType type, int *available);
 
 /* Write's to memory. Return's wait state or -1 if unsucessfull */
 int write_program_mem(WordA offset, Word value);
 
 int write_data_mem(WordA offset, Word value);
-
 
 void cp_to_mem(Word *data, WordA start, long int size, MemType type);
 void fill_to_mem(Word fill,  WordA start, long int size, MemType type);
