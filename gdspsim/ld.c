@@ -179,6 +179,7 @@ static void read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   union _GP_Reg_Union reg_union;
+  int s,d;
 
   if ( pipeP->word_number == 1 )
     {
@@ -211,7 +212,7 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 	    {
 	      SWord shift;
 	      
-	      shift = signed_5bit_extract(pipeP->storage1);
+	      shift = signed_5bit_extract(pipeP->storage1&0x1f);
 
 	      shifter(2,Reg,2,shift,(pipeP->storage1 & 0x100)>>8);
 	    }
@@ -291,27 +292,20 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 	  }
 	case 8:
 	  // LD s,ASM,d
-	  {
-	    Word input_mux;
-	    Word output_mux;
-	    
-	    output_mux = pipeP->current_opcode & 0x100 >> 8;
-	    input_mux = pipeP->current_opcode & 0x200 >> 9;
-	    shifter(input_mux,Reg,1,0,output_mux);
-	    return;
-	  }
+	  d = (pipeP->current_opcode & 0x100) >> 8;
+	  s = (pipeP->current_opcode & 0x200) >> 9;
+	  shifter(s,Reg,1,0,d);
+	  return;
 	case 9:
 	  // LD s,n,d
 	  {
-	    Word input_mux;
-	    Word output_mux;
 	    SWord shift;
 	      
-	    shift = signed_5bit_extract(pipeP->storage1);
+	    shift = signed_5bit_extract(pipeP->current_opcode & 0x1f);
 	    
-	    output_mux = pipeP->current_opcode & 0x100 >> 8;
-	    input_mux = pipeP->current_opcode & 0x200 >> 9;
-	    shifter(input_mux,Reg,2,shift,output_mux);
+	    d = (pipeP->current_opcode & 0x100) >> 8;
+	    s = (pipeP->current_opcode & 0x200) >> 9;
+	    shifter(s,Reg,2,shift,d);
 
 	    return;
 	  }
