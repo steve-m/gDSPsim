@@ -31,6 +31,9 @@ int pipeline(struct _Registers *Registers);
 void reset_view();
 void update_view();
 
+// Reset the registers
+void default_registers(struct _Registers *Registers);
+
 // Return 1 if breakpoint set, 0 if breakpoint removed
 int toggle_breakpoint(WordA bp);
 

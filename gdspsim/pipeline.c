@@ -297,17 +297,15 @@ int pipeline(struct _Registers *Registers)
 
 void default_registers(struct _Registers *Registers)
 {
+  union _GP_Reg_Union conv;
+
   MMR->SP=0x1000;
-  {
-    union _GP_Reg_Union conv;
-    conv.guint64 = 0x991234;
-    MMR->A=conv.gp_reg;
-  }
-  {
-    union _GP_Reg_Union conv;
-    conv.guint64 = 0x123456789a; 
-    MMR->B=conv.gp_reg;
-  }
+
+  conv.guint64 = 0;
+  MMR->A=conv.gp_reg;
+  MMR->B=conv.gp_reg;
+  MMR->ST0 = 0x1800;
+  MMR->ST1 = 0x2900;
   MMR->ar0=0;
   MMR->ar1=0;
   MMR->ar2=0;
