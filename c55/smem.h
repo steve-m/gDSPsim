@@ -47,6 +47,8 @@ extern "C" {
   // p=0-7
   Word *get_pointer_reg(int p);
 
+  Word circular_update(Word start, int p, SWord step);
+
 #ifdef __cplusplus
 }
 #endif

@@ -21,7 +21,7 @@
 #include <smem.h>
 #include <memory.h>
 
-static Word circular_update(Word start, int p, SWord step)
+Word circular_update(Word start, int p, SWord step)
 {
   Word BK;
   SWord index;
@@ -86,6 +86,7 @@ void smem_set_DAB(int p, int mod, unsigned char b1,
       // *ARn+
       if ( circ )
 	{
+	  Registers->DAB = *arfP;
 	  *arfP = circular_update(*arfP,p,1);
 	}
       else
@@ -98,6 +99,7 @@ void smem_set_DAB(int p, int mod, unsigned char b1,
       // *ARn-
       if ( circ )
 	{
+	  Registers->DAB = *arfP;
 	  *arfP = circular_update(*arfP,p,-1);
 	}
       else
