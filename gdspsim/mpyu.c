@@ -24,10 +24,7 @@
 #include "xymem.h"
 #include "smem.h"
 
-static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg);
-static void read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg);
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg);
-static int number_words(struct _PipeLine *pipeP);
 
 static GPtrArray *machine_code(gchar *opcode_text);
 
