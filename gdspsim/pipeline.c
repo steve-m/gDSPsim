@@ -42,6 +42,9 @@ static struct _PipeLine *pipe_read_stg1P=NULL;
 static struct _PipeLine *pipe_read_stg2P=NULL;
 static struct _PipeLine *pipe_executeP=NULL;
 
+// list of fileIO break points
+static GList *FileIOPipeLine=NULL;
+
 /*
  *
  * Prefetch    Load PAB
@@ -169,7 +172,25 @@ int pipeline(struct _Registers *Registers)
       RC_set = Registers->RC;
 
       if ( pipe_executeP->opcode_object->execute )
-	pipe_executeP->opcode_object->execute(pipe_executeP,Registers);
+	{
+	  pipe_executeP->opcode_object->execute(pipe_executeP,Registers);
+
+	  // Check and process fileIO breakpoints
+	  if ( (FileIOPipeLine) && (pipe_executeP->cycles==0) )
+	    {
+	      GList *list;
+	      struct _fileIO *io;
+
+	      list = FileIOPipeLine;
+
+	      while (list)
+		{
+		  io = list->data;
+		  if ( io->address_reached == pipe_executeP->decode_nfo.address)
+		    fileIO_process(io);
+		}
+	    }
+	}
      
       // DB is loaded with the first read argument using DAB address
       // CB is loaded with the second read argument using CAB address
@@ -476,3 +497,31 @@ struct _Registers *pipe_new()
   return Registers;
 }
   
+/* File IO functions */
+void set_fileIO_break_on_pipeline(struct _fileIO *io)
+{
+  FileIOPipeLine = g_list_append(FileIOPipeLine,io);
+}
+
+void update_fileIO_break_on_pipeline(struct _fileIO *io)
+{
+  // Nothing to do, because only one list and no data is extracted
+}
+
+void remove_fileIO_break_on_pipeline(struct _fileIO *io)
+{
+  GList *list;
+
+  list = FileIOPipeLine;
+
+  while (list)
+    {
+       if ( io == list->data )
+	 {
+	   FileIOPipeLine = g_list_remove_link(FileIOPipeLine,list);
+	   return;
+	 }
+      list=list->next;
+    }
+  printf("Programming Error! Bad Call. %s:%d\n",__FILE__,__LINE__);
+}

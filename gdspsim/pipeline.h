@@ -24,23 +24,29 @@
 extern "C" {
 #endif
 
-// Should be called once to setup
-struct _Registers *pipe_new();
+#include <fileIO.h>
 
-// Return 1 if it hits a breakpoint
-// Return 0, otherwise
-// clear_old_changes = 1, unhighlight old changes
-// clear_old_changes = 0, don't unhighlight changes from last call
-int pipeline(struct _Registers *Registers);
-void reset_view();
-void update_view();
-
-// Reset the registers
-void default_registers(struct _Registers *Registers);
-
-// Return 1 if breakpoint set, 0 if breakpoint removed
-int toggle_breakpoint(WordA bp);
-
+  // Should be called once to setup
+  struct _Registers *pipe_new();
+  
+  // Return 1 if it hits a breakpoint
+  // Return 0, otherwise
+  // clear_old_changes = 1, unhighlight old changes
+  // clear_old_changes = 0, don't unhighlight changes from last call
+  int pipeline(struct _Registers *Registers);
+  void reset_view();
+  void update_view();
+  
+  // Reset the registers
+  void default_registers(struct _Registers *Registers);
+  
+  void set_fileIO_break_on_pipeline(struct _fileIO *io);
+  void update_fileIO_break_on_pipeline(struct _fileIO *io);
+  void remove_fileIO_break_on_pipeline(struct _fileIO *io);
+  
+  // Return 1 if breakpoint set, 0 if breakpoint removed
+  int toggle_breakpoint(WordA bp);
+  
 #ifdef __cplusplus
 }
 #endif
