@@ -42,8 +42,8 @@ static gchar *mask[]=
     "1001010s xxxxuuuu",
     
     "1110100s nnnnnnnn",
-    "1111000s 0010uuuu nnnnnnnn nnnnnnnn",
-    "1111000s 01100010 nnnnnnnn nnnnnnnn",
+    "1111000s 0010uuuu hhhhhhhh hhhhhhhh",
+    "1111000s 01100010 hhhhhhhh hhhhhhhh",
     "111101sd 10000010",
     "111101sd 010nnnnn",
 
@@ -241,13 +241,21 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 
 	case 6:
 	  {
-	    // LD #n,u,s
+	    // LD #h,u,s
 	    int d;
 	    d = (pipeP->current_opcode&0x100)>>8;
 	    
-	    reg_union.gint64 = (SWord)pipeP->storage1;
+	    if ( SXM(MMR) )
+	      {
+		reg_union.gint64 = (SWord)pipeP->storage1;
+	      }
+	    else
+	      {
+		reg_union.guint64 = pipeP->storage1;
+	      }
+
 	    if (d)
-	    MMR->B = reg_union.gp_reg;
+	      MMR->B = reg_union.gp_reg;
 	    else
 	      MMR->A = reg_union.gp_reg;
 	    
@@ -258,16 +266,24 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 	case 7:
 	  {
 	    // LD #n,16,s
-	    int regNum;
-	    regNum = (pipeP->current_opcode&0x100)>>8;
+	    int d;
+	    d = (pipeP->current_opcode&0x100)>>8;
 	    
-	    reg_union.gint64 = (SWord)pipeP->storage1;
-	    if (regNum)
+	    if ( SXM(MMR) )
+	      {
+		reg_union.gint64 = (SWord)pipeP->storage1;
+	      }
+	    else
+	      {
+		reg_union.guint64 = pipeP->storage1;
+	      }
+
+	    if (d)
 	      MMR->B = reg_union.gp_reg;
 	    else
 	      MMR->A = reg_union.gp_reg;
 
-	    shifter(regNum,Reg,2,16,regNum);
+	    shifter(d,Reg,2,16,d);
 	  
 	    return;
 	  }
