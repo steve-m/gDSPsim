@@ -84,7 +84,7 @@ static void read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
   if ( pipeP->word_number == 1 )
     {
       smem_set_EAB(pipeP,Reg);
-      Reg->DB=read_data_mem(Reg->PAR,&wait_state);
+      Reg->DB=read_data_mem_long(Reg->PAR,&wait_state);
     }
 }
 

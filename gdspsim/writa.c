@@ -75,7 +75,9 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   if ( pipeP->word_number == 1 )
     {
-      write_data_mem(Reg->PAR,Reg->DB);
+      int wait_state;
+
+      wait_state = write_data_mem_long(Reg->PAR,Reg->DB);
     }
 }
 
