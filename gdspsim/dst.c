@@ -24,8 +24,7 @@
 #include "memory.h"
 
 static GPtrArray *machine_code(gchar *opcode_text);
-static int set_cycle_number(Word mach_code, int word_num);
-static void decode(struct _PipeLine *pipeP, struct _Registers *Reg);
+static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg);
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg);
 
 static gchar *mask[]=    { "0100111s aaaaaaaa" };
@@ -40,12 +39,12 @@ Instruction_Class DST_Obj =
   "DST",
   NULL, // prefetch
   NULL, // fetch
-  decode, // decode
-  NULL, // read_stg1 (access)
-  smem_set_EAB, // read_stg2 (read)
+  NULL, // decode
+  read_stg1, // read_stg1 (access)
+  lmem_set_EAB, // read_stg2 (read)
   execute, // execute
   num_words_for_smem, // number_words 
-  set_cycle_number, // set_cycle_number
+  NULL, // set_cycle_number
   1,
   mask,
   opcode,
@@ -54,17 +53,14 @@ Instruction_Class DST_Obj =
 };
 
 
-static void decode(struct _PipeLine *pipeP, struct _Registers *Reg)
+static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-  if ( pipeP->total_words > 1 && pipeP->word_number == 1 )
-    {
-      pipeP->storage1 = Reg->IR;
-    }
+  if ( pipeP->cycles == 0 )
+    Reg->Decode_Again = 1;
 }
 
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
-  Word word2write;
   union _GP_Reg_Union reg_union;
   
   if ( pipeP->current_opcode & 0x100 )
@@ -76,24 +72,18 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
       reg_union.gp_reg = MMR->A;
     }
 
-  if ( pipeP->cycle_number == 2 )
+  if ( pipeP->cycles == 0 )
     {
-      // Write high byte first
-      word2write = reg_union.words.high;
-      write_data_mem(Reg->EAB,word2write);
+      // Write high word first
+      write_data_mem(Reg->EAB,reg_union.words.high);
     }
   else
     {
-      // write low byte
-      word2write = reg_union.words.low; 
-      write_data_mem(Reg->EAB,word2write);
+      // write low word last
+      write_data_mem(Reg->EAB,reg_union.words.low);
     }
 }
 
-static int set_cycle_number(Word mach_code, int word_num)
-{
-  return 2;
-}
 
 /* Generates an array of Words that this opcode text generates or NULL
  * if it doesn't. There should not be any comments in the string
