@@ -64,11 +64,34 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
   
   if ( pipeP->current_opcode & 0x100 )
     {
-      reg.gp_reg = MMR->B;
+      reg.guint64 = GP_REG_2_UINT64(MMR->B);
     }
   else
     {
-      reg.gp_reg = MMR->A;
+      reg.guint64 = GP_REG_2_UINT64(MMR->A);
+    }
+  
+  // Check for Saturation on Store
+  if ( SST(MMR) )
+    {
+      if ( SXM(MMR)==1 )
+	{
+	  if (reg.gint64 > max_pos32)
+	    {
+	      reg.gint64 = max_pos32;
+	    }
+	  else if (reg.gint64 < max_neg32)
+	    {
+	      reg.gint64 = max_neg32;
+	    }
+	}
+      else
+	{
+	  if (reg.guint64 > 0xffffffff )
+	    {
+	      reg.guint64 = 0xffffffff;
+	    }
+	}
     }
 
   write_data_mem(Reg->EAB,reg.words.low);
