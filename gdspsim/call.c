@@ -23,6 +23,7 @@
 #include "instruct_help.h"
 #include "memory.h"
 
+static void decode(struct _PipeLine *pipeP, struct _Registers *Reg);
 static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg);
 static void read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg);
 static void execute(struct _PipeLine *pipeP, struct _Registers *Reg);
@@ -40,7 +41,7 @@ Instruction_Class CALL_Obj =
   "CALL",
   NULL, // prefetch
   NULL, // fetch
-  NULL, // decode
+  decode, // decode
   read_stg1, // read_stg1 (access)
   read_stg2, // read_stg2 (read)
   execute, // execute
@@ -53,6 +54,21 @@ Instruction_Class CALL_Obj =
   machine_code
 };
 
+static void decode(struct _PipeLine *pipeP, struct _Registers *Reg)
+{
+  if ( pipeP->word_number == 2 )
+    {
+      if ( (pipeP->current_opcode & 0x200) == 0)
+	{
+	  pipeP->storage2 = Reg->PC;
+    	}
+      else
+	{
+	  pipeP->storage2 = Reg->PC+2;
+	}
+    }
+}
+
 static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   if ( pipeP->word_number == 2 )
@@ -64,13 +80,8 @@ static void read_stg1(struct _PipeLine *pipeP, struct _Registers *Reg)
       Reg->PC = Reg->IR;
       if ( (pipeP->current_opcode & 0x200) == 0)
 	{
-	  pipeP->storage2 = Reg->PC;
-	  Reg->Flush = Reg->Flush + 2;
+          Reg->Flush = Reg->Flush + 2;
     	}
-      else
-	{
-	  pipeP->storage2 = Reg->PC+2;
-	}
     }
 }
 static void read_stg2(struct _PipeLine *pipeP, struct _Registers *Reg)
