@@ -51,6 +51,11 @@ static void step_CB( GtkWidget *widget,  gpointer   data )
   pipeline(Registers);
 }
 
+static void run_CB( GtkWidget *widget,  gpointer   data )
+{
+  while ( pipeline(Registers) == 0);
+}
+
 void destroy( GtkWidget *widget, gpointer   data )
 {
   gtk_widget_destroy(widget);
@@ -150,6 +155,7 @@ static GtkItemFactoryEntry menu_items[] =
   { "/View/_Registers",    "<control>R", (GtkItemFactoryCallback)register_view_CB, 0, NULL },
   { "/_Simulate",      NULL,        NULL, 0, "<Branch>" },
   { "/Simulate/Step",  "F8",        (GtkItemFactoryCallback)step_CB, 0, NULL },
+  { "/Simulate/Run",  "F5",        (GtkItemFactoryCallback)run_CB, 0, NULL },
   //{ "/Simulate/Test",  NULL,        (GtkItemFactoryCallback)simulate_CB, 0, NULL },
   { "/_Help",         NULL,         NULL, 0, "<LastBranch>" },
   { "/_Help/About",   NULL,         NULL, 0, NULL },
@@ -157,37 +163,41 @@ static GtkItemFactoryEntry menu_items[] =
 
 
 void get_main_menu( GtkWidget  *window,
-                           GtkWidget **menubar )
-       {
-         GtkItemFactory *item_factory;
-         GtkAccelGroup *accel_group;
-         gint nmenu_items = sizeof (menu_items) / sizeof (menu_items[0]);
-
-         accel_group = gtk_accel_group_new ();
-
-         /* This function initializes the item factory.
-            Param 1: The type of menu - can be GTK_TYPE_MENU_BAR, GTK_TYPE_MENU,
-                     or GTK_TYPE_OPTION_MENU.
-            Param 2: The path of the menu.
-            Param 3: A pointer to a gtk_accel_group.  The item factory sets up
-                     the accelerator table while generating menus.
-         */
-
-         item_factory = gtk_item_factory_new (GTK_TYPE_MENU_BAR, "<main>", 
-                                              accel_group);
-
-         /* This function generates the menu items. Pass the item factory,
-            the number of items in the array, the array itself, and any
-            callback data for the the menu items. */
-         gtk_item_factory_create_items (item_factory, nmenu_items, menu_items, NULL);
-
-         /* Attach the new accelerator group to the window. */
-         gtk_accel_group_attach (accel_group, GTK_OBJECT (window));
-
-         if (menubar)
-           /* Finally, return the actual menu bar created by the item factory. */ 
-           *menubar = gtk_item_factory_get_widget (item_factory, "<main>");
-       }
+		    GtkWidget **menubar )
+{
+  GtkItemFactory *item_factory;
+  GtkAccelGroup *accel_group;
+  gint nmenu_items = sizeof (menu_items) / sizeof (menu_items[0]);
+  
+  
+  //*menubar = gtk_menu_item_new_with_label (menu_items);
+  
+  accel_group = gtk_accel_group_new ();
+  
+  /* This function initializes the item factory.
+     Param 1: The type of menu - can be GTK_TYPE_MENU_BAR, GTK_TYPE_MENU,
+     or GTK_TYPE_OPTION_MENU.
+     Param 2: The path of the menu.
+     Param 3: A pointer to a gtk_accel_group.  The item factory sets up
+     the accelerator table while generating menus.
+  */
+  
+  item_factory = gtk_item_factory_new (GTK_TYPE_MENU_BAR, "<main>", 
+				       accel_group);
+  
+  /* This function generates the menu items. Pass the item factory,
+     the number of items in the array, the array itself, and any
+     callback data for the the menu items. */
+  gtk_item_factory_create_items (item_factory, nmenu_items, menu_items, NULL);
+  
+  /* Attach the new accelerator group to the window. */
+  //gtk_accel_group_attach (accel_group, GTK_OBJECT (window));
+  //gtk_accel_group_set_accel_widget(accel_group,window);
+  
+  if (menubar)
+    /* Finally, return the actual menu bar created by the item factory. */ 
+    *menubar = gtk_item_factory_get_widget (item_factory, "<main>");
+}
 
 
 
