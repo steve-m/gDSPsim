@@ -24,13 +24,21 @@
 
 // Converts the machine code to it's text representation. Reads extra words
 // if needed
-gchar *mach_code_to_text(Word mach_code, const Instruction_Class *classP, int subtype, WordA *location);
+struct _decode_opcode *mach_code_to_text(Word mach_code, const Instruction_Class *classP, int subtype, WordA *location);
 
 // Returns pointer to object type given opcode and sets subtype
 const Instruction_Class *find_object(Word mach_code, int *subtype);
 
 /* Returns an array of strings of decoded opcodes */
-void decoded_opcodes(GPtrArray *textA, WordA start, WordA end, GArray *word2line);
+void decoded_opcodes(GPtrArray *textA,WordA start,WordA end, GArray *word2line);
+
+
+struct _decode_opcode
+{
+  gchar *address; 
+  gchar *machine_code; // if NULL then opcode_text is a symbol
+  gchar *opcode_text;
+};
 
 
 #endif // __FIND_OPCODE_H__
