@@ -23,7 +23,9 @@
 #include <gtk/gtk.h>
 
 void create_memory_window();
-void update_all_memory_windows();
+// highlight = 1, to highlight changed memory
+// highlight = 0, to unhighlight changed memory
+void update_all_memory_windows(int highlight);
 
 // Used to clear what memory has changed
 void clear_mem_changed(void);

@@ -544,6 +544,9 @@ void clear_mem_changed(void)
   struct _mem_changed *mc;
   GList *list,*list2;
 
+  if ( head_mem_changed == NULL )
+    initialize_changed_mem();
+
   mc = head_mem_changed->data;
   mc->valid=0;
 
@@ -561,7 +564,9 @@ void clear_mem_changed(void)
   head_mem_changed->next=NULL;
 }
 
-void update_all_memory_windows()
+// highlight = 1, to highlight changed memory
+// highlight = 0, to unhighlight changed memory
+void update_all_memory_windows(int highlight)
 {
   GList *list,*list2;
   struct _mem_window_nfo *mem_window;
@@ -585,12 +590,25 @@ void update_all_memory_windows()
 		  // highlight this row red, it's changed
 		  // and give it new value
 		  row = mc->changed[k]-mem_window->start;
-		  gtk_clist_set_foreground(mem_window->clist,row,
-					   &gdsp_color[0]);
-		  g_snprintf(text_now,7,"0x%x",read_mem(mc->changed[k],&wait,mem_window->memory_type,&available));
-		  gtk_clist_set_text(mem_window->clist,row,1,text_now);
+		  if ( highlight )
+		    {
+		      gtk_clist_set_foreground(mem_window->clist,row,
+					       &gdsp_color[0]);
+		      g_snprintf(text_now,7,"0x%x",
+				 read_mem(mc->changed[k],
+					  &wait,mem_window->memory_type,
+					  &available));
+		      gtk_clist_set_text(mem_window->clist,row,1,text_now);
+		    }
+		  else
+		    {
+			      gtk_clist_set_foreground(mem_window->clist,row,
+						       NULL);
+		    }
 		}
 	    }
 	}
     }
+  if ( highlight == 0 )
+    clear_mem_changed();
 }
