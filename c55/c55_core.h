@@ -23,11 +23,10 @@
 #ifndef __C55_CORE_H__
 #define __C55_CORE_H__
 // We want to deal with the proper bit length words.
-typedef guint8 WordP; // least amount of memory accessable
 typedef guint16 Word;
 typedef guint32 DWord;
 typedef gint16 SWord;
-typedef guint32 WordA; //type of variable used for addressing Words.
+typedef guint32 WordP; //type of variable used for addressing Words.
 #define MAX_WORD 0xffff
 
 #define MAX_OP_LEN 8
@@ -63,7 +62,7 @@ union _GP_Reg
   struct _byte_GP_Reg bgp;
   struct _word_GP_Reg wgp;
   DWord dword;
-  WordA worda;
+  WordP worda;
 };
 
 typedef union _GP_Reg GP_Reg;
@@ -112,7 +111,7 @@ union _GP_Reg_Union
   struct _GP_Words words;
   struct _GP32 gu32;
   struct _GPi32 gi32;
-  WordA address;
+  WordP address;
 };
 
 struct _MMR
@@ -193,19 +192,19 @@ struct _MMR
   Word BRS1;
   Word CSR;
   
-  WordA RSA0;
+  WordP RSA0;
   // Word RSA0H;
   // Word RSA0L;
 
-  WordA REA0;
+  WordP REA0;
   // Word REA0H;
   // Word REA0L;
 
-  WordA RSA1;
+  WordP RSA1;
   //Word RSA1H;
   //Word RSA1L;
 
-  WordA REA1;
+  WordP REA1;
   // Word REA1H;
   // Word REA1L;
 
@@ -288,14 +287,14 @@ extern struct _Registers *Reg;
 
 struct _Registers
 {
-  WordA PC;  // Program Counter
+  WordP PC;  // Program Counter
   Word XPC;  // Extend bits for Program Counter
   //Word PAB; // Program Address Bus. Filled with Prefetch
   //Word PB;  // Program Data. Filled during Fetch
   //Word IR;  // Instruction Register. Filled with Decode
-  WordA DAB; // 1st Data Memory Bus Address
-  WordA CAB; // 2nd Data Memory Bus Address
-  WordA BAB; // 3rd Data Memory Bus Address
+  WordP DAB; // 1st Data Memory Bus Address
+  WordP CAB; // 2nd Data Memory Bus Address
+  WordP BAB; // 3rd Data Memory Bus Address
   Word DB;  // Data Memory Read from 1st Data Memory Bus
   Word CB;  // Data Memory Read from 2nd Data Memory Bus
   Word BB;
@@ -303,14 +302,14 @@ struct _Registers
   Word EB; // Write Data Register
   Word P;
   Word PM;  // Program Memory Read for things like READA
-  WordA PAR; // Program Memory Read Address for things like READA
+  WordP PAR; // Program Memory Read Address for things like READA
   Word DAR; // Register to hold address for DAB mvdm,mvkd
   Word RC;  // Repeat Counter
-  WordA RETA; // Return address used for fast return from interrupt
+  WordP RETA; // Return address used for fast return from interrupt
   GP_Reg Shifter;
   char left_over_guard_bits_Shifter;
-  WordA Lmem1;
-  WordA Lmem2;
+  WordP Lmem1;
+  WordP Lmem2;
 
   Word CFCT; // repeat flags
 
@@ -333,7 +332,7 @@ struct _Registers
   // fetch, decode, or prefetch, PC increment.
   int fetch_flags; // Used to step breakpoints amoung other things
   int Decode_Again; // Decode Again
-  WordA PAB_last;
+  WordP PAB_last;
 };
 
 struct _decoded_opcode
@@ -342,7 +341,7 @@ struct _decoded_opcode
   int sub_type;
   int length;
   int var_length;
-  WordA address;
+  WordP address;
   Opcode mach_code;
 };
 
@@ -442,6 +441,16 @@ typedef struct _Instruction_Class Instruction_Class;
 #define max_pos32  2147483647ll
 #define max_neg40 -549755813888ll
 #define max_pos40  549755813887ll
+
+
+// Memory Configuration
+typedef guint8 WordX; // least amount of memory accessable
+typedef enum { PROG_DATA_MEM_TYPE=0, PROGRAM_MEM_TYPE=1,  DATA_MEM_TYPE=2 } MemType;
+#define NUM_TYPES_OF_MEM 3 // number of different types of MemType
+#define NUM_BYTES_PER_WORDP 1
+static const int NUM_BYTES_PER_MEM_TYPE[NUM_TYPES_OF_MEM]={1,1,2};
+static const int NUM_WORDP_TO_DISPLAY_FOR_MEM_WINDOW[NUM_TYPES_OF_MEM]={2,2,2};
+
 
 #endif // __C55_CORE_H__
 

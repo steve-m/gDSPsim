@@ -142,7 +142,7 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
 
     case 3:
       {
-	WordA xra;
+	WordP xra;
 	r = (opcode.bop[1]>>4) & 0xf;
 	R = opcode.bop[1] & 0xf;
 	if ( (r<4) && (R<4) )

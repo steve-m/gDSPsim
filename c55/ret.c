@@ -52,7 +52,7 @@ Instruction_Class RET_Obj =
 static void read_stg(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   Word p1,p2;
-  WordA addr;
+  WordP addr;
   int wait_state;
 
   p1 = read_data_mem(MMR->SP,&wait_state);
@@ -60,7 +60,7 @@ static void read_stg(struct _PipeLine *pipeP, struct _Registers *Reg)
   MMR->SP++;
   MMR->SSP++;
 
-  addr = (((WordA)p2)<<16) | p1;
+  addr = (((WordP)p2)<<16) | p1;
   Reg->PC = addr;
   pipeP->flags = pipeP->flags | PIPE_PC_CHANGED;
 }

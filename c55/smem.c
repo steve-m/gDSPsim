@@ -67,12 +67,12 @@ Word circular_update(Word start, int p, SWord step)
 // p is 0-7, pointer register number
 // mod is type of modification 0-15, excluding  6 and 7
 // b1,b2,b3 are bytes that follow
-WordA smem_decode(int p, int mod, Opcode mach_code, int len )
+WordP smem_decode(int p, int mod, Opcode mach_code, int len )
 {
   Word *arfP;
   int circ=0;
   int c54cm;
-  WordA AB;
+  WordP AB;
 
   // Does it use circular addressing?
   if ( mach_code.bop[len-1]==0x9d )
@@ -167,13 +167,13 @@ WordA smem_decode(int p, int mod, Opcode mach_code, int len )
 	  return AB;
 	case 1:
 	  {
-	    AB = (((WordA)mach_code.bop[len-3])<<16) | (((WordA)mach_code.bop[len-2])<<8) | mach_code.bop[len-1];
+	    AB = (((WordP)mach_code.bop[len-3])<<16) | (((WordP)mach_code.bop[len-2])<<8) | mach_code.bop[len-1];
 	    return AB;
 	  }
 	case 2:
 	  {
 	    int wait_state;
-	    AB = read_port_mem((((WordA)mach_code.bop[len-2])<<8) + mach_code.bop[len-1],
+	    AB = read_port_mem((((WordP)mach_code.bop[len-2])<<8) + mach_code.bop[len-1],
 					    &wait_state);
 	    return AB;
 	  }

@@ -332,13 +332,13 @@ void mach_code_to_text( struct _decoded_opcode *decode_nfo,
 // This function can be cleaned up using length info.
 struct _decode_opcode *mach_code_to_text(Word mach_code, 
                                          const Instruction_Class *classP, 
-                                         int subtype, WordA *location, 
+                                         int subtype, WordP *location, 
                                          int length)
 {
   gchar *opcode,*ch,*chP,ans[MAX_OP_STR_LEN],*ansP,*mask,*a_ch;
   int len;
   gchar info;
-  WordA passed_location;
+  WordP passed_location;
   struct _decode_opcode *op;
 
   // op freed in insert_text
@@ -505,14 +505,14 @@ struct _decode_opcode *mach_code_to_text(Word mach_code,
 #endif
 
 /* Returns an array of strings of decoded opcodes */
-void decoded_opcodes(GPtrArray *textA,WordA start,WordA end, GArray *word2line)
+void decoded_opcodes(GPtrArray *textA,WordP start,WordP end, GArray *word2line)
 {
   //const Instruction_Class *instructO;
   //int subtype;
   int wait_state;
   Word mach_code;
   int line_no=0;
-  WordA k;
+  WordP k;
   struct _decode_opcode *op;
   //int length;
   struct _decoded_opcode decode_nfo;

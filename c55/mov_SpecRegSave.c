@@ -159,7 +159,7 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
       return;
     case 19:
       {
-	WordA reta;
+	WordP reta;
 	reta = Reg->RETA;
 	pipeP->storage1 = (Word)((reta>>16)&0xffff);
 	pipeP->storage2 = (Word)(reta&0xffff);

@@ -62,9 +62,9 @@ extern "C"
   // returns 0 if condition is false and non-zero if true
   int check_condition(unsigned char cond, struct _Registers *Reg);
 
-  void set_extended_reg(WordA value, int xr, struct _Registers *Reg);
+  void set_extended_reg(WordP value, int xr, struct _Registers *Reg);
 
-  WordA get_extended_reg(int xr, struct _Registers *Reg);
+  WordP get_extended_reg(int xr, struct _Registers *Reg);
 
 #ifdef __cplusplus
 }

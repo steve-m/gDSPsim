@@ -24,7 +24,7 @@
 #include "string.h"
 #include "symbols.h"
 
-void set_program_start(WordA new_pc);
+void set_program_start(WordP new_pc);
 
 
 // List of the whole symbol table
@@ -102,7 +102,7 @@ void open_file( const gchar *filename )
   union _section_header *section_header=NULL;
   int k;
   size_t read_amount;
-  WordA relocate=0; // Used to load object files
+  WordP relocate=0; // Used to load object files
   unsigned int optional_header_size;
   struct _optional_header *opt_hdr;
   int binutil; // Flag telling whether file is generated from binutil or ti
@@ -148,9 +148,9 @@ void open_file( const gchar *filename )
       // Set the default view ranges
       // This is the entry point.
       {
-	WordA sa;
+	WordP sa;
 
-	sa = (WordA)CHAR_TO_UINT32(opt_hdr->start_address);
+	sa = (WordP)CHAR_TO_UINT32(opt_hdr->start_address);
   // sa=0x400;
 	set_prog_mem_start_end(sa,sa+0x100);
 	set_program_start(sa);
@@ -190,7 +190,7 @@ void open_file( const gchar *filename )
     {
       unsigned long int size;
       size_t read_size;
-      WordP *buffer;
+      WordX *buffer;
 
 
       size = section_header[k].ti.s_size;
@@ -206,13 +206,13 @@ void open_file( const gchar *filename )
 		file_error(__LINE__,header,section_header);
 
 	      // Read data from file
-	      buffer=g_new(WordP,size);
-	      read_size = fread((void *)buffer,sizeof(WordP), size,fp);
+	      buffer=g_new(WordX,size);
+	      read_size = fread((void *)buffer,sizeof(WordX), size,fp);
 	      if ( read_size != size )
 		file_error(__LINE__,header,section_header);
 
 	      // Put data into internal representation
-              //printf("start--0x%x\n",section_header[k].s_paddr+relocate);
+              //printf("start--0x%x size=0x%x\n",section_header[k].ti.s_paddr+relocate,size);
 	      cp_to_mem( buffer, section_header[k].ti.s_paddr+relocate, size, 
 		     PROGRAM_MEM_TYPE | DATA_MEM_TYPE);
 
@@ -231,7 +231,7 @@ void open_file( const gchar *filename )
 	  else
 	    {
 	      // Undefined data
-	      buffer=g_new(WordP,size);
+	      buffer=g_new(WordX,size);
               //printf("start--0x%x\n",section_header[k].s_paddr+relocate);
 	      cp_to_mem( buffer, section_header[k].ti.s_paddr+relocate, size, 
 		     PROGRAM_MEM_TYPE | DATA_MEM_TYPE);

@@ -33,11 +33,11 @@ struct _Instruction_Class NOP_Obj;
 
 void default_registers(struct _Registers *Registers);
 int find_opcode(Word *start_code, Word **next_code, GPtrArray *decode_info);
-void set_pipe_decodeP(WordA address, 
+void set_pipe_decodeP(WordP address, 
                       struct _Registers *Registers, int flags);
 void set_pipe_decodeP_to_NOP(void);
 void flush_pipeline(struct _Registers *Registers);
-unsigned char read_instruction_cache(WordA address);
+unsigned char read_instruction_cache(WordP address);
 
 static GArray *breakpoints=NULL;
 static struct _PipeLine *pipe_decodeP=NULL;
@@ -67,7 +67,7 @@ static GList *FileIOPipeLine=NULL;
  */
 
 // Return 1 if breakpoint set, 0 if breakpoint removed
-int toggle_breakpoint(WordA bp)
+int toggle_breakpoint(WordP bp)
 {
   int k;
 
@@ -75,7 +75,7 @@ int toggle_breakpoint(WordA bp)
   
   for (k=0;k<breakpoints->len;k++)
     {
-      if ( g_array_index(breakpoints,WordA,k) == bp )
+      if ( g_array_index(breakpoints,WordP,k) == bp )
 	{
 	  // Turn break point off
 	  g_array_remove_index_fast(breakpoints,k);
@@ -121,7 +121,7 @@ int pipeline(struct _Registers *Registers)
   int RC_set;
 
 
-  WordA PC_old;
+  WordP PC_old;
 
     
   // get new pipe_decodeP
@@ -307,7 +307,7 @@ int pipeline(struct _Registers *Registers)
               Registers->fetch_flags = 0;
               for (k=0;k<breakpoints->len;k++)
                 {
-                  if ( g_array_index(breakpoints,WordA,k) == Registers->PC )
+                  if ( g_array_index(breakpoints,WordP,k) == Registers->PC )
                     {
                       
                       Registers->fetch_flags |= 1;
@@ -424,7 +424,7 @@ void default_registers(struct _Registers *Registers)
 }
 
 // Reads instruction out of instruction cache starting at address
-void set_pipe_decodeP(WordA address, struct _Registers *Registers, int flags)
+void set_pipe_decodeP(WordP address, struct _Registers *Registers, int flags)
 {
   //int length;
 
@@ -590,12 +590,12 @@ struct _Registers *pipe_new()
   Registers->Special_Flush = 1;
 
   if ( breakpoints == NULL )
-    breakpoints = g_array_new(FALSE,FALSE,sizeof(WordA));
+    breakpoints = g_array_new(FALSE,FALSE,sizeof(WordP));
 
   return Registers;
 }
   
-unsigned char read_instruction_cache(WordA address)
+unsigned char read_instruction_cache(WordP address)
 {
   int wait_state;
   // temporary, fixme

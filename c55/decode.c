@@ -29,7 +29,7 @@ int check_mask(const char *mask, struct _decoded_opcode *decode_nfo )
 {
   int bit,length,smem;
   unsigned char mach_code;
-  WordA address;
+  WordP address;
 
   g_return_val_if_fail(*mask,-1);
 
@@ -772,7 +772,7 @@ void l_decode(gchar *ch, gchar *mask, char info,
 void L_decode(gchar *ch, gchar *mask, char info, 
               struct _decoded_opcode *decode_nfo)
 {
-  WordA bits;
+  WordP bits;
   int num_mask;
   int length;
   gchar *sym_name;

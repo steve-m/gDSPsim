@@ -69,7 +69,7 @@ static void address_stg(struct _PipeLine *pipeP, struct _Registers *Reg)
       else
 	{
 	  MMR->RSA0 = Reg->PC + pipeP->decode_nfo.length;
-	  MMR->REA0 = ( ((WordA)opcode.bop[1]<<8) | ((WordA)opcode.bop[3]) ) +
+	  MMR->REA0 = ( ((WordP)opcode.bop[1]<<8) | ((WordP)opcode.bop[3]) ) +
 	    pipeP->decode_nfo.length + Reg->PC;
 	  set_BRAF(MMR,1);
 	}
@@ -81,14 +81,14 @@ static void address_stg(struct _PipeLine *pipeP, struct _Registers *Reg)
 	case 0:
 	  // Both Loops are open
 	  MMR->RSA0 = Reg->PC + pipeP->decode_nfo.length;
-	  MMR->REA0 = ( ((WordA)opcode.bop[1]<<8) | ((WordA)opcode.bop[3]) ) +
+	  MMR->REA0 = ( ((WordP)opcode.bop[1]<<8) | ((WordP)opcode.bop[3]) ) +
 	    pipeP->decode_nfo.length + Reg->PC;
 	  Reg->CFCT = Reg->CFCT | 2;
 	  break;
 	case 2:
 	  // Loop 1 is open
 	  MMR->RSA1 = Reg->PC + pipeP->decode_nfo.length;
-	  MMR->REA1 = ( ((WordA)opcode.bop[1]<<8) | ((WordA)opcode.bop[3]) ) +
+	  MMR->REA1 = ( ((WordP)opcode.bop[1]<<8) | ((WordP)opcode.bop[3]) ) +
 	    pipeP->decode_nfo.length + Reg->PC;
 	  Reg->CFCT = Reg->CFCT + 5;
 	  break;

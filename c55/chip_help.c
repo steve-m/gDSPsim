@@ -734,9 +734,9 @@ int check_condition(unsigned char cond, struct _Registers *Reg)
   return 0;
 }
 
-WordA get_extended_reg(int xr, struct _Registers *Reg)
+WordP get_extended_reg(int xr, struct _Registers *Reg)
 {
-  WordA ab;
+  WordP ab;
 
   switch ( xr )
     {
@@ -753,37 +753,37 @@ WordA get_extended_reg(int xr, struct _Registers *Reg)
       ab = MMR->AC0.worda;
       return ab;
     case 4:
-      ab = ((WordA)(MMR->SPH & 0xff))<<16 | (WordA)MMR->SP;
+      ab = ((WordP)(MMR->SPH & 0xff))<<16 | (WordP)MMR->SP;
       return ab;
     case 6:
-      ab = ((WordA)(MMR->CDPH & 0xff))<<16 | (WordA)MMR->CDP;
+      ab = ((WordP)(MMR->CDPH & 0xff))<<16 | (WordP)MMR->CDP;
       return ab;
     case 7:
-      ab = ((WordA)(MMR->DPH & 0xff))<<16 | (WordA)MMR->DP;
+      ab = ((WordP)(MMR->DPH & 0xff))<<16 | (WordP)MMR->DP;
       return ab;
     case 8:
-      ab = ((WordA)(Reg->AR0H & 0xff))<<16 | (WordA)MMR->ar0;
+      ab = ((WordP)(Reg->AR0H & 0xff))<<16 | (WordP)MMR->ar0;
       return ab;
     case 9:
-      ab = ((WordA)(Reg->AR1H & 0xff))<<16 | (WordA)MMR->ar1;
+      ab = ((WordP)(Reg->AR1H & 0xff))<<16 | (WordP)MMR->ar1;
       return ab;
     case 10:
-      ab = ((WordA)(Reg->AR2H & 0xff))<<16 | (WordA)MMR->ar2;
+      ab = ((WordP)(Reg->AR2H & 0xff))<<16 | (WordP)MMR->ar2;
       return ab;
     case 11:
-      ab = ((WordA)(Reg->AR3H & 0xff))<<16 | (WordA)MMR->ar3;
+      ab = ((WordP)(Reg->AR3H & 0xff))<<16 | (WordP)MMR->ar3;
       return ab;
     case 12:
-      ab = ((WordA)(Reg->AR4H & 0xff))<<16 | (WordA)MMR->ar4;
+      ab = ((WordP)(Reg->AR4H & 0xff))<<16 | (WordP)MMR->ar4;
       return ab;
     case 13:
-      ab = ((WordA)(Reg->AR5H & 0xff))<<16 | (WordA)MMR->ar5;
+      ab = ((WordP)(Reg->AR5H & 0xff))<<16 | (WordP)MMR->ar5;
       return ab;
     case 14:
-      ab = ((WordA)(Reg->AR6H & 0xff))<<16 | (WordA)MMR->ar6;
+      ab = ((WordP)(Reg->AR6H & 0xff))<<16 | (WordP)MMR->ar6;
       return ab;
     case 15:
-      ab = ((WordA)(Reg->AR7H & 0xff))<<16 | (WordA)MMR->ar7;
+      ab = ((WordP)(Reg->AR7H & 0xff))<<16 | (WordP)MMR->ar7;
       return ab;
     default:
       printf("Error! %s:%d\n",__FILE__,__LINE__);
@@ -793,7 +793,7 @@ WordA get_extended_reg(int xr, struct _Registers *Reg)
 }
 
 // Sets extended registers
-void set_extended_reg(WordA value, int xr, struct _Registers *Reg)
+void set_extended_reg(WordP value, int xr, struct _Registers *Reg)
 {
   switch ( xr )
     {

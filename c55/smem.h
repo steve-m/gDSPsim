@@ -45,7 +45,7 @@ extern "C"
   // Sets EAB
   void lmem_set_EAB_b2(struct _PipeLine *pipeP, struct _Registers *Reg);
   
-  WordA smem_decode(int p, int mod, Opcode mach_code, int len);
+  WordP smem_decode(int p, int mod, Opcode mach_code, int len);
   
   Word bit_reversal(Word start, Word bit_reversed_one, SWord adjustment);
   

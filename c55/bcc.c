@@ -64,7 +64,7 @@ Instruction_Class BCC_Obj =
 static void read_stg(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   Opcode opcode;
-  WordA addrs;
+  WordP addrs;
   gint16 offset;
 
   opcode = pipeP->decode_nfo.mach_code;
@@ -120,8 +120,8 @@ static void read_stg(struct _PipeLine *pipeP, struct _Registers *Reg)
       // BCC P24, cond
       if ( check_condition(opcode.bop[1]&0x7f,Reg) )
 	{
-	  addrs  = ((WordA)opcode.bop[2]<<16) | ((WordA)opcode.bop[3]<<8) |
-	    ((WordA)opcode.bop[4]);
+	  addrs  = ((WordP)opcode.bop[2]<<16) | ((WordP)opcode.bop[3]<<8) |
+	    ((WordP)opcode.bop[4]);
 	  pipeP->flags = pipeP->flags | PIPE_PC_CHANGED;
 	  Reg->PC = addrs;
 	  pipeP->cycles = 5;

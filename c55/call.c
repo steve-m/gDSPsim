@@ -94,7 +94,7 @@ static void address_stg(struct _PipeLine *pipeP, struct _Registers *Reg)
 static void read_stg(struct _PipeLine *pipeP, struct _Registers *Reg)
 {
   Opcode opcode;
-  WordA addrs;
+  WordP addrs;
   int wait_state;
 
   opcode = pipeP->decode_nfo.mach_code;
@@ -103,7 +103,7 @@ static void read_stg(struct _PipeLine *pipeP, struct _Registers *Reg)
     {
     case 0:
       // CALL L16
-      addrs  = ((WordA)opcode.bop[1]<<8) | ((WordA)opcode.bop[2]);
+      addrs  = ((WordP)opcode.bop[1]<<8) | ((WordP)opcode.bop[2]);
       pipeP->flags = pipeP->flags | PIPE_PC_CHANGED;
       Reg->PC = addrs;
       pipeP->cycles = 6;
@@ -118,8 +118,8 @@ static void read_stg(struct _PipeLine *pipeP, struct _Registers *Reg)
 	  wait_state = write_data_mem_long(MMR->SP,(Word)(Reg->RETA&0xffff));
 	  wait_state = write_data_mem_long(MMR->SSP,(Word)(Reg->RETA>>16) | (Reg->CFCT >> 4) );
 	  
-	  addrs  = ((WordA)opcode.bop[2]<<16) | ((WordA)opcode.bop[3]<<8) |
-	    ((WordA)opcode.bop[3]);
+	  addrs  = ((WordP)opcode.bop[2]<<16) | ((WordP)opcode.bop[3]<<8) |
+	    ((WordP)opcode.bop[3]);
 	  pipeP->flags = pipeP->flags | PIPE_PC_CHANGED;
 	  Reg->PC = addrs;
 	}
@@ -127,8 +127,8 @@ static void read_stg(struct _PipeLine *pipeP, struct _Registers *Reg)
       break;
     case 2:
       // CALL P24
-      addrs  = ((WordA)opcode.bop[1]<<16) | ((WordA)opcode.bop[2]<<8) |
-	((WordA)opcode.bop[3]);
+      addrs  = ((WordP)opcode.bop[1]<<16) | ((WordP)opcode.bop[2]<<8) |
+	((WordP)opcode.bop[3]);
       pipeP->flags = pipeP->flags | PIPE_PC_CHANGED;
       Reg->PC = addrs;
       pipeP->cycles = 5;
@@ -143,7 +143,7 @@ static void read_stg(struct _PipeLine *pipeP, struct _Registers *Reg)
 	  wait_state = write_data_mem_long(MMR->SP,(Word)(Reg->RETA&0xffff));
 	  wait_state = write_data_mem_long(MMR->SSP,(Word)(Reg->RETA>>16) | (Reg->CFCT >> 4) );
 	  
-	  addrs  = ((WordA)opcode.bop[2]<<8) | ((WordA)opcode.bop[3]);
+	  addrs  = ((WordP)opcode.bop[2]<<8) | ((WordP)opcode.bop[3]);
 	  pipeP->flags = pipeP->flags | PIPE_PC_CHANGED;
 	  Reg->PC = addrs;
 	  pipeP->cycles = 6;
@@ -158,7 +158,7 @@ static void read_stg(struct _PipeLine *pipeP, struct _Registers *Reg)
 	union _GP_Reg_Union reg_union;
 	
 	reg_union = get_register2(opcode.bop[1]&0x3,0,0);
-	addrs = (WordA)reg_union.guint64;
+	addrs = (WordP)reg_union.guint64;
 	pipeP->flags = pipeP->flags | PIPE_PC_CHANGED;
 	Reg->PC = addrs;
 	pipeP->cycles = 10;
