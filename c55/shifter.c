@@ -32,10 +32,12 @@
 // 6 = T2
 // 7 = T3
 // 8-15 = ARx
+// 16 = DB
 
 // (shift amount control)
 // 0-3 = Tx
-// 4 = Immediate
+// 4-7 = Tx with rounding
+// 8 = Immediate
 
 // output_mux
 // 0 = AC0
@@ -75,11 +77,49 @@ inline void shifter(Word input_mux, Word shift_mux, SWord shift,
     case 4:
       reg.gint64 = (SWord)MMR->T0;
       break;
-      
+    case 5:
+      reg.gint64 = (SWord)MMR->T1;
+      break;
+    case 6:
+      reg.gint64 = (SWord)MMR->T2;
+      break;
+    case 7:
+      reg.gint64 = (SWord)MMR->T3;
+      break;
+    case 8:
+      reg.gint64 = (SWord)MMR->ar0;
+      break;
+    case 9:
+      reg.gint64 = (SWord)MMR->ar1;
+      break;
+    case 10:
+      reg.gint64 = (SWord)MMR->ar2;
+      break;
+    case 11:
+      reg.gint64 = (SWord)MMR->ar3;
+      break;
+    case 12:
+      reg.gint64 = (SWord)MMR->ar4;
+      break;
+    case 13:
+      reg.gint64 = (SWord)MMR->ar5;
+      break;
+    case 14:
+      reg.gint64 = (SWord)MMR->ar6;
+      break;
+    case 15:
+      reg.gint64 = (SWord)MMR->ar7;
+      break;
+    case 16:
+      if ( SXMD(MMR) )
+	reg.gint64 = (SWord)Reg->DB;
+      else
+	reg.guint64 = Reg->DB;
     }
 
   if ( input_mux < 4 )
     {
+      sat = SATD(MMR);
       // It's an accumulator
       if ( (M40(MMR)==0) && (C54CM(MMR)==0) )
 	{
@@ -94,12 +134,11 @@ inline void shifter(Word input_mux, Word shift_mux, SWord shift,
 	    {
 	      reg.gp_reg.bgp.byte4 = 0;
 	    }
-	  overflow_bit = 39;
-	  sat = SATD(MMR);
+	  overflow_bit = 31;
 	}
       else
 	{
-	  overflow_bit = 31;
+	  overflow_bit = 39;
 	}
     }
   else
@@ -111,18 +150,28 @@ inline void shifter(Word input_mux, Word shift_mux, SWord shift,
   switch ( shift_mux )
     {
     case 0:
+    case 4:
       shift = (SWord)MMR->T0;
       break;
     case 1:
+    case 5:
       shift = (SWord)MMR->T1;
       break;
     case 2:
+    case 6:
       shift = (SWord)MMR->T2;
       break;
     case 3:
+    case 7:
       shift = (SWord)MMR->T3;
       break;
     }
+
+  // shift can be from 31 to -16
+  if ( shift > 31 )
+    shift = shift & 0x3f;
+  else if ( shift < -16 )
+    shift = (SWord)((Word)shift | 0xfff0 );
 
 
   // Check for overflow
@@ -149,7 +198,30 @@ inline void shifter(Word input_mux, Word shift_mux, SWord shift,
       reg.guint64 = reg.guint64 << shift;
     }
 
-  if ( overflow )
+  if ( (shift_mux>=4) && (shift_mux<=7) )
+    {
+      // Rounding
+      if ( RDM(MMR) && C54CM(MMR)==0 )
+	{
+	  if ( reg.words.low > 0x8000 )
+	    {
+	      reg.guint64 = reg.guint64 + 0x8000;
+	    }
+	  else if ( (reg.words.low == 0x8000) && 
+		    (reg.words.high & 1 ) )
+	    {
+	      reg.guint64 = reg.guint64 + 0x8000;
+	    }
+	  reg.words.low = 0;
+	}
+      else
+	{
+	  reg.guint64 = reg.guint64 + 0x8000;
+	  reg.words.low = 0;
+	}
+    }
+
+  if ( overflow && sat )
     {
       if ( reg.gint64 > 0 )
 	{
@@ -197,6 +269,42 @@ inline void shifter(Word input_mux, Word shift_mux, SWord shift,
       break;
     case 3:
       MMR->AC3 = reg.gp_reg;
+      break;
+    case 4:
+      MMR->T0 = reg.words.low;
+      break;
+    case 5:
+      MMR->T1 = reg.words.low;
+      break;
+    case 6:
+      MMR->T2 = reg.words.low;
+      break;
+    case 7:
+      MMR->T3 = reg.words.low;
+      break;
+    case 8:
+      MMR->ar0 = reg.words.low;
+      break;
+    case 9:
+      MMR->ar1 = reg.words.low;
+      break;
+    case 10:
+      MMR->ar2 = reg.words.low;
+      break;
+    case 11:
+      MMR->ar3 = reg.words.low;
+      break;
+    case 12:
+      MMR->ar4 = reg.words.low;
+      break;
+    case 13:
+      MMR->ar5 = reg.words.low;
+      break;
+    case 14:
+      MMR->ar6 = reg.words.low;
+      break;
+    case 15:
+      MMR->ar7 = reg.words.low;
       break;
     }
 }
