@@ -297,6 +297,7 @@ static void combine_mem_blocks(GList *keepL, GList *removeL)
 
   keep->mem = g_new(Word,keep->end-keep->start+1);
   mem = keep->mem;
+  mem = mem + (remove->start - keep->start);
   mem2 = remove->mem;
   for (k=0;k<( remove->end - remove->start + 1);k++)
     {
