@@ -236,6 +236,8 @@ struct _MMR
 extern struct _MMR *MMR;
 extern struct _Registers *Reg;
 
+#define TC1(Reg)((((Reg)->ST0_55)&0x2000)>>13)
+#define TC2(Reg)((((Reg)->ST0_55)&0x1000)>>12)
 #define CARRY(Reg)((((Reg)->ST0_55)&0x800)>>11)
 
 // Convenience macros to read status bits
@@ -274,6 +276,8 @@ extern struct _Registers *Reg;
 
 #define set_BRAF(Reg,data)((Reg)->ST1_55=((Reg)->ST1_55 & 0x7fff)|((data) & 0x1)<<15)
 #define set_M40(Reg,data)((Reg)->ST1_55=((Reg)->ST1_55 & 0xfbff)|((data) & 0x1)<<10)
+
+#define set_ACOVx(Reg,data)({ if ((data)==0) set_ACOV0((Reg),1); else if ((data)==1) set_ACOV1((Reg),1); else if ((data)==2) set_ACOV2((Reg),1); else if ((data)==3) set_ACOV3((Reg),1); })
 
 struct _Registers
 {
