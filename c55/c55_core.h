@@ -429,7 +429,7 @@ typedef struct _Instruction_Class Instruction_Class;
 #define ENTRY_CHAR_HEIGHT 24
 
 // method to get memory page
-#define PAGE()((MMR->DP)<<16)
+#define PAGE()((MMR->DPH)<<16)
 //typedef unsigned char PWord;
 #define WORD_TO_PWORD(wrd,address)(((address)&0x1)?(((wrd)>>8)&0xff):((wrd)&0xff))
 #define PADDR_TO_ADDR(address)((address)>>1)
