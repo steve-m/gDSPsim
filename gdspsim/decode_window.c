@@ -312,7 +312,6 @@ GtkWidget *create_decode_window()
   //				     &style->bg[GTK_STATE_NORMAL],"check.xpm");
   pixmap = gdk_pixmap_create_from_xpm(decodeW->window,&mask,
 				      NULL,"stop.xpm");
-  printf("created pixbuf\n");
 
   {
     int k;
@@ -344,6 +343,23 @@ void highlight_pipeline(WordA prefetch, int advance)
   static int cntr=0;
   int lineNo,k;
   int last_line=-1;
+
+  // TODO need to find out if program memory has logged a change
+  // if so, redo window.
+
+  if ( dwn==NULL)
+    {
+      // no decode window yet
+      
+      if ( advance )
+	{
+	  cntr++;
+	  if ( cntr > 5 )
+	    cntr=0;
+	  pipeW[cntr]=prefetch;
+	}
+      return;
+    }
 
   if ( advance )
     {
