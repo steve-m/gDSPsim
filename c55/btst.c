@@ -94,16 +94,31 @@ static void execute(struct _PipeLine *pipeP, struct _Registers *Reg)
     case 2:
       // BTST Baddr, src, TCx
       r = (opcode.bop[2]>>4)&0xf;
-      bit = Reg->DB & 0xf;
       reg_union = get_register(r,0);
-      
-      if ( (1<<bit) & reg_union.guint64 )
+      if ( r < 4 )
 	{
-	  set_TCx(MMR,opcode.bop[2]&1,1);
+	  bit = Reg->DB & 0x3f;
+	  if ( (bit < 40) && ((1<<bit) & reg_union.guint64) )
+	    {
+	      set_TCx(MMR,opcode.bop[2]&1,1);
+	    }
+	  else
+	    {
+	      set_TCx(MMR,opcode.bop[2]&1,0);
+	    }
 	}
       else
 	{
-	  set_TCx(MMR,opcode.bop[2]&1,0);
+	  bit = Reg->DB & 0xf;
+      
+	  if ( (1<<bit) & reg_union.guint64 )
+	    {
+	      set_TCx(MMR,opcode.bop[2]&1,1);
+	    }
+	  else
+	    {
+	      set_TCx(MMR,opcode.bop[2]&1,0);
+	    }
 	}
       break;
     
