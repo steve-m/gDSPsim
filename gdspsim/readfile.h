@@ -60,36 +60,43 @@ struct _coff_header
 
 };
 
+/*
+ * These structs mirror the on-disk COFF layout and MUST use fixed-width
+ * integer types. The original 2002 code declared the fields as
+ * `unsigned long int`, which is 4 bytes under 32-bit Linux (the only
+ * platform it was ever built on) but 8 bytes on modern x86_64, so a
+ * 64-bit build was silently reading garbage past each section header.
+ */
 struct _section_header_ti
 {
-  char           s_name[8];   // 8-character null padded section name
-  unsigned long int       s_paddr;   // Physical address of section
-  unsigned long int       s_vaddr;   // Virtual address of section.  always same as above?
-  unsigned long int s_size;    // Section size in bytes
-  unsigned long int       s_scnptr;  // File pointer to raw data. =0 for non-initialized sections ?
+  char     s_name[8];   // 8-character null padded section name
+  guint32  s_paddr;     // Physical address of section
+  guint32  s_vaddr;     // Virtual address of section.  always same as above?
+  guint32  s_size;      // Section size in bytes
+  guint32  s_scnptr;    // File pointer to raw data. =0 for non-initialized sections ?
 
-  unsigned long int       s_relptr;  // File pointer to relocation entries
-  unsigned long int       s_lnnoptr; // File pointer to line number entries
-  unsigned short s_nreloc;  // Number of relocation  entries
-  unsigned short s_nlnno;   // Number of line number entries
-  long int       s_flags;   // Flags. only nonzero for .text section?
-  char           bogus[8];    // not in the spec, but needed for c54
-};
+  guint32  s_relptr;    // File pointer to relocation entries
+  guint32  s_lnnoptr;   // File pointer to line number entries
+  guint16  s_nreloc;    // Number of relocation  entries
+  guint16  s_nlnno;     // Number of line number entries
+  guint32  s_flags;     // Flags. only nonzero for .text section?
+  char     bogus[8];    // not in the spec, but needed for c54
+} __attribute__((packed));
 
 struct _section_header_binutil
 {
-  char           s_name[8];   // 8-character null padded section name
-  unsigned long int       s_paddr;   // Physical address of section
-  unsigned long int       s_vaddr;   // Virtual address of section.  always same as above?
-  unsigned long int s_size;    // Section size in bytes
-  unsigned long int       s_scnptr;  // File pointer to raw data. =0 for non-initialized sections ?
+  char     s_name[8];   // 8-character null padded section name
+  guint32  s_paddr;     // Physical address of section
+  guint32  s_vaddr;     // Virtual address of section.  always same as above?
+  guint32  s_size;      // Section size in bytes
+  guint32  s_scnptr;    // File pointer to raw data. =0 for non-initialized sections ?
 
-  unsigned long int       s_relptr;  // File pointer to relocation entries
-  unsigned long int       s_lnnoptr; // File pointer to line number entries
-  unsigned short s_nreloc;  // Number of relocation  entries
-  unsigned short s_nlnno;   // Number of line number entries
-  long int       s_flags;   // Flags. only nonzero for .text section?
-};
+  guint32  s_relptr;    // File pointer to relocation entries
+  guint32  s_lnnoptr;   // File pointer to line number entries
+  guint16  s_nreloc;    // Number of relocation  entries
+  guint16  s_nlnno;     // Number of line number entries
+  guint32  s_flags;     // Flags. only nonzero for .text section?
+} __attribute__((packed));
 
 union _section_header
 {
