@@ -212,6 +212,7 @@ int main(int argc, char *argv[])
 {
   GtkWidget *window, *vbox, *menubar;
   int k;
+  int headless_cycles = 0;  /* -r N: run N pipeline steps then exit */
 
   gtk_init(&argc, &argv);
 
@@ -229,8 +230,28 @@ int main(int argc, char *argv[])
               printf("file = %s\n", argv[k+1]);
               open_file(argv[k+1]);
               break;
+            case 'r':
+              headless_cycles = atoi(argv[k+1]);
+              break;
             }
         }
+    }
+
+  if (headless_cycles > 0)
+    {
+      /*
+       * Headless test runner: execute up to `headless_cycles` pipeline
+       * steps with no windows created, then print the final PC and
+       * exit. Used by testprog/ to verify loaded programs without
+       * needing xdotool to drive the GUI.
+       */
+      int step;
+      for (step = 0; step < headless_cycles; step++)
+        if (pipeline(Registers) != 0)
+          break;
+      printf("headless: ran %d cycles, final PC = 0x%x\n",
+             step, Registers->PC);
+      return 0;
     }
 
   window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
