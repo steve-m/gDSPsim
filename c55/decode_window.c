@@ -116,6 +116,25 @@ static void radio_CB(GtkCheckMenuItem *item, gpointer data)
     decode_follow_pref = GPOINTER_TO_INT(data);
 }
 
+static int pipe_row = -2;
+
+static void destroy_decode_window_CB(GtkWidget *w, gpointer data)
+{
+  if (dwn == NULL)
+    return;
+  /*
+   * The GtkListStore is owned by the tree view and was already
+   * finalized when gtk tore down the window; dwn->store is now a
+   * dangling pointer, so we must not touch it here — just drop our
+   * own bookkeeping and NULL dwn before the pipeline fires again.
+   */
+  if (dwn->word2line)
+    g_array_free(dwn->word2line, TRUE);
+  g_free(dwn);
+  dwn = NULL;
+  pipe_row = -2;
+}
+
 void create_decode_window(void)
 {
   GtkWidget *vbox, *hbox, *scrolledW;
@@ -140,6 +159,8 @@ void create_decode_window(void)
   gtk_window_set_title(GTK_WINDOW(dwn->decodeW), "Disassembly");
   gtk_container_set_border_width(GTK_CONTAINER(dwn->decodeW), 0);
   gtk_window_add_accel_group(GTK_WINDOW(dwn->decodeW), gDSP_keyboard_accel);
+  g_signal_connect(dwn->decodeW, "destroy",
+                   G_CALLBACK(destroy_decode_window_CB), NULL);
 
   vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
   gtk_container_add(GTK_CONTAINER(dwn->decodeW), vbox);
@@ -262,8 +283,6 @@ void create_decode_window(void)
 
   gtk_widget_show_all(dwn->decodeW);
 }
-
-static int pipe_row = -2;
 
 void update_pipeline(WordP prefetch)
 {
