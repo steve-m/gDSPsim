@@ -5,21 +5,19 @@
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
 # version 2, as published by the Free Software Foundation.
-# 
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-# 
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-
-CC = gcc
+CC ?= gcc
 PROGRAM	= gdspsim-c55
-PREFIX = /usr
+PREFIX ?= /usr
 VPATH = .:../gdspsim
+
+GTK_CFLAGS = $(shell pkg-config gtk+-3.0 --cflags)
+GTK_LIBS   = $(shell pkg-config gtk+-3.0 --libs)
+
+CFLAGS += -Wall -Wno-deprecated-declarations -Wno-pointer-to-int-cast \
+          -Wno-int-to-pointer-cast -Wno-incompatible-pointer-types \
+          -Wno-format -Wno-unused -fgnu89-inline -fcommon -ggdb \
+          -I../c55 -I../gdspsim $(GTK_CFLAGS) -D_C55
 
 SRCS	= \
 	aadd.c \
@@ -110,20 +108,15 @@ SRCS	= \
 
 OBJS	= $(SRCS:%.c=%.o)
 
-.c.o:
-	$(CC) -Wall -ggdb -I../c55 -I../gdspsim `pkg-config gnome gtk+ --cflags` -D_C55  -c $<
-
 all:	$(PROGRAM)
 
 $(PROGRAM):	$(OBJS)
-		$(CC) -rdynamic `pkg-config gnome gtk+  --libs` -o $(PROGRAM) $(OBJS) -lgtkextra 
-		@echo "done"
+	$(CC) -o $@ $(OBJS) $(GTK_LIBS) -lm
 
 install:	$(PROGRAM)
-		install -D --mode=755 $(PROGRAM) $(PREFIX)/bin/$(PROGRAM)
-		install -D --mode=644 stop.xpm $(PREFIX)/share/$(PROGRAM)/stop.xpm
+	install -D --mode=755 $(PROGRAM) $(PREFIX)/bin/$(PROGRAM)
 
-clean:		
-		/bin/rm -f *.o $(PROGRAM)
+clean:
+	/bin/rm -f *.o $(PROGRAM)
 
-
+.PHONY: all install clean

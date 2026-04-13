@@ -26,3 +26,5 @@ _$*
 *.ln
 core
 # CVS default ignores end
+c54/gdspsim-c54
+c55/gdspsim-c55

@@ -6,35 +6,52 @@
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2, as published by the Free Software Foundation.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
+/*
+ * Memory window. GTK3 port: list is a GtkTreeView backed by GtkListStore.
+ * Columns: address, value, plus hidden fg/bg strings to colour changed rows.
+ */
+
 #include <stdio.h>
+#include <string.h>
 #include <decode_window.h>
 #include <chip_core.h>
 #include <find_opcode.h>
 #include <memory.h>
 #include <entryCB.h>
-#include <gtkbox_add.h>
-#include <string.h>
 #include <memory_window.h>
 
-extern GdkFont *gdsp_Decode_Font;
-GList *all_mem_win_list=NULL;
+enum {
+  COL_ADDRESS = 0,
+  COL_VALUE,
+  COL_FG,
+  COL_BG,
+  N_COLS
+};
 
-struct _mem_window_nfo
-{
+/* Foreground colours: 0=written, 1=unavailable, 2=read; BG: SP row */
+#define FG_WRITTEN      "#800000"
+#define FG_UNAVAILABLE  "#9400d3"
+#define FG_READ         "#008080"
+#define BG_SP           "#eee8aa"
+
+GList *all_mem_win_list = NULL;
+
+struct _mem_window_nfo {
   GtkWidget *memoryW;
   int memory_type;
-  GtkCList *clist;  // The vbox that memory display is packed into
+  GtkTreeView *view;
+  GtkListStore *store;
   GtkWidget *label_data;
   GtkWidget *label_prog;
   WordP start;
@@ -43,662 +60,577 @@ struct _mem_window_nfo
   struct _entryCB_nfo *end_nfo;
 };
 
-static GdkColor gdsp_color[4]=
-{
-  {0,0x8000,0x0,0x0},         // forground color for written
-  {0,148*256,0,211*256},      // forground color for not allocated
-  {0,0x0,0x8000,0x8000},      // forground color for read
-  {0,238*256,232*256,170*256} // background color for SP
-};
-
-static GdkColormap *gdsp_colormap=NULL;
-
 static Word SP_last;
 
 #define MEM_CHANGED_BLK 5
-struct _mem_changed
-{
+struct _mem_changed {
   int valid;
   WordP changed[MEM_CHANGED_BLK];
-  unsigned int accessed[MEM_CHANGED_BLK][2]; // written, read
+  unsigned int accessed[MEM_CHANGED_BLK][2];
 };
 
-GList *head_mem_changed=NULL;
+GList *head_mem_changed = NULL;
 
-void entry_data_memCB( GtkWidget *widget, WordP offset )
+/* ------------------------------------------------------------------ */
+/* Helpers to access rows by numeric index                            */
+/* ------------------------------------------------------------------ */
+static gboolean get_row_iter(struct _mem_window_nfo *mwn, int row,
+                             GtkTreeIter *iter)
 {
-  gchar *entry_text,*textP;
-  int value;
-
-  entry_text = gtk_editable_get_chars(GTK_EDITABLE(widget),0,-1);
-  // entry_text = gtk_entry_get_text(GTK_ENTRY(widget));
-  textP = entry_text;
-  if ( *textP++ == '0' )
-    {
-      if ( *textP == 'X' || *textP == 'x' )
-	{
-	  //	  // now remove all non hex numbers
-	  //	  textP++;
-	  //	  while ( *textP )
-	    {
-	      sscanf(entry_text,"0x%x",&value);
-	      write_data_mem(offset,value);
-	    }
-	}
-  
-    }
-  printf("Entry contents: %s %d\n", entry_text,value);
-  g_free(entry_text);
-
+  return gtk_tree_model_iter_nth_child(GTK_TREE_MODEL(mwn->store),
+                                       iter, NULL, row);
 }
 
-void entry_prog_memCB( GtkWidget *widget, WordP offset )
+static void set_row_colour(struct _mem_window_nfo *mwn, int row,
+                           const gchar *fg, const gchar *bg)
 {
-  gchar *entry_text,*textP;
-  int value;
-
-  entry_text = gtk_editable_get_chars(GTK_EDITABLE(widget),0,-1);
-  // entry_text = gtk_entry_get_text(GTK_ENTRY(widget));
-  textP = entry_text;
-  if ( *textP++ == '0' )
-    {
-      if ( *textP == 'X' || *textP == 'x' )
-	{
-	  //	  // now remove all non hex numbers
-	  //	  textP++;
-	  //	  while ( *textP )
-	    {
-	      sscanf(entry_text,"0x%x",&value);
-	      write_program_mem(offset,value);
-	    }
-	}
-  
-    }
-  printf("Entry contents: %s %d\n", entry_text,value);
-  g_free(entry_text);
-
+  GtkTreeIter iter;
+  if (!get_row_iter(mwn, row, &iter))
+    return;
+  gtk_list_store_set(mwn->store, &iter, COL_FG, fg, COL_BG, bg, -1);
 }
 
-static void click_CB( GtkWidget *W, gint row, gint column, GdkEventButton *event, struct _mem_window_nfo *mwn )
+static void set_row_value(struct _mem_window_nfo *mwn, int row,
+                          const gchar *v)
 {
-  // Create popup window, with entry widget to change value
-  GtkWidget *popupW,*tableW,*label,*entry;
-  GtkTable *table;
-  gchar temp_str[7];
+  GtkTreeIter iter;
+  if (!get_row_iter(mwn, row, &iter))
+    return;
+  gtk_list_store_set(mwn->store, &iter, COL_VALUE, v, -1);
+}
+
+/* ------------------------------------------------------------------ */
+/* Value edit popup                                                   */
+/* ------------------------------------------------------------------ */
+void entry_data_memCB(GtkWidget *widget, gpointer user_data)
+{
+  WordP offset = (WordP)(gsize)user_data;
+  const gchar *entry_text = gtk_entry_get_text(GTK_ENTRY(widget));
+  int value = 0;
+  if (entry_text && entry_text[0] == '0' &&
+      (entry_text[1] == 'x' || entry_text[1] == 'X'))
+    sscanf(entry_text, "0x%x", &value);
+  else
+    sscanf(entry_text, "%d", &value);
+  write_data_mem(offset, value);
+}
+
+void entry_prog_memCB(GtkWidget *widget, gpointer user_data)
+{
+  WordP offset = (WordP)(gsize)user_data;
+  const gchar *entry_text = gtk_entry_get_text(GTK_ENTRY(widget));
+  int value = 0;
+  if (entry_text && entry_text[0] == '0' &&
+      (entry_text[1] == 'x' || entry_text[1] == 'X'))
+    sscanf(entry_text, "0x%x", &value);
+  else
+    sscanf(entry_text, "%d", &value);
+  write_program_mem(offset, value);
+}
+
+static void row_activated_CB(GtkTreeView *tv, GtkTreePath *path,
+                             GtkTreeViewColumn *col,
+                             struct _mem_window_nfo *mwn)
+{
+  GtkWidget *popupW, *grid, *label, *entry;
+  gchar temp_str[16];
   WordP address;
+  gint *indices;
 
-  address = row + mwn->start;
+  indices = gtk_tree_path_get_indices(path);
+  if (!indices)
+    return;
+  address = indices[0] + mwn->start;
 
-  popupW = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-
-  //  gtk_signal_connect(GTK_OBJECT(popupW),"destroy",
-  //	     (GtkSignalFunc)destroy_window_CB,mem_window);
-
-  tableW = gtk_table_new(2,2,FALSE);
-  gtk_widget_show(tableW);
-  table = GTK_TABLE(tableW);
-  
-  gtk_container_add (GTK_CONTAINER (popupW), tableW);
+  popupW = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+  gtk_window_set_title(GTK_WINDOW(popupW), "Edit memory");
+  grid = gtk_grid_new();
+  gtk_container_add(GTK_CONTAINER(popupW), grid);
 
   label = gtk_label_new("address");
-  gtk_table_attach(table, label, 0,1, 0,1, 0,0,0,0);
-  gtk_widget_show(label);
+  gtk_grid_attach(GTK_GRID(grid), label, 0, 0, 1, 1);
 
   label = gtk_label_new("value");
-  gtk_table_attach(table, label, 1,2, 0,1, 0,0,0,0);
-  gtk_widget_show(label);
+  gtk_grid_attach(GTK_GRID(grid), label, 1, 0, 1, 1);
 
-  g_snprintf(temp_str,7,"0x%x",address);
+  g_snprintf(temp_str, 16, "0x%x", address);
   label = gtk_label_new(temp_str);
-  gtk_table_attach(table, label, 0,1, 1,2, 0,0,0,0);
-  gtk_widget_show(label);
+  gtk_grid_attach(GTK_GRID(grid), label, 0, 1, 1, 1);
 
   entry = gtk_entry_new();
-#ifdef GTK2
-  gtk_entry_set_width_chars(GTK_ENTRY(entry),13);
-#endif
-  gtk_entry_set_max_length(GTK_ENTRY(entry),13);
-  gtk_table_attach(table, entry, 1,2, 1,2, 0,0,0,0);
-  gtk_widget_show (entry);  
-  if ( mwn->memory_type == DATA_MEM_TYPE )
-    gtk_signal_connect(GTK_OBJECT(entry), "activate",
-		       GTK_SIGNAL_FUNC(entry_data_memCB),
-		       (gpointer)address);
+  gtk_entry_set_width_chars(GTK_ENTRY(entry), 13);
+  gtk_entry_set_max_length(GTK_ENTRY(entry), 13);
+  gtk_grid_attach(GTK_GRID(grid), entry, 1, 1, 1, 1);
+
+  if (mwn->memory_type == DATA_MEM_TYPE)
+    g_signal_connect(entry, "activate", G_CALLBACK(entry_data_memCB),
+                     (gpointer)(gsize)address);
   else
-    gtk_signal_connect(GTK_OBJECT(entry), "activate",
-		       GTK_SIGNAL_FUNC(entry_prog_memCB),
-		       (gpointer)address);
+    g_signal_connect(entry, "activate", G_CALLBACK(entry_prog_memCB),
+                     (gpointer)(gsize)address);
 
-  gtk_widget_show(popupW);
-
+  gtk_widget_show_all(popupW);
 }
 
-static void destroy_window_CB( GtkWidget *W, gpointer data )
+/* ------------------------------------------------------------------ */
+static void destroy_window_CB(GtkWidget *W, gpointer data)
 {
-  struct _mem_window_nfo *nfo;
-
-  nfo=data;
-
-  all_mem_win_list=g_list_remove(all_mem_win_list,nfo);
-
+  struct _mem_window_nfo *nfo = data;
+  all_mem_win_list = g_list_remove(all_mem_win_list, nfo);
   g_free(nfo->end_nfo);
   g_free(nfo->start_nfo);
   g_free(nfo);
 }
 
-static void mem_type_changeCB( GtkWidget *W, struct _mem_window_nfo *mwn )
+static void mem_type_changeCB(GtkWidget *W, struct _mem_window_nfo *mwn)
 {
   g_return_if_fail(mwn);
   g_return_if_fail(W);
 
-  if ( mwn->memory_type & DATA_MEM_TYPE )
+  if (mwn->memory_type & DATA_MEM_TYPE)
     {
-      gtk_container_remove(GTK_CONTAINER(W),mwn->label_data);
+      gtk_container_remove(GTK_CONTAINER(W), mwn->label_data);
       mwn->memory_type = PROGRAM_MEM_TYPE;
-      gtk_container_add(GTK_CONTAINER(W),mwn->label_prog);
+      gtk_container_add(GTK_CONTAINER(W), mwn->label_prog);
       gtk_widget_show(mwn->label_prog);
-      gtk_widget_show(W);
     }
   else
     {
-      gtk_container_remove(GTK_CONTAINER(W),mwn->label_prog);
+      gtk_container_remove(GTK_CONTAINER(W), mwn->label_prog);
       mwn->memory_type = DATA_MEM_TYPE;
-      gtk_container_add(GTK_CONTAINER(W),mwn->label_data);
+      gtk_container_add(GTK_CONTAINER(W), mwn->label_data);
       gtk_widget_show(mwn->label_data);
     }
 }
 
-static void mem_view_append(WordP mem, MemType memtype, GtkCList *clist)
+static void mem_view_append(WordP mem, MemType memtype,
+                            struct _mem_window_nfo *mwn)
 {
-  int wait;
-  gchar *data[2];
-  gchar address[7],value_str[7];
-  int row,available;
+  int wait, available;
+  GtkTreeIter iter;
+  gchar address[16], value_str[16];
+  const gchar *fg = NULL;
 
-  g_snprintf(address,7,"0x%x",mem);
+  g_snprintf(address, 16, "0x%x", mem);
+  g_snprintf(value_str, 16, "0x%x",
+             read_mem(mem, &wait, memtype, &available));
 
-  g_snprintf(value_str,7,"0x%x",read_mem(mem,&wait,memtype,&available));
-  
-  data[0] = address;
-  data[1] = value_str;
+  if (!available)
+    fg = FG_UNAVAILABLE;
 
-  row = gtk_clist_append(clist,data);
-  if ( !available )
-    {
-      gtk_clist_set_foreground(clist,row,&gdsp_color[1]);
-    }
-
+  gtk_list_store_append(mwn->store, &iter);
+  gtk_list_store_set(mwn->store, &iter,
+                     COL_ADDRESS, address,
+                     COL_VALUE, value_str,
+                     COL_FG, fg,
+                     COL_BG, NULL,
+                     -1);
 }
 
-static void mem_view_prepend(WordP mem, MemType memtype, GtkCList *clist)
+static void mem_view_prepend(WordP mem, MemType memtype,
+                             struct _mem_window_nfo *mwn)
 {
-  int wait;
-  gchar *data[2];
-  gchar address[7],value_str[7];
-  int row,available;
+  int wait, available;
+  GtkTreeIter iter;
+  gchar address[16], value_str[16];
+  const gchar *fg = NULL;
 
-  g_snprintf(address,7,"0x%x",mem);
+  g_snprintf(address, 16, "0x%x", mem);
+  g_snprintf(value_str, 16, "0x%x",
+             read_mem(mem, &wait, memtype, &available));
 
-  g_snprintf(value_str,7,"0x%x",read_mem(mem,&wait,memtype,&available));
-  
-  data[0] = address;
-  data[1] = value_str;
+  if (!available)
+    fg = FG_UNAVAILABLE;
 
-  row = gtk_clist_prepend(clist,data);
-  if ( !available )
-    {
-      gtk_clist_set_foreground(clist,row,&gdsp_color[1]);
-    }
-
+  gtk_list_store_insert(mwn->store, &iter, 0);
+  gtk_list_store_set(mwn->store, &iter,
+                     COL_ADDRESS, address,
+                     COL_VALUE, value_str,
+                     COL_FG, fg,
+                     COL_BG, NULL,
+                     -1);
 }
 
-static void update_memory_view(struct _mem_window_nfo *mwn, WordP start_mem, WordP end_mem)
+static void remove_first_rows(struct _mem_window_nfo *mwn, int count)
+{
+  GtkTreeIter iter;
+  int k;
+  for (k=0;k<count;k++)
+    {
+      if (!gtk_tree_model_get_iter_first(GTK_TREE_MODEL(mwn->store), &iter))
+        return;
+      gtk_list_store_remove(mwn->store, &iter);
+    }
+}
+
+static void remove_row_at(struct _mem_window_nfo *mwn, int row)
+{
+  GtkTreeIter iter;
+  if (get_row_iter(mwn, row, &iter))
+    gtk_list_store_remove(mwn->store, &iter);
+}
+
+static void clear_store(struct _mem_window_nfo *mwn)
+{
+  gtk_list_store_clear(mwn->store);
+}
+
+static void update_memory_view(struct _mem_window_nfo *mwn,
+                               WordP start_mem, WordP end_mem)
 {
   WordP mem;
-  gchar temp_str[7];
+  gchar temp_str[16];
 
-  gtk_clist_freeze(mwn->clist);
-
-  if ( start_mem > end_mem )
+  if (start_mem > end_mem)
     {
-      if ( start_mem == mwn->start )
-	{
-	  start_mem = end_mem;
-	  g_snprintf(temp_str,7,"0x%x",start_mem);
-	  gtk_entry_set_text (GTK_ENTRY(mwn->start_nfo->entry),temp_str);
-	}
+      if (start_mem == mwn->start)
+        {
+          start_mem = end_mem;
+          g_snprintf(temp_str, 16, "0x%x", start_mem);
+          gtk_entry_set_text(GTK_ENTRY(mwn->start_nfo->entry), temp_str);
+        }
       else
-	{
-	  end_mem = start_mem;
-	  g_snprintf(temp_str,7,"0x%x",end_mem);
-	  gtk_entry_set_text (GTK_ENTRY(mwn->end_nfo->entry),temp_str);
-	}
+        {
+          end_mem = start_mem;
+          g_snprintf(temp_str, 16, "0x%x", end_mem);
+          gtk_entry_set_text(GTK_ENTRY(mwn->end_nfo->entry), temp_str);
+        }
     }
-  else if ( (end_mem - start_mem) > 0x200 )
+  else if ((end_mem - start_mem) > 0x200)
     {
-      if ( start_mem == mwn->start )
-	{
-	  start_mem = end_mem - 0x200;
-	  g_snprintf(temp_str,7,"0x%x",start_mem);
-	  gtk_entry_set_text (GTK_ENTRY(mwn->start_nfo->entry),temp_str);
-	}
+      if (start_mem == mwn->start)
+        {
+          start_mem = end_mem - 0x200;
+          g_snprintf(temp_str, 16, "0x%x", start_mem);
+          gtk_entry_set_text(GTK_ENTRY(mwn->start_nfo->entry), temp_str);
+        }
       else
-	{
-	  end_mem = start_mem + 0x200;
-	  g_snprintf(temp_str,7,"0x%x",end_mem);
-	  gtk_entry_set_text (GTK_ENTRY(mwn->end_nfo->entry),temp_str);
- 	}
+        {
+          end_mem = start_mem + 0x200;
+          g_snprintf(temp_str, 16, "0x%x", end_mem);
+          gtk_entry_set_text(GTK_ENTRY(mwn->end_nfo->entry), temp_str);
+        }
     }
 
-  if ( start_mem < mwn->start )
+  if (start_mem < mwn->start)
     {
-      if ( end_mem < mwn->start )
-	{
-	  gtk_clist_clear(mwn->clist);
-	  mwn->start = start_mem;
-	  mwn->end = end_mem;
-	  for (mem=mwn->start;mem<=mwn->end;mem++)
-	    {
-	      mem_view_append(mem,mwn->memory_type,mwn->clist);
-	    }
-	  update_all_memory_windows(1);
-	  gtk_clist_thaw(mwn->clist);
-	  return;
-	}
+      if (end_mem < mwn->start)
+        {
+          clear_store(mwn);
+          mwn->start = start_mem;
+          mwn->end = end_mem;
+          for (mem=mwn->start;mem<=mwn->end;mem++)
+            mem_view_append(mem, mwn->memory_type, mwn);
+          update_all_memory_windows(1);
+          return;
+        }
 
-      // add new memory location at the beginning
-      for (mem=mwn->start-1;mem>=start_mem && mem<mwn->start;mem--)
-	{
-	  mem_view_prepend(mem,mwn->memory_type,mwn->clist);
-	}
+      for (mem = mwn->start - 1; mem >= start_mem && mem < mwn->start; mem--)
+        mem_view_prepend(mem, mwn->memory_type, mwn);
     }
-  else if ( start_mem > mwn->end )
+  else if (start_mem > mwn->end)
     {
-      // Clear out everyting
-      gtk_clist_clear(mwn->clist);
-      mem_view_prepend(start_mem,mwn->memory_type,mwn->clist);
+      clear_store(mwn);
+      mem_view_append(start_mem, mwn->memory_type, mwn);
     }
-  else if ( start_mem > mwn->start )
+  else if (start_mem > mwn->start)
     {
-      // remove some memory locations at the beginning
-      for (mem=mwn->start; mem<start_mem;mem++)
-	{
-	  gtk_clist_remove(mwn->clist,0);
-	}
+      remove_first_rows(mwn, start_mem - mwn->start);
     }
 
   mwn->start = start_mem;
 
-  if ( end_mem > mwn->end )
+  if (end_mem > mwn->end)
     {
-      // add new memory locations at the end
-      if ( start_mem <= mwn->end )
-	start_mem = mwn->end;
-      for (mem=start_mem+1;mem<=end_mem;mem++)
-	{
-	  mem_view_append(mem,mwn->memory_type,mwn->clist);
-	}
+      if (start_mem <= mwn->end)
+        start_mem = mwn->end;
+      for (mem = start_mem + 1; mem <= end_mem; mem++)
+        mem_view_append(mem, mwn->memory_type, mwn);
     }
-  else if ( end_mem < mwn->end )
+  else if (end_mem < mwn->end)
     {
-      int row;
-      row = end_mem+1-start_mem;
-      for (mem=end_mem; mem<mwn->end;mem++)
-	{
-	  gtk_clist_remove(mwn->clist,row);
-	}
+      int row = end_mem + 1 - start_mem;
+      for (mem = end_mem; mem < mwn->end; mem++)
+        remove_row_at(mwn, row);
     }
   mwn->end = end_mem;
-  gtk_clist_thaw(mwn->clist);
-
 }
 
-static void change_start_address(GtkWidget *entry, guint64 address, 
-				 gpointer data)
+static void change_start_address(GtkWidget *entry, guint64 address, gpointer data)
 {
-  struct _mem_window_nfo *mwn;
-  WordP mem;
-
-  mwn = data;
-  mem = address;
-  update_memory_view(mwn,mem,mwn->end);
+  struct _mem_window_nfo *mwn = data;
+  update_memory_view(mwn, (WordP)address, mwn->end);
 }
 
-static void change_end_address(GtkWidget *entry, guint64 address, 
-			       gpointer data)
+static void change_end_address(GtkWidget *entry, guint64 address, gpointer data)
 {
-  WordP mem;
-  struct _mem_window_nfo *mwn;
-
-  mwn = data;
-  mem = address;
-  update_memory_view(mwn,mwn->start,mem);
+  struct _mem_window_nfo *mwn = data;
+  update_memory_view(mwn, mwn->start, (WordP)address);
 }
 
-/*
- * This will be called by the main routine to create a popup window.
- * At the top there should be 2 spin buttons that controls the range
- * of memory that the scroll bars can access (and labeled as such). One for
- * the top index and one for the bottom index. For 
- * memory efficieny reasons, the user may only want part of the memory visiable.
- * There should also be a step button at the top that will give a call to 
- * decode_step when pressed.
- */
-
-void create_memory_window()
+/* ------------------------------------------------------------------ */
+void create_memory_window(void)
 {
-  GtkWidget *vbox,*hbox,*scrolledW,*clist;
-  GtkWidget *entryTop,*entryBottom,*memtype_button;
+  GtkWidget *vbox, *hbox, *scrolledW;
+  GtkWidget *entryTop, *entryBottom, *memtype_button;
   WordP mem;
-  gchar temp_str[7];
-  gchar *titles[]={"address","value"};
+  gchar temp_str[16];
   struct _mem_window_nfo *mem_window;
-  struct _entryCB_nfo *entry_start_nfo,*entry_end_nfo;
+  struct _entryCB_nfo *entry_start_nfo, *entry_end_nfo;
+  GtkCellRenderer *renderer;
+  GtkTreeViewColumn *column;
   extern GtkAccelGroup *gDSP_keyboard_accel;
 
-  // Allocate colors
-  if ( gdsp_colormap == NULL )
-    {
-      gdsp_colormap = gdk_colormap_get_system ();
-      gdk_color_alloc(gdsp_colormap,&gdsp_color[0]);
-      gdk_color_alloc(gdsp_colormap,&gdsp_color[1]);
-    }
+  mem_window = g_new0(struct _mem_window_nfo, 1);
+  all_mem_win_list = g_list_prepend(all_mem_win_list, mem_window);
 
-  mem_window = g_new(struct _mem_window_nfo,1);
-  all_mem_win_list = g_list_prepend(all_mem_win_list,mem_window);
+  mem_window->memoryW = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+  g_signal_connect(mem_window->memoryW, "destroy",
+                   G_CALLBACK(destroy_window_CB), mem_window);
+  gtk_window_add_accel_group(GTK_WINDOW(mem_window->memoryW),
+                             gDSP_keyboard_accel);
+  gtk_widget_set_name(mem_window->memoryW, "Memory Window");
+  gtk_widget_set_size_request(mem_window->memoryW, 200, 350);
+  gtk_window_set_title(GTK_WINDOW(mem_window->memoryW), "Memory Window");
+  gtk_container_set_border_width(GTK_CONTAINER(mem_window->memoryW), 0);
 
-  mem_window->memoryW = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-
-  gtk_signal_connect(GTK_OBJECT(mem_window->memoryW),"destroy",
-		     (GtkSignalFunc)destroy_window_CB,mem_window);
-  // Attach keyboard accelerations from main window
-  gtk_window_add_accel_group (GTK_WINDOW (mem_window->memoryW), gDSP_keyboard_accel);
-
-  gtk_widget_set_name (mem_window->memoryW, "Memory Window");
-  gtk_widget_set_usize (GTK_WIDGET(mem_window->memoryW), 150, 350);
-  gtk_window_set_title (GTK_WINDOW (mem_window->memoryW), "Memory Window");
-  gtk_container_set_border_width (GTK_CONTAINER (mem_window->memoryW), 0);
-
-  vbox = gtk_vbox_new (FALSE, 0);
-  gtk_container_add (GTK_CONTAINER (mem_window->memoryW), vbox);
-  gtk_widget_show (vbox);
+  vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+  gtk_container_add(GTK_CONTAINER(mem_window->memoryW), vbox);
 
   memtype_button = gtk_button_new();
   mem_window->label_data = gtk_label_new("Data");
-#ifdef GTK2
   g_object_ref(mem_window->label_data);
-#endif
   mem_window->label_prog = gtk_label_new("Prog");
-#ifdef GTK2
   g_object_ref(mem_window->label_prog);
-#endif
-  gtk_container_add (GTK_CONTAINER (memtype_button), mem_window->label_data);
-  gtk_widget_show(mem_window->label_data);
-  gtk_box_pack_start (GTK_BOX (vbox), memtype_button, FALSE, FALSE, 0);
-  gtk_widget_show(memtype_button);
-  gtk_signal_connect(GTK_OBJECT(memtype_button), "clicked",
-		     GTK_SIGNAL_FUNC(mem_type_changeCB),
-		     mem_window);
+  gtk_container_add(GTK_CONTAINER(memtype_button), mem_window->label_data);
+  gtk_box_pack_start(GTK_BOX(vbox), memtype_button, FALSE, FALSE, 0);
+  g_signal_connect(memtype_button, "clicked",
+                   G_CALLBACK(mem_type_changeCB), mem_window);
 
-  hbox = gtk_hbox_new (FALSE, 0);
-  gtk_box_pack_start (GTK_BOX (vbox), hbox, FALSE, FALSE, 0);
-  gtk_widget_show (hbox);
+  hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+  gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 0);
 
-  // start memory
-  get_prog_mem_start_end(&mem_window->start,&mem_window->end);
+  get_prog_mem_start_end(&mem_window->start, &mem_window->end);
 
-  entry_start_nfo = g_new(struct _entryCB_nfo,1);
-  mem_window->start_nfo = entry_start_nfo; // Saving to prevent mem leak
+  entry_start_nfo = g_new0(struct _entryCB_nfo, 1);
+  mem_window->start_nfo = entry_start_nfo;
 
   entryTop = gtk_entry_new();
   entry_start_nfo->entry = entryTop;
   entry_start_nfo->bits = BITS_PER_ADDRESS;
   entry_start_nfo->CB_func = change_start_address;
   entry_start_nfo->data = mem_window;
-  gtk_box_pack_start (GTK_BOX (hbox), entryTop, TRUE, TRUE, 0);
-  gtk_entry_set_max_length(GTK_ENTRY(entryTop),7);
-#ifdef GTK2
-  gtk_entry_set_width_chars(GTK_ENTRY(entryTop),7);
-#else
-  gtk_widget_set_usize(GTK_WIDGET(entryTop),50,24); 
-#endif
-  g_snprintf(temp_str,7,"0x%x",mem_window->start);
-  gtk_entry_set_text (GTK_ENTRY(entryTop),temp_str);
-  gtk_signal_connect(GTK_OBJECT(entryTop), "activate",
-		     GTK_SIGNAL_FUNC(entry_hexCB),
-		     entry_start_nfo);
-  gtk_widget_show (entryTop);
+  gtk_box_pack_start(GTK_BOX(hbox), entryTop, TRUE, TRUE, 0);
+  gtk_entry_set_max_length(GTK_ENTRY(entryTop), 16);
+  gtk_entry_set_width_chars(GTK_ENTRY(entryTop), 7);
+  g_snprintf(temp_str, 16, "0x%x", mem_window->start);
+  gtk_entry_set_text(GTK_ENTRY(entryTop), temp_str);
+  g_signal_connect(entryTop, "activate", G_CALLBACK(entry_hexCB),
+                   entry_start_nfo);
 
-  entry_end_nfo = g_new(struct _entryCB_nfo,1);
-  mem_window->end_nfo = entry_end_nfo; // Saving to prevent mem leak
+  entry_end_nfo = g_new0(struct _entryCB_nfo, 1);
+  mem_window->end_nfo = entry_end_nfo;
 
   entryBottom = gtk_entry_new();
   entry_end_nfo->entry = entryBottom;
   entry_end_nfo->bits = BITS_PER_ADDRESS;
   entry_end_nfo->CB_func = change_end_address;
   entry_end_nfo->data = mem_window;
-  gtk_box_pack_start (GTK_BOX (hbox), entryBottom, TRUE, TRUE, 0);
-  gtk_entry_set_max_length(GTK_ENTRY(entryBottom),7);
-#ifdef GTK2
-  gtk_entry_set_width_chars(GTK_ENTRY(entryBottom),7);
-#else
-  gtk_widget_set_usize(GTK_WIDGET(entryBottom),50,24); 
-#endif
-  g_snprintf(temp_str,7,"0x%x",mem_window->end);
-  gtk_entry_set_text (GTK_ENTRY(entryBottom),temp_str);
-  gtk_signal_connect(GTK_OBJECT(entryBottom), "activate",
-		     GTK_SIGNAL_FUNC(entry_hexCB),
-		     entry_end_nfo);
-  gtk_widget_show (entryBottom);
+  gtk_box_pack_start(GTK_BOX(hbox), entryBottom, TRUE, TRUE, 0);
+  gtk_entry_set_max_length(GTK_ENTRY(entryBottom), 16);
+  gtk_entry_set_width_chars(GTK_ENTRY(entryBottom), 7);
+  g_snprintf(temp_str, 16, "0x%x", mem_window->end);
+  gtk_entry_set_text(GTK_ENTRY(entryBottom), temp_str);
+  g_signal_connect(entryBottom, "activate", G_CALLBACK(entry_hexCB),
+                   entry_end_nfo);
 
-
+  /* Tree view */
   scrolledW = gtk_scrolled_window_new(NULL, NULL);
-  gtk_box_pack_start (GTK_BOX (vbox), scrolledW, TRUE, TRUE, 0);
-  gtk_widget_show(scrolledW);
+  gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolledW),
+                                 GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+  gtk_box_pack_start(GTK_BOX(vbox), scrolledW, TRUE, TRUE, 0);
 
-  clist = gtk_clist_new_with_titles(2,titles);
-  gtk_clist_set_selection_mode(GTK_CLIST(clist), GTK_SELECTION_SINGLE);
-  
-  gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(scrolledW),clist);
- 
-  // Default to data memory
-  mem_window->memory_type=DATA_MEM_TYPE;
-  mem_window->clist = GTK_CLIST(clist); // the list that all memory view go in to
-  gtk_signal_connect( GTK_OBJECT(clist),"select_row", 
-		      GTK_SIGNAL_FUNC( click_CB), mem_window );
-  
-  for (mem=mem_window->start;mem<=mem_window->end;mem++)
-    {
-      mem_view_append(mem,mem_window->memory_type,mem_window->clist);
-    }
-  
-    gtk_clist_set_column_width(mem_window->clist,0,gtk_clist_optimal_column_width(mem_window->clist,0));
+  mem_window->store = gtk_list_store_new(N_COLS,
+                                         G_TYPE_STRING, G_TYPE_STRING,
+                                         G_TYPE_STRING, G_TYPE_STRING);
+  mem_window->view = GTK_TREE_VIEW(
+      gtk_tree_view_new_with_model(GTK_TREE_MODEL(mem_window->store)));
+  g_object_unref(mem_window->store);
 
+  renderer = gtk_cell_renderer_text_new();
+  column = gtk_tree_view_column_new_with_attributes("address", renderer,
+                                                    "text", COL_ADDRESS,
+                                                    "foreground", COL_FG,
+                                                    "background", COL_BG,
+                                                    NULL);
+  gtk_tree_view_append_column(mem_window->view, column);
 
-  gtk_widget_show(clist);
-  gtk_widget_show(mem_window->memoryW);
+  renderer = gtk_cell_renderer_text_new();
+  column = gtk_tree_view_column_new_with_attributes("value", renderer,
+                                                    "text", COL_VALUE,
+                                                    "foreground", COL_FG,
+                                                    "background", COL_BG,
+                                                    NULL);
+  gtk_tree_view_append_column(mem_window->view, column);
 
+  mem_window->memory_type = DATA_MEM_TYPE;
+
+  g_signal_connect(mem_window->view, "row-activated",
+                   G_CALLBACK(row_activated_CB), mem_window);
+
+  gtk_container_add(GTK_CONTAINER(scrolledW), GTK_WIDGET(mem_window->view));
+
+  for (mem = mem_window->start; mem <= mem_window->end; mem++)
+    mem_view_append(mem, mem_window->memory_type, mem_window);
+
+  gtk_widget_show_all(mem_window->memoryW);
+  gtk_widget_hide(mem_window->label_prog);
 }
 
+/* ------------------------------------------------------------------ */
 static void initialize_changed_mem(void)
 {
-  if (head_mem_changed==NULL)
+  if (head_mem_changed == NULL)
     {
-      struct _mem_changed *mc;
-
-      mc = g_new(struct _mem_changed,1);
-      head_mem_changed = g_list_prepend(head_mem_changed,mc);
-      mc->valid = 0;
+      struct _mem_changed *mc = g_new0(struct _mem_changed, 1);
+      head_mem_changed = g_list_prepend(head_mem_changed, mc);
     }
 }
 
-// type==0 for written, type==1 for read
 int check_if_changed_set(WordP address, int type)
 {
   GList *list;
   struct _mem_changed *mc;
   int k;
 
-  list=head_mem_changed;
+  list = head_mem_changed;
   while (list != NULL)
     {
-      mc=list->data;
-      for (k=0; k<mc->valid; k++)
-	{
-	  if ( address == mc->changed[k] )
-	    {
-	      mc->accessed[k][type]++;
-	      return 1;
-	    }
-	}
-      list=list->next;
+      mc = list->data;
+      for (k = 0; k < mc->valid; k++)
+        {
+          if (address == mc->changed[k])
+            {
+              mc->accessed[k][type]++;
+              return 1;
+            }
+        }
+      list = list->next;
     }
   return 0;
 }
-     
 
 void set_mem_changed(WordP address, int type)
 {
   GList *list;
   struct _mem_changed *mc;
 
-  if ( head_mem_changed == NULL )
+  if (head_mem_changed == NULL)
     initialize_changed_mem();
 
-  if ( check_if_changed_set(address,type) )
+  if (check_if_changed_set(address, type))
     return;
 
-  // Get last in list
-  list=head_mem_changed;
+  list = head_mem_changed;
   while (list->next != NULL)
+    list = list->next;
+
+  mc = list->data;
+
+  if (mc->valid == MEM_CHANGED_BLK)
     {
-      list=list->next;
+      mc = g_new0(struct _mem_changed, 1);
+      head_mem_changed = g_list_append(head_mem_changed, mc);
     }
 
-  mc=list->data;
-
-  if ( mc->valid == MEM_CHANGED_BLK )
-    {
-      // add new link
-      mc = g_new(struct _mem_changed,1);
-      mc->valid = 0;
-      head_mem_changed = g_list_append(head_mem_changed,mc);
-    }
-
-  mc->changed[mc->valid]=address;
-  mc->accessed[mc->valid][type]=1;
-  mc->accessed[mc->valid][type^1]=0;
-    
+  mc->changed[mc->valid] = address;
+  mc->accessed[mc->valid][type] = 1;
+  mc->accessed[mc->valid][type ^ 1] = 0;
   mc->valid++;
 }
 
 void clear_mem_changed(void)
 {
-  // free all links accepts first one.
-  // Usually only 1 link will every be used. Keeps down on
-  // allocatation and deallocation
   struct _mem_changed *mc;
   GList *list;
 
-  if ( head_mem_changed == NULL )
+  if (head_mem_changed == NULL)
     initialize_changed_mem();
 
   mc = head_mem_changed->data;
-  mc->valid=0;
+  mc->valid = 0;
 
   list = head_mem_changed->next;
   while (list)
     {
-      // free this link
       mc = list->data;
       g_free(mc);
-      
-      head_mem_changed = g_list_remove_link(head_mem_changed,list);
+      head_mem_changed = g_list_remove_link(head_mem_changed, list);
       g_list_free(list);
-
       list = head_mem_changed->next;
     }
-  head_mem_changed->next=NULL;
 }
 
-  
-// highlight = 1, to highlight changed memory
-// highlight = 0, to unhighlight changed memory
 void update_all_memory_windows(int highlight)
 {
-  GList *list,*list2;
-  struct _mem_window_nfo *mem_window;
-  gchar text_now[7];
-  int wait,k,row,available;
+  GList *list, *list2;
+  struct _mem_window_nfo *mw;
+  gchar text_now[16];
+  int wait, k, row, available;
   struct _mem_changed *mc;
 
   SP_last = MMR->SP;
-  
-  for (list=all_mem_win_list;list;list=list->next)
-    {
-      mem_window = list->data;
-      
-      if ( highlight )
-	{
-	  if ( (mem_window->start <= MMR->SP) &&
-	       (mem_window->end   >= MMR->SP) )
-	    {
-	      row = MMR->SP-mem_window->start;
-	      gtk_clist_set_background(mem_window->clist,row,
-				       &gdsp_color[3]);
-	      gtk_clist_set_foreground(mem_window->clist,row,
-				       NULL);
-	    }
-	  SP_last = MMR->SP;
-	}
-      else
-	{
-	  if ( (mem_window->start <= SP_last) &&
-	       (mem_window->end   >= SP_last) )
-	    {
-	      row = SP_last-mem_window->start;
-	      gtk_clist_set_background(mem_window->clist,row,
-				       NULL);
-	      gtk_clist_set_foreground(mem_window->clist,row,
-				       NULL);
-	    }
-	}
 
-       
-      for (list2=head_mem_changed;list2;list2=list2->next)
-	{
-	  mc = list2->data;
-	  for ( k=0;k<mc->valid;k++)
-	    {
-	      if ( (mem_window->start <= mc->changed[k]) &&
-		   (mem_window->end   >= mc->changed[k]) )
-		{
-		  // highlight this row red, it's changed
-		  // and give it new value
-		  row = mc->changed[k]-mem_window->start;
-		  if ( highlight )
-		    {
-		      if ( mc->accessed[k][0] >= mc->accessed[k][1] )
-			gtk_clist_set_foreground(mem_window->clist,row,
-						 &gdsp_color[0]);
-		      else
-			gtk_clist_set_foreground(mem_window->clist,row,
-						 &gdsp_color[2]);
-		      g_snprintf(text_now,7,"0x%x",
-				 read_mem(mc->changed[k],
-					  &wait,mem_window->memory_type,
-					  &available));
-		      gtk_clist_set_text(mem_window->clist,row,1,text_now);
-		    }
-		  else
-		    {
-		      gtk_clist_set_foreground(mem_window->clist,row,
-						       NULL);
-		    }
-		}
-	    }
-	}
+  for (list = all_mem_win_list; list; list = list->next)
+    {
+      mw = list->data;
+
+      if (highlight)
+        {
+          if ((mw->start <= MMR->SP) && (mw->end >= MMR->SP))
+            {
+              row = MMR->SP - mw->start;
+              set_row_colour(mw, row, NULL, BG_SP);
+            }
+          SP_last = MMR->SP;
+        }
+      else
+        {
+          if ((mw->start <= SP_last) && (mw->end >= SP_last))
+            {
+              row = SP_last - mw->start;
+              set_row_colour(mw, row, NULL, NULL);
+            }
+        }
+
+      for (list2 = head_mem_changed; list2; list2 = list2->next)
+        {
+          mc = list2->data;
+          for (k = 0; k < mc->valid; k++)
+            {
+              if ((mw->start <= mc->changed[k]) &&
+                  (mw->end >= mc->changed[k]))
+                {
+                  row = mc->changed[k] - mw->start;
+                  if (highlight)
+                    {
+                      const gchar *fg =
+                          (mc->accessed[k][0] >= mc->accessed[k][1])
+                          ? FG_WRITTEN : FG_READ;
+                      set_row_colour(mw, row, fg, NULL);
+                      g_snprintf(text_now, 16, "0x%x",
+                                 read_mem(mc->changed[k], &wait,
+                                          mw->memory_type, &available));
+                      set_row_value(mw, row, text_now);
+                    }
+                  else
+                    {
+                      set_row_colour(mw, row, NULL, NULL);
+                    }
+                }
+            }
+        }
     }
-  if ( highlight == 0 )
+  if (highlight == 0)
     clear_mem_changed();
 }
